@@ -1,0 +1,28 @@
+["build-system"]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lucidscan"
+version = "0.1.0"
+description = "LucidShark unified security scanner CLI"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "LucidShark" }
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+lucidscan = "lucidscan.cli:main"
+
+# Scanner versions bundled with this release
+# These are the source of truth for the build process
+[tool.lucidscan.scanners]
+trivy = "0.58.1"
+semgrep = "1.102.0"
+checkov = "3.2.346"
