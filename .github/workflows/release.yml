@@ -379,17 +379,14 @@ jobs:
         run: |
           mkdir -p release
 
-          # Move bundle archives
-          find artifacts -name "*.tar.gz" -not -name "*.sha256" -not -path "*/python-sdist/*" -exec mv {} release/ \; || true
-          find artifacts -name "*.zip" -not -name "*.sha256" -exec mv {} release/ \; || true
+          # Copy bundle archives from subdirectories
+          cp artifacts/lucidscan-bundle-darwin-arm64.tar.gz/*.tar.gz release/
+          cp artifacts/lucidscan-bundle-linux-amd64.tar.gz/*.tar.gz release/
+          cp artifacts/lucidscan-bundle-linux-arm64.tar.gz/*.tar.gz release/
+          cp artifacts/lucidscan-bundle-windows-amd64.zip/*.zip release/
 
-          # Move checksums
-          find artifacts -name "*.sha256" -exec mv {} release/ \;
-
-          # Combine checksums into single file
-          cd release
-          cat *.sha256 > SHA256SUMS
-          rm -f *.sha256
+          # Copy and combine checksums
+          cat artifacts/lucidscan-bundle-*/*.sha256 > release/SHA256SUMS
 
       - name: Read versions for release notes
         id: versions
