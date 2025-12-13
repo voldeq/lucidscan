@@ -111,7 +111,7 @@ jobs:
         shell: pwsh
         run: |
           python -m venv dist\bundle\venv
-          dist\bundle\venv\Scripts\pip.exe install --upgrade pip
+          dist\bundle\venv\Scripts\python.exe -m pip install --upgrade pip
 
       - name: Install Semgrep (Unix)
         if: runner.os != 'Windows'
