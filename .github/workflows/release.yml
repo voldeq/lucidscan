@@ -368,13 +368,18 @@ jobs:
         with:
           path: artifacts
 
+      - name: Debug - List downloaded artifacts
+        run: |
+          echo "=== Listing artifacts directory ==="
+          ls -laR artifacts/ || echo "artifacts directory not found"
+
       - name: Prepare release assets
         run: |
           mkdir -p release
 
           # Move bundle archives
-          find artifacts -name "*.tar.gz" -not -name "*.sha256" -not -path "*/python-sdist/*" -exec mv {} release/ \;
-          find artifacts -name "*.zip" -not -name "*.sha256" -exec mv {} release/ \;
+          find artifacts -name "*.tar.gz" -not -name "*.sha256" -not -path "*/python-sdist/*" -exec mv {} release/ \; || true
+          find artifacts -name "*.zip" -not -name "*.sha256" -exec mv {} release/ \; || true
 
           # Move checksums
           find artifacts -name "*.sha256" -exec mv {} release/ \;
