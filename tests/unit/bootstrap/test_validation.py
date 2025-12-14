@@ -32,7 +32,7 @@ class TestToolValidationResult:
     def test_all_valid_when_all_present(self) -> None:
         result = ToolValidationResult(
             trivy=ToolStatus.PRESENT,
-            semgrep=ToolStatus.PRESENT,
+            opengrep=ToolStatus.PRESENT,
             checkov=ToolStatus.PRESENT,
         )
         assert result.all_valid() is True
@@ -40,7 +40,7 @@ class TestToolValidationResult:
     def test_all_valid_false_when_missing(self) -> None:
         result = ToolValidationResult(
             trivy=ToolStatus.MISSING,
-            semgrep=ToolStatus.PRESENT,
+            opengrep=ToolStatus.PRESENT,
             checkov=ToolStatus.PRESENT,
         )
         assert result.all_valid() is False
@@ -48,7 +48,7 @@ class TestToolValidationResult:
     def test_all_valid_false_when_not_executable(self) -> None:
         result = ToolValidationResult(
             trivy=ToolStatus.PRESENT,
-            semgrep=ToolStatus.NOT_EXECUTABLE,
+            opengrep=ToolStatus.NOT_EXECUTABLE,
             checkov=ToolStatus.PRESENT,
         )
         assert result.all_valid() is False
@@ -56,23 +56,23 @@ class TestToolValidationResult:
     def test_missing_tools_returns_list(self) -> None:
         result = ToolValidationResult(
             trivy=ToolStatus.MISSING,
-            semgrep=ToolStatus.PRESENT,
+            opengrep=ToolStatus.PRESENT,
             checkov=ToolStatus.NOT_EXECUTABLE,
         )
         missing = result.missing_tools()
         assert "trivy" in missing
         assert "checkov" in missing
-        assert "semgrep" not in missing
+        assert "opengrep" not in missing
 
     def test_to_dict(self) -> None:
         result = ToolValidationResult(
             trivy=ToolStatus.PRESENT,
-            semgrep=ToolStatus.MISSING,
+            opengrep=ToolStatus.MISSING,
             checkov=ToolStatus.NOT_EXECUTABLE,
         )
         d = result.to_dict()
         assert d["trivy"] == "present"
-        assert d["semgrep"] == "missing"
+        assert d["opengrep"] == "missing"
         assert d["checkov"] == "not_executable"
 
 
@@ -114,7 +114,7 @@ class TestValidateTools:
         result = validate_tools(paths)
 
         assert result.trivy == ToolStatus.MISSING
-        assert result.semgrep == ToolStatus.MISSING
+        assert result.opengrep == ToolStatus.MISSING
         assert result.checkov == ToolStatus.MISSING
         assert result.all_valid() is False
 
@@ -122,48 +122,57 @@ class TestValidateTools:
         # Create directories and tool files
         paths.ensure_directories()
 
-        # Create trivy
-        paths.trivy_bin.write_text("#!/bin/bash\necho trivy")
-        paths.trivy_bin.chmod(paths.trivy_bin.stat().st_mode | stat.S_IXUSR)
+        # Create trivy (with version directory structure)
+        trivy_bin = paths.plugin_bin_dir("trivy", "1.0.0") / "trivy"
+        trivy_bin.parent.mkdir(parents=True, exist_ok=True)
+        trivy_bin.write_text("#!/bin/bash\necho trivy")
+        trivy_bin.chmod(trivy_bin.stat().st_mode | stat.S_IXUSR)
 
-        # Create semgrep
-        paths.semgrep_bin.write_text("#!/bin/bash\necho semgrep")
-        paths.semgrep_bin.chmod(paths.semgrep_bin.stat().st_mode | stat.S_IXUSR)
+        # Create opengrep (with version directory structure)
+        opengrep_bin = paths.plugin_bin_dir("opengrep", "1.0.0") / "opengrep"
+        opengrep_bin.parent.mkdir(parents=True, exist_ok=True)
+        opengrep_bin.write_text("#!/bin/bash\necho opengrep")
+        opengrep_bin.chmod(opengrep_bin.stat().st_mode | stat.S_IXUSR)
 
-        # Create checkov (needs nested directory)
-        paths.checkov_bin.parent.mkdir(parents=True, exist_ok=True)
-        paths.checkov_bin.write_text("#!/bin/bash\necho checkov")
-        paths.checkov_bin.chmod(paths.checkov_bin.stat().st_mode | stat.S_IXUSR)
+        # Create checkov (with version directory structure and venv)
+        checkov_bin = paths.plugin_bin_dir("checkov", "1.0.0") / "venv" / "bin" / "checkov"
+        checkov_bin.parent.mkdir(parents=True, exist_ok=True)
+        checkov_bin.write_text("#!/bin/bash\necho checkov")
+        checkov_bin.chmod(checkov_bin.stat().st_mode | stat.S_IXUSR)
 
         result = validate_tools(paths)
 
         assert result.trivy == ToolStatus.PRESENT
-        assert result.semgrep == ToolStatus.PRESENT
+        assert result.opengrep == ToolStatus.PRESENT
         assert result.checkov == ToolStatus.PRESENT
         assert result.all_valid() is True
 
     def test_partial_missing(self, paths: LucidscanPaths) -> None:
         paths.ensure_directories()
 
-        # Only create trivy
-        paths.trivy_bin.write_text("#!/bin/bash\necho trivy")
-        paths.trivy_bin.chmod(paths.trivy_bin.stat().st_mode | stat.S_IXUSR)
+        # Only create trivy (with version directory structure)
+        trivy_bin = paths.plugin_bin_dir("trivy", "1.0.0") / "trivy"
+        trivy_bin.parent.mkdir(parents=True, exist_ok=True)
+        trivy_bin.write_text("#!/bin/bash\necho trivy")
+        trivy_bin.chmod(trivy_bin.stat().st_mode | stat.S_IXUSR)
 
         result = validate_tools(paths)
 
         assert result.trivy == ToolStatus.PRESENT
-        assert result.semgrep == ToolStatus.MISSING
+        assert result.opengrep == ToolStatus.MISSING
         assert result.checkov == ToolStatus.MISSING
         assert result.all_valid() is False
-        assert "semgrep" in result.missing_tools()
+        assert "opengrep" in result.missing_tools()
         assert "checkov" in result.missing_tools()
 
     def test_not_executable(self, paths: LucidscanPaths) -> None:
         paths.ensure_directories()
 
-        # Create trivy without execute permission
-        paths.trivy_bin.write_text("#!/bin/bash\necho trivy")
-        paths.trivy_bin.chmod(stat.S_IRUSR | stat.S_IWUSR)  # No execute
+        # Create trivy without execute permission (with version directory structure)
+        trivy_bin = paths.plugin_bin_dir("trivy", "1.0.0") / "trivy"
+        trivy_bin.parent.mkdir(parents=True, exist_ok=True)
+        trivy_bin.write_text("#!/bin/bash\necho trivy")
+        trivy_bin.chmod(stat.S_IRUSR | stat.S_IWUSR)  # No execute
 
         result = validate_tools(paths)
 

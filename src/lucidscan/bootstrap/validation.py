@@ -9,7 +9,7 @@ import os
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from lucidscan.bootstrap.paths import LucidscanPaths
 from lucidscan.core.logging import get_logger
@@ -27,23 +27,23 @@ class ToolStatus(str, Enum):
 
 @dataclass
 class ToolValidationResult:
-    """Result of validating all required tools.
+    """Result of validating all required scanner plugin tools.
 
     Attributes:
         trivy: Status of trivy binary.
-        semgrep: Status of semgrep binary.
+        opengrep: Status of opengrep binary.
         checkov: Status of checkov binary.
     """
 
     trivy: ToolStatus
-    semgrep: ToolStatus
+    opengrep: ToolStatus
     checkov: ToolStatus
 
     def all_valid(self) -> bool:
         """Check if all tools are present and executable."""
         return (
             self.trivy == ToolStatus.PRESENT
-            and self.semgrep == ToolStatus.PRESENT
+            and self.opengrep == ToolStatus.PRESENT
             and self.checkov == ToolStatus.PRESENT
         )
 
@@ -52,8 +52,8 @@ class ToolValidationResult:
         missing = []
         if self.trivy != ToolStatus.PRESENT:
             missing.append("trivy")
-        if self.semgrep != ToolStatus.PRESENT:
-            missing.append("semgrep")
+        if self.opengrep != ToolStatus.PRESENT:
+            missing.append("opengrep")
         if self.checkov != ToolStatus.PRESENT:
             missing.append("checkov")
         return missing
@@ -62,7 +62,7 @@ class ToolValidationResult:
         """Convert to dictionary for JSON serialization."""
         return {
             "trivy": self.trivy.value,
-            "semgrep": self.semgrep.value,
+            "opengrep": self.opengrep.value,
             "checkov": self.checkov.value,
         }
 
@@ -87,26 +87,26 @@ def validate_tool(path: Path) -> ToolStatus:
 
 
 def validate_tools(paths: LucidscanPaths) -> ToolValidationResult:
-    """Validate all required scanner tools.
+    """Validate all required scanner plugin tools.
 
-    Checks that trivy, semgrep, and checkov are present and executable
-    in the expected locations under ~/.lucidscan.
+    Checks that trivy, opengrep, and checkov are present and executable
+    in the expected locations under ~/.lucidscan/bin/.
 
     Args:
-        paths: LucidscanPaths instance pointing to the tool bundle.
+        paths: LucidscanPaths instance pointing to the plugin binary cache.
 
     Returns:
         ToolValidationResult with status of each tool.
     """
-    LOGGER.debug("Validating tool installations...")
+    LOGGER.debug("Validating scanner plugin binaries...")
 
     trivy_status = validate_tool(paths.trivy_bin)
     if trivy_status != ToolStatus.PRESENT:
         LOGGER.debug(f"Trivy: {trivy_status.value} at {paths.trivy_bin}")
 
-    semgrep_status = validate_tool(paths.semgrep_bin)
-    if semgrep_status != ToolStatus.PRESENT:
-        LOGGER.debug(f"Semgrep: {semgrep_status.value} at {paths.semgrep_bin}")
+    opengrep_status = validate_tool(paths.opengrep_bin)
+    if opengrep_status != ToolStatus.PRESENT:
+        LOGGER.debug(f"OpenGrep: {opengrep_status.value} at {paths.opengrep_bin}")
 
     checkov_status = validate_tool(paths.checkov_bin)
     if checkov_status != ToolStatus.PRESENT:
@@ -114,12 +114,12 @@ def validate_tools(paths: LucidscanPaths) -> ToolValidationResult:
 
     result = ToolValidationResult(
         trivy=trivy_status,
-        semgrep=semgrep_status,
+        opengrep=opengrep_status,
         checkov=checkov_status,
     )
 
     if result.all_valid():
-        LOGGER.debug("All tools validated successfully.")
+        LOGGER.debug("All scanner plugin binaries validated successfully.")
     else:
         LOGGER.debug(f"Missing/invalid tools: {result.missing_tools()}")
 

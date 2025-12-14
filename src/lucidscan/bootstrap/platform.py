@@ -1,6 +1,6 @@
-"""Platform detection for lucidscan bootstrap.
+"""Platform detection for lucidscan scanner plugins.
 
-Detects OS and architecture to determine which tool bundle to download.
+Detects OS and architecture to determine which scanner binaries to download.
 """
 
 from __future__ import annotations

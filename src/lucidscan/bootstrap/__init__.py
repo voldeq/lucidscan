@@ -1,16 +1,17 @@
 """
-Bootstrap module for lucidscan tool bundle management.
+Bootstrap module for lucidscan plugin binary management.
 
 This module handles:
 - Platform detection (OS + architecture)
-- Tool bundle directory management (~/.lucidscan)
-- Bundle download and extraction
-- Tool validation (trivy, semgrep, checkov)
+- Plugin binary directory management (~/.lucidscan/bin/)
+- Tool validation (trivy, opengrep, checkov)
+
+Each scanner plugin is responsible for downloading its own binary
+using the utilities provided by this module.
 """
 
 from lucidscan.bootstrap.platform import get_platform_info, PlatformInfo
 from lucidscan.bootstrap.paths import get_lucidscan_home, LucidscanPaths
-from lucidscan.bootstrap.bundle import BundleManager
 from lucidscan.bootstrap.validation import validate_tools, ToolValidationResult
 
 __all__ = [
@@ -18,7 +19,6 @@ __all__ = [
     "PlatformInfo",
     "get_lucidscan_home",
     "LucidscanPaths",
-    "BundleManager",
     "validate_tools",
     "ToolValidationResult",
 ]

@@ -46,24 +46,18 @@ class TestLucidscanPaths:
 
         assert paths.home == home
         assert paths.bin_dir == home / "bin"
-        assert paths.checkov_env == home / "checkov-env"
         assert paths.cache_dir == home / "cache"
         assert paths.config_dir == home / "config"
         assert paths.logs_dir == home / "logs"
 
-    def test_tool_paths(self, tmp_path: Path) -> None:
+    def test_plugin_bin_dir(self, tmp_path: Path) -> None:
+        """Test plugin-specific binary directory structure."""
         home = tmp_path / ".lucidscan"
         paths = LucidscanPaths(home)
 
-        assert paths.trivy_bin == home / "bin" / "trivy"
-        assert paths.semgrep_bin == home / "bin" / "semgrep"
-        assert paths.checkov_bin == home / "checkov-env" / "bin" / "checkov"
-
-    def test_versions_json_path(self, tmp_path: Path) -> None:
-        home = tmp_path / ".lucidscan"
-        paths = LucidscanPaths(home)
-
-        assert paths.versions_json == home / "config" / "versions.json"
+        assert paths.plugin_bin_dir("trivy", "0.68.1") == home / "bin" / "trivy" / "0.68.1"
+        assert paths.plugin_bin_dir("opengrep", "1.12.1") == home / "bin" / "opengrep" / "1.12.1"
+        assert paths.plugin_bin_dir("checkov", "3.2.495") == home / "bin" / "checkov" / "3.2.495"
 
     def test_trivy_cache_dir(self, tmp_path: Path) -> None:
         home = tmp_path / ".lucidscan"
@@ -84,7 +78,6 @@ class TestLucidscanPaths:
         # All directories should now exist
         assert paths.home.exists()
         assert paths.bin_dir.exists()
-        assert paths.checkov_env.exists()
         assert paths.cache_dir.exists()
         assert paths.config_dir.exists()
         assert paths.logs_dir.exists()
@@ -107,12 +100,15 @@ class TestLucidscanPaths:
 
         assert paths.is_initialized() is False
 
-    def test_is_initialized_true_when_versions_json_exists(self, tmp_path: Path) -> None:
+    def test_is_initialized_true_when_plugin_installed(self, tmp_path: Path) -> None:
+        """Test that is_initialized returns True when a plugin directory exists."""
         home = tmp_path / ".lucidscan"
         paths = LucidscanPaths(home)
 
         paths.ensure_directories()
-        paths.versions_json.write_text('{"version": "1.0.0"}')
+        # Create a plugin directory
+        plugin_dir = paths.plugin_bin_dir("trivy", "0.68.1")
+        plugin_dir.mkdir(parents=True, exist_ok=True)
 
         assert paths.is_initialized() is True
 
@@ -125,3 +121,80 @@ class TestLucidscanPaths:
             assert paths.home == Path("/mock/home/.lucidscan")
             mock_home.assert_called_once()
 
+
+class TestToolBinaryPaths:
+    """Tests for tool binary path resolution with version directories."""
+
+    def test_trivy_bin_with_version_dir(self, tmp_path: Path) -> None:
+        """Test trivy_bin finds binary in version directory."""
+        home = tmp_path / ".lucidscan"
+        paths = LucidscanPaths(home)
+        paths.ensure_directories()
+
+        # Create version directory with binary
+        version_dir = paths.bin_dir / "trivy" / "0.68.1"
+        version_dir.mkdir(parents=True)
+        trivy_bin = version_dir / "trivy"
+        trivy_bin.write_text("#!/bin/bash\necho trivy")
+
+        # Should find the binary
+        assert paths.trivy_bin == trivy_bin
+
+    def test_trivy_bin_with_current_symlink(self, tmp_path: Path) -> None:
+        """Test trivy_bin uses 'current' symlink when present."""
+        home = tmp_path / ".lucidscan"
+        paths = LucidscanPaths(home)
+        paths.ensure_directories()
+
+        # Create version directory
+        version_dir = paths.bin_dir / "trivy" / "0.68.1"
+        version_dir.mkdir(parents=True)
+        trivy_bin = version_dir / "trivy"
+        trivy_bin.write_text("#!/bin/bash\necho trivy")
+
+        # Create current symlink
+        current_link = paths.bin_dir / "trivy" / "current"
+        current_link.symlink_to(version_dir)
+
+        # Should use current symlink
+        assert paths.trivy_bin == current_link / "trivy"
+
+    def test_opengrep_bin_with_version_dir(self, tmp_path: Path) -> None:
+        """Test opengrep_bin finds binary in version directory."""
+        home = tmp_path / ".lucidscan"
+        paths = LucidscanPaths(home)
+        paths.ensure_directories()
+
+        # Create version directory with binary
+        version_dir = paths.bin_dir / "opengrep" / "1.12.1"
+        version_dir.mkdir(parents=True)
+        opengrep_bin = version_dir / "opengrep"
+        opengrep_bin.write_text("#!/bin/bash\necho opengrep")
+
+        # Should find the binary
+        assert paths.opengrep_bin == opengrep_bin
+
+    def test_checkov_bin_with_venv_structure(self, tmp_path: Path) -> None:
+        """Test checkov_bin finds binary in virtualenv structure."""
+        home = tmp_path / ".lucidscan"
+        paths = LucidscanPaths(home)
+        paths.ensure_directories()
+
+        # Create venv structure
+        venv_bin_dir = paths.bin_dir / "checkov" / "3.2.495" / "venv" / "bin"
+        venv_bin_dir.mkdir(parents=True)
+        checkov_bin = venv_bin_dir / "checkov"
+        checkov_bin.write_text("#!/bin/bash\necho checkov")
+
+        # Should find the binary in venv
+        assert paths.checkov_bin == checkov_bin
+
+    def test_tool_bin_fallback_path(self, tmp_path: Path) -> None:
+        """Test tool bin paths return fallback when not installed."""
+        home = tmp_path / ".lucidscan"
+        paths = LucidscanPaths(home)
+
+        # Without any installation, should return fallback paths
+        assert "trivy" in str(paths.trivy_bin)
+        assert "opengrep" in str(paths.opengrep_bin)
+        assert "checkov" in str(paths.checkov_bin)

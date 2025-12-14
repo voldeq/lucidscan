@@ -1,6 +1,7 @@
-"""Path management for lucidscan tool bundle.
+"""Path management for lucidscan plugin binary cache.
 
 Handles the ~/.lucidscan directory structure and path resolution.
+Each scanner plugin manages its own binary under ~/.lucidscan/bin/{tool}/{version}/.
 """
 
 from __future__ import annotations
@@ -37,20 +38,22 @@ def get_lucidscan_home() -> Path:
 class LucidscanPaths:
     """Manages paths within the lucidscan home directory.
 
-    Directory structure:
+    Directory structure (plugin-based):
         ~/.lucidscan/
-            bin/           - Scanner binaries (trivy, semgrep)
-            checkov-env/   - Checkov virtualenv
-            cache/         - Scanner caches (trivy DB, etc.)
-            config/        - Configuration files, versions.json
-            logs/          - Debug/diagnostic logs
+            bin/
+                trivy/{version}/trivy       - Trivy binary
+                opengrep/{version}/opengrep - OpenGrep binary
+                checkov/{version}/venv/     - Checkov virtualenv
+            cache/
+                trivy/                      - Trivy vulnerability DB
+            config/                         - Configuration files
+            logs/                           - Debug/diagnostic logs
     """
 
     home: Path
 
     # Subdirectory names
     _BIN_DIR: ClassVar[str] = "bin"
-    _CHECKOV_ENV_DIR: ClassVar[str] = "checkov-env"
     _CACHE_DIR: ClassVar[str] = "cache"
     _CONFIG_DIR: ClassVar[str] = "config"
     _LOGS_DIR: ClassVar[str] = "logs"
@@ -62,13 +65,8 @@ class LucidscanPaths:
 
     @property
     def bin_dir(self) -> Path:
-        """Directory containing scanner binaries."""
+        """Directory containing scanner plugin binaries."""
         return self.home / self._BIN_DIR
-
-    @property
-    def checkov_env(self) -> Path:
-        """Directory containing Checkov virtualenv."""
-        return self.home / self._CHECKOV_ENV_DIR
 
     @property
     def cache_dir(self) -> Path:
@@ -85,25 +83,59 @@ class LucidscanPaths:
         """Directory for log files."""
         return self.home / self._LOGS_DIR
 
-    @property
-    def trivy_bin(self) -> Path:
-        """Path to the trivy binary."""
-        return self.bin_dir / "trivy"
+    def plugin_bin_dir(self, plugin_name: str, version: str) -> Path:
+        """Get the binary directory for a specific plugin version.
+
+        Args:
+            plugin_name: Name of the plugin (trivy, opengrep, checkov).
+            version: Version string.
+
+        Returns:
+            Path to the plugin's version-specific binary directory.
+        """
+        return self.bin_dir / plugin_name / version
 
     @property
-    def semgrep_bin(self) -> Path:
-        """Path to the semgrep binary."""
-        return self.bin_dir / "semgrep"
+    def trivy_bin(self) -> Path:
+        """Path to the trivy binary (uses 'current' symlink or first available version)."""
+        trivy_dir = self.bin_dir / "trivy"
+        current_link = trivy_dir / "current"
+        if current_link.exists():
+            return current_link / "trivy"
+        # Fallback: find any version directory
+        if trivy_dir.exists():
+            for version_dir in trivy_dir.iterdir():
+                if version_dir.is_dir() and version_dir.name != "current":
+                    return version_dir / "trivy"
+        return trivy_dir / "trivy"  # Fallback path
+
+    @property
+    def opengrep_bin(self) -> Path:
+        """Path to the opengrep binary (uses 'current' symlink or first available version)."""
+        opengrep_dir = self.bin_dir / "opengrep"
+        current_link = opengrep_dir / "current"
+        if current_link.exists():
+            return current_link / "opengrep"
+        # Fallback: find any version directory
+        if opengrep_dir.exists():
+            for version_dir in opengrep_dir.iterdir():
+                if version_dir.is_dir() and version_dir.name != "current":
+                    return version_dir / "opengrep"
+        return opengrep_dir / "opengrep"  # Fallback path
 
     @property
     def checkov_bin(self) -> Path:
         """Path to the checkov binary in its virtualenv."""
-        return self.checkov_env / "bin" / "checkov"
-
-    @property
-    def versions_json(self) -> Path:
-        """Path to versions.json file."""
-        return self.config_dir / "versions.json"
+        checkov_dir = self.bin_dir / "checkov"
+        current_link = checkov_dir / "current"
+        if current_link.exists():
+            return current_link / "venv" / "bin" / "checkov"
+        # Fallback: find any version directory
+        if checkov_dir.exists():
+            for version_dir in checkov_dir.iterdir():
+                if version_dir.is_dir() and version_dir.name != "current":
+                    return version_dir / "venv" / "bin" / "checkov"
+        return checkov_dir / "venv" / "bin" / "checkov"  # Fallback path
 
     @property
     def trivy_cache(self) -> Path:
@@ -115,7 +147,6 @@ class LucidscanPaths:
         directories = [
             self.home,
             self.bin_dir,
-            self.checkov_env,
             self.cache_dir,
             self.config_dir,
             self.logs_dir,
@@ -125,10 +156,15 @@ class LucidscanPaths:
             directory.mkdir(parents=True, exist_ok=True)
 
     def is_initialized(self) -> bool:
-        """Check if lucidscan has been initialized.
+        """Check if any scanner plugins have been installed.
 
-        Returns True if versions.json exists, indicating a successful
-        bootstrap has been performed.
+        Returns True if the bin directory exists and contains at least
+        one plugin subdirectory.
         """
-        return self.versions_json.exists()
-
+        if not self.bin_dir.exists():
+            return False
+        # Check if any plugin directories exist
+        for plugin_dir in self.bin_dir.iterdir():
+            if plugin_dir.is_dir():
+                return True
+        return False

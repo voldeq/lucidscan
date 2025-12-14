@@ -18,7 +18,7 @@ Security tooling across these layers is fragmented and inconsistent. Existing co
 - **Limited or complex self-hosting**: self-hosted options are limited or overly complex.
 - **Noisy output**: they frequently overwhelm users with noisy or context-poor results when teams simply want actionable findings.
 
-Meanwhile, excellent open-source scanners already exist across these domains — OSV-based SCA tools, Trivy for container scanning, Checkov for IaC, and Semgrep for static analysis. But in practice, using them individually leads to new challenges:
+Meanwhile, excellent open-source scanners already exist across these domains — OSV-based SCA tools, Trivy for container scanning, Checkov for IaC, and OpenGrep for static analysis. But in practice, using them individually leads to new challenges:
 
 - **Incompatible outputs**: each scanner produces different, incompatible output formats.
 - **Poor correlation**: results cannot be easily correlated or deduplicated.
@@ -29,269 +29,402 @@ Meanwhile, excellent open-source scanners already exist across these domains —
 
 At the same time, the rise of AI-connected systems (e.g., MCP servers) introduces new security considerations such as over-privileged tool access, unsafe data flows, and insecure endpoint configurations. These needs are not addressed by existing scanners but will soon become critical for many teams.
 
-There is a clear need for a fast, transparent, self-hostable, open-source security platform that:
+There is a clear need for a fast, transparent, self-hostable, open-source security scanning **framework** that:
 
-- **Performs SCA, container scanning, IaC scanning, and static code analysis (Semgrep) from day one.**
+- **Orchestrates SCA, container scanning, IaC scanning, and static code analysis** through pluggable scanner adapters.
 - **Unifies multiple proven open-source engines** behind a single CLI, consistent UX, and shared output schema.
 - **Provides low-noise, actionable, developer-friendly results** suitable for local environments and CI/CD.
 - **Avoids the opacity, complexity, and cost** of existing commercial platforms.
-- **Can be extended in future versions** to include additional analysis domains such as SonarQube ingestion, advanced SAST rulesets, and AI/MCP configuration scanning without architectural changes.
+- **Enables extensibility** through a plugin architecture that allows third parties to add new scanners, enrichers, and reporters without changing the core framework.
 
-This product aims to fill that gap by delivering an open, developer-first security scanner that covers code, dependencies, containers, and infrastructure from the start — while deliberately designing its architecture as a modular, pluggable scanning system capable of absorbing new security domains in future versions.
+This product aims to fill that gap by delivering an open, developer-first security scanning **framework** — the "LangChain for DevSecOps" — that orchestrates scanning across code, dependencies, containers, and infrastructure through a modular, pluggable architecture.
+
+### 1.1 Vision: LangChain for DevSecOps
+
+Just as LangChain revolutionized AI application development by providing a unified abstraction layer over multiple LLM providers, **lucidscan aims to be the LangChain for security scanning**. The core insight is the same:
+
+| LangChain | lucidscan |
+|-----------|-----------|
+| Abstracts OpenAI, Anthropic, Ollama, etc. | Abstracts Trivy, OpenGrep, Snyk, CodeQL, etc. |
+| Composable chains and agents | Composable scan pipelines and enrichers |
+| Swap models without changing code | Swap scanners without changing config |
+| Unified interface to any LLM | Unified interface to any security scanner |
+| `langchain.llms.OpenAI()` | `lucidscan.scanners.TrivyScanner()` |
+
+**Where the analogy diverges:** Unlike LLM orchestration, security scanning requires strict determinism, reproducibility, and auditability. lucidscan prioritizes predictability over dynamism — the same inputs always produce the same outputs, and every finding is traceable to its source scanner.
+
+This architectural vision drives several key design decisions:
+
+- **Scanners are plugins**: Each scanner (Trivy, OpenGrep, Checkov, etc.) is a self-contained plugin that implements a common interface. Users install only what they need.
+- **Unified abstractions**: Common interfaces for SCA, SAST, container, and IaC scanning regardless of which tool performs the scan. Unified abstractions normalize core metadata while preserving scanner-specific details as structured extensions.
+- **Composability**: Declarative pipelines chain scanners with enrichers and reporters. Execution order is deterministic with no dynamic runtime branching.
+- **Extensible ecosystem**: The plugin architecture is designed to support third-party scanners as the ecosystem matures.
+- **AI-augmented (not AI-driven)**: LLM-based enrichment adds explanations and context to findings. AI never makes pass/fail decisions, never mutates scanner results, and never suppresses findings. AI enriches; scanners decide.
+
+This is not just a wrapper around existing tools — it's a **framework** that makes security scanning composable, extensible, and developer-friendly.
 
 ---
 
 ## 2. Goals
 
-V1 of the product will deliver a unified, open-source, developer-friendly security scanner that integrates multiple proven scanning engines behind a single command-line interface, producing consistent, actionable results across the following domains.
+lucidscan is a **plugin-based security scanning framework** — the "LangChain for DevSecOps." Rather than building custom scanning engines, lucidscan provides:
 
-### 2.1 Software Composition Analysis (SCA)
+- **Unified abstractions** over security scanning domains (SCA, SAST, IaC, containers).
+- **Pluggable scanners** that can be swapped without changing configuration.
+- **Composable pipelines** that chain scanners → enrichers → reporters.
+- **A consistent CLI and output schema** regardless of which tools run underneath.
 
-V1 will use **Trivy** as the primary open-source SCA engine, providing:
+The framework ships with default plugins (Trivy, OpenGrep, Checkov) but is designed for extensibility — third parties can publish scanner plugins to PyPI.
 
-- **Dependency vulnerability scanning** for supported ecosystems (npm, yarn, pip, poetry, Go modules, Ruby gems, Cargo, etc.).
-- **Automatic vulnerability database updates** (through Trivy’s built-in feeds: OSV, GHSA, distro advisories).
-- **Detection of vulnerable packages**, including transitive dependencies.
-- **Fix version suggestions** where available.
-- **Local and CI scanning**.
-- **Normalization** of Trivy’s SCA output into the unified issue schema.
+### 2.1 Framework Architecture
 
-There will be **no custom SCA matching logic in V1** — the product will rely on Trivy for accuracy and coverage.
+The core of lucidscan is a **plugin-based framework** with three component types:
 
-### 2.2 Container Image Scanning
+#### 2.1.1 Scanner Plugins
 
-V1 will integrate Trivy’s container scanning capabilities to provide:
+Scanner plugins wrap underlying security tools and expose them through a common interface:
 
-- **Detection of OS package vulnerabilities** in container images.
-- **Detection of language dependency vulnerabilities** within container layers.
-- **Basic config/secret checks** surfaced by Trivy.
-- **Support for local image scanning and remote registry scanning.**
-- **Normalization of container scan results** into the unified issue model.
+```python
+class ScannerPlugin(ABC):
+    @property
+    def name(self) -> str: ...
+    @property
+    def domains(self) -> List[ScanDomain]: ...
+    def ensure_binary(self) -> Path: ...
+    def scan(self, context: ScanContext) -> List[UnifiedIssue]: ...
+```
 
-This reuse of Trivy reduces integration complexity and ensures consistent vulnerability data across SCA and containers.
+Key properties:
 
-### 2.3 Infrastructure-as-Code (IaC) Scanning
+- **Self-contained**: Each plugin manages its own binary (download, cache, invoke).
+- **Swappable**: Replace the default SCA scanner (Trivy) with another (Snyk) without changing workflow.
+- **Discoverable**: Plugins register via Python entry points for auto-discovery.
 
-V1 will integrate **Checkov** to provide:
+#### 2.1.2 Enricher Plugins
 
-- **Detection of insecure configurations** in Terraform, Kubernetes manifests, CloudFormation, and related IaC formats.
-- **Severity-mapped findings** from Checkov rulesets.
-- **Directory-based scanning.**
-- **Normalization of IaC findings** into the unified issue schema.
+Enricher plugins enhance scan results with additional context:
 
-Only **Checkov’s OSS rule set** will be used in V1.
+```python
+class EnricherPlugin(ABC):
+    def enrich(self, issues: List[UnifiedIssue], context: ScanContext) -> List[UnifiedIssue]: ...
+```
 
-### 2.4 Static Application Security Testing (SAST) via Semgrep
+Examples: AI explanations, CVSS scoring, EPSS predictions, reachability analysis.
 
-V1 will include **Semgrep** as the static analysis layer:
+#### 2.1.3 Reporter Plugins
 
-- **Running Semgrep** against the repository using community rulesets.
-- **Detecting insecure coding patterns, misconfigurations, or bad practices.**
-- **Normalizing Semgrep results** into the unified issue schema.
-- **Supporting multiple programming languages** out of the box.
-- **Running locally and inside CI.**
+Reporter plugins format and output scan results:
 
-Custom rules may be supported later but are **not required for V1**.
+```python
+class ReporterPlugin(ABC):
+    def report(self, result: ScanResult, output: IO) -> None: ...
+```
 
-### 2.5 Unified CLI
+Examples: JSON, SARIF, HTML, table, dashboard upload.
 
-V1 will provide a single CLI that:
+### 2.2 Scanning Domains
 
-- Executes **SCA, container, IaC, and SAST scans** individually or together.
-- Supports selective execution via flags.
+lucidscan defines four **abstract scanning domains**. Each domain can be served by one or more scanner plugins:
 
-Example flags:
+| Domain | Description | Default Plugin |
+|--------|-------------|----------------|
+| **SCA** | Dependency vulnerability scanning | `TrivyScanner` |
+| **Container** | Container image scanning | `TrivyScanner` |
+| **IaC** | Infrastructure-as-Code misconfigurations | `CheckovScanner` |
+| **SAST** | Static application security testing | `OpenGrepScanner` |
 
-- `--sca`
-- `--container`
-- `--iac`
-- `--sast`
-- `--all`
+Users select domains via CLI flags (`--sca`, `--iac`, `--sast`, `--container`, `--all`), and the framework routes to the appropriate plugin.
 
-The CLI will:
+**Swappability example:**
 
-- **Output standardized JSON** for all scanners.
-- Support **human-readable formats** (table, summary).
-- Work coherently in **local dev and CI/CD pipelines**.
+```yaml
+# .lucidscan.yml - use Snyk for SCA instead of Trivy
+scanners:
+  sca:
+    plugin: snyk        # Requires: pip install lucidscan-snyk
+  sast:
+    plugin: opengrep    # Default
+```
 
-The CLI will be the **primary interface** for V1.
+### 2.3 Built-in Scanner Plugins
 
-### 2.6 Unified Issue Schema
+lucidscan ships with three scanner plugins covering all four domains:
 
-V1 will define a consistent issue model with fields such as:
+#### 2.3.1 TrivyScanner
 
-- **Scanner type** (`sca`, `container`, `iac`, `sast`).
-- **Issue/vulnerability ID.**
-- **Severity.**
-- **Description.**
-- **Affected file, package, resource, or container layer.**
-- **Remediation or fix guidance** (when provided by underlying tool).
-- **Metadata unique to scanner types** (e.g., dependency path, IaC resource).
-- **Code snippet context** (Semgrep).
+- **Domains**: SCA, Container
+- **Underlying tool**: [Trivy](https://github.com/aquasecurity/trivy)
+- **Capabilities**:
+  - Dependency vulnerability scanning (npm, pip, Go, Ruby, Cargo, etc.)
+  - Container image scanning (OS packages + app dependencies)
+  - Automatic vulnerability database updates
+  - Fix version suggestions
 
-All engines must output in this **unified schema**.
+#### 2.3.2 OpenGrepScanner
 
-### 2.7 CI/CD Integrations
+- **Domains**: SAST
+- **Underlying tool**: [OpenGrep](https://github.com/opengrep/opengrep)
+- **Capabilities**:
+  - Pattern-based static analysis
+  - Multi-language support (Python, JavaScript, Go, Java, etc.)
+  - Community rulesets
+  - Code snippet extraction
 
-V1 will ship with simple but functional CI integrations:
+#### 2.3.3 CheckovScanner
 
-- **GitHub Action.**
-- **GitLab CI template.**
-- **Bitbucket Pipeline example.**
-- **Exit codes** for pass/fail.
-- **Support for JSON artifact export.**
-- **Partial scans** (e.g., SCA only on dependency file changes).
+- **Domains**: IaC
+- **Underlying tool**: [Checkov](https://github.com/bridgecrewio/checkov)
+- **Capabilities**:
+  - Terraform, Kubernetes, CloudFormation, ARM scanning
+  - Policy-as-code checks
+  - Resource-level findings
 
-### 2.8 Local Developer Experience
+### 2.4 Composable Pipelines
 
-V1 will support:
+Scans execute as **pipelines** that compose plugins:
 
-- **CLI scanning during development.**
-- **Fast execution paths** (e.g., skipping unchanged file scans where possible).
-- A **config file** for scan settings (e.g., `.lucidscan.yml`).
-- **Inline ignore/suppression rules** for findings.
+```
+Scanners → Enrichers → Reporters
+```
 
-### 2.9 Extensibility for Future Scanners
+Example pipeline configuration:
 
-V1 will implement a **pluggable scanner architecture** so that future modules can be added without refactoring core components.
+```yaml
+# .lucidscan.yml
+pipeline:
+  scanners:
+    - trivy
+    - opengrep
+    - checkov
+  enrichers:
+    - ai-explainer
+    - cvss-enricher
+  reporters:
+    - json
+    - sarif
+```
 
-Examples of expected V2/V3 additions:
+The framework orchestrates execution, handles parallelization, and merges results.
 
-- **SonarQube ingestion.**
-- **AI/MCP configuration scanning.**
-- **Secret scanning.**
-- **Advanced SAST policies.**
-- **SBOM generation.**
-- **DAST or runtime checks.**
+### 2.5 Unified Output Schema
 
-This extensibility is a core architectural goal even if new scanners are not implemented until later versions.
+All scanner plugins normalize their output to a **common issue schema**, ensuring consistent results regardless of which tool runs:
 
-### 2.10 AI Explanations and Mitigation Advice
+```json
+{
+  "id": "unique-issue-id",
+  "domain": "sca | sast | iac | container",
+  "source": "trivy | opengrep | checkov | ...",
+  "severity": "critical | high | medium | low | info",
+  "title": "Issue title",
+  "description": "Detailed description",
+  "location": {
+    "file": "path/to/file",
+    "line": 42,
+    "resource": "aws_s3_bucket.example"
+  },
+  "remediation": "How to fix",
+  "metadata": { }
+}
+```
 
-V1 will add, at the end of each report, an **AI-generated explanation and mitigation advisory** for every reported issue:
+This unified schema enables:
 
-- A **plain-language explanation** of the issue and its impact.
-- A short **risk summary** (why it matters in practice).
-- **Concrete mitigation steps** the user can take, including configuration or code-level changes where applicable.
+- Consistent filtering and sorting across scanners.
+- Unified severity thresholds for CI/CD gates.
+- Cross-scanner deduplication.
+- Tool-agnostic reporting.
 
-These explanations are **advisory only** and do not modify code or configuration automatically.
+### 2.6 Enrichment Layer
+
+Beyond raw scan results, lucidscan provides an **enrichment layer** that adds context:
+
+| Enricher | Purpose | Status |
+|----------|---------|--------|
+| `AIExplainer` | LLM-powered plain-language explanations and fix guidance | ✓ Included |
+| `CVSSEnricher` | Fetch/compute CVSS scores for vulnerabilities | ✓ Included |
+| `EPSSEnricher` | Exploit Prediction Scoring System integration | Planned |
+| `ReachabilityAnalyzer` | Determine if vulnerable code is actually reachable | Planned |
+
+Enrichers run after scanners and augment each issue with additional fields.
+
+### 2.7 Developer Experience
+
+#### 2.7.1 CLI
+
+A single CLI serves as the primary interface:
+
+```bash
+lucidscan --all                    # Run all domains
+lucidscan --sca --sast             # Run specific domains
+lucidscan --format json            # Output format
+lucidscan --fail-on high           # CI gate
+```
+
+#### 2.7.2 Configuration
+
+Project-level configuration via `.lucidscan.yml`:
+
+```yaml
+scanners:
+  sca:
+    enabled: true
+  sast:
+    enabled: true
+    rulesets: ["security", "best-practices"]
+
+severity_threshold: medium
+
+ignore:
+  - path: "vendor/**"
+  - rule: "generic.secrets.*"
+```
+
+#### 2.7.3 CI/CD Integration
+
+- GitHub Actions workflow
+- GitLab CI template
+- Exit codes for pass/fail gates
+- SARIF output for GitHub Security tab
+
+### 2.8 Extensibility
+
+The plugin architecture enables future growth without core changes:
+
+#### 2.8.1 First-Party Extensions (Planned)
+
+| Plugin | Domain | Status |
+|--------|--------|--------|
+| `SnykScanner` | SCA, Container | Planned |
+| `CodeQLScanner` | SAST | Planned |
+| `GitleaksScanner` | Secrets | Planned |
+| `SonarQubeImporter` | SAST (import) | Planned |
+
+#### 2.8.2 Third-Party Plugins
+
+Anyone can publish scanner plugins to PyPI:
+
+```bash
+pip install lucidscan-snyk
+pip install lucidscan-codeql
+pip install lucidscan-my-custom-scanner
+```
+
+Plugins are auto-discovered via Python entry points:
+
+```toml
+# Third-party plugin's pyproject.toml
+[project.entry-points."lucidscan.scanners"]
+snyk = "lucidscan_snyk:SnykScanner"
+```
+
+### 2.9 AI-Native Design
+
+lucidscan is built for the AI era:
+
+- **AI Explanations**: Every issue can be enriched with LLM-generated explanations.
+- **AI-Assisted Fixes**: Future support for AI-generated patches.
+- **MCP Integration**: Designed to work with AI coding assistants via MCP.
+
+The `AIExplainer` enricher provides:
+
+- Plain-language explanation of the vulnerability.
+- Risk assessment in context.
+- Concrete remediation steps.
+- Code examples where applicable.
+
+### 2.10 What lucidscan is NOT
+
+To clarify the framework vision:
+
+- **Not a scanner**: lucidscan orchestrates scanners, it doesn't implement scanning logic.
+- **Not a vulnerability database**: It relies on underlying tools (Trivy, etc.) for vulnerability data.
+- **Not a SaaS**: lucidscan is purely local/CLI. Dashboard features are future roadmap.
+- **Not opinionated about tools**: Users can swap any scanner plugin without changing their workflow.
 
 ---
 
-## 3. Non-Goals (What V1 Will Not Do)
+## 3. Non-Goals
 
-The following items are explicitly out of scope for V1. They may be implemented in later versions but will not be part of the initial release. Documenting these prevents scope creep and ensures the V1 timeline remains realistic for a solo founder.
+The following items are explicitly out of scope. Documenting these reinforces the core principle: **lucidscan is a framework that orchestrates scanners, not a scanner itself.**
 
-### 3.1 No Custom SCA Engine or Vulnerability Database
+### 3.1 No Custom Scanning Engines
 
-V1 will **not** implement:
+lucidscan does **not** implement:
 
-- Custom dependency resolution algorithms.
-- Custom vulnerability matchers.
+- Custom dependency resolution or vulnerability matching (SCA).
+- Custom container parsing or SBOM generation.
+- Custom static analysis engines or security rules (SAST).
+- Custom IaC rule engines or policy languages.
+
+**This is by design.** lucidscan delegates all scanning to plugin scanners (Trivy, OpenGrep, Checkov, etc.) and focuses on orchestration, normalization, and composition. Building custom engines would duplicate existing tools and violate the framework principle.
+
+### 3.2 No Vulnerability Database
+
+lucidscan does **not** maintain:
+
 - A proprietary vulnerability database.
 - Manual curation or enrichment of vulnerability data.
+- Custom CVE/advisory feeds.
 
-Instead, V1 relies fully on **Trivy** for SCA and vulnerability matching.
+Each scanner plugin is responsible for its own vulnerability data. lucidscan normalizes the output but does not own the data source.
 
-### 3.2 No Deep Container Analysis Beyond Trivy
+### 3.3 No Dashboard, UI, or Hosted SaaS Platform
 
-V1 will **not** provide:
-
-- Custom container parsing or SBOM generation.
-- Custom OS package analysis.
-- Proprietary heuristics around layered vulnerabilities.
-- Runtime container scanning.
-
-All container insights come from **Trivy**, normalized into the unified schema.
-
-### 3.3 No Custom IaC Rule Engine
-
-V1 will **not** include:
-
-- Proprietary IaC rules.
-- Custom policy languages.
-- OPA/Rego-based rules.
-- Cloud provider runtime checks.
-
-IaC scanning is handled **exclusively by Checkov** in V1.
-
-### 3.4 No Proprietary SAST Engine
-
-V1 will **not** attempt to:
-
-- Build its own static analysis engine.
-- Maintain proprietary security rules.
-- Analyze control-flow or data-flow beyond Semgrep capabilities.
-
-V1 strictly integrates **Semgrep** as the SAST engine.
-
-### 3.5 No Dashboard, UI, or Hosted SaaS Platform
-
-V1 is **CLI-only** with CI integrations. V1 does **not** include:
+lucidscan is **CLI-only** with CI integrations. It does **not** include:
 
 - Web dashboard.
-- Project history.
-- Vulnerability trends.
+- Project history or vulnerability trends.
 - Reporting / governance views.
 - Multi-user/team features.
 
-These will be added in future releases once the core scanner stabilizes.
+The framework focuses on the core scanning pipeline. Dashboard features may be added in future releases.
 
-### 3.6 No Organizational Policy Engine
+### 3.4 No Organizational Policy Engine
 
-V1 will **not** implement:
+lucidscan does **not** implement:
 
-- Policy-as-code.
+- Policy-as-code beyond scanner-native capabilities.
 - License compliance policies.
 - Org-wide rulesets for vulnerability acceptance.
 - Enforcement on PRs beyond basic exit codes.
 
-These are **V2+ features**.
+Policy enforcement is a future extension, not a core framework concern.
 
-### 3.7 No Auto-Remediation or PR Generation
+### 3.5 No Auto-Remediation or PR Generation
 
-V1 will **not** include:
+lucidscan does **not** include:
 
 - Automatic pull request generation.
-- Updating dependencies.
-- Proposing code fixes.
-- Rewriting IaC or config files.
+- Dependency updates.
+- Code fix proposals.
+- IaC or config file rewrites.
 
-Basic **“fix version available”** hints (from Trivy) will be surfaced but **not acted upon automatically**.
+Basic **"fix version available"** hints (from scanner plugins) are surfaced but **not acted upon automatically**. Auto-remediation may be added as an enricher plugin in the future.
 
-### 3.8 No SonarQube or SAST-Quality Integrations
+### 3.6 No AI-Driven Decisions
 
-V1 will **not** integrate:
-
-- SonarQube.
-- ESLint / Pylint / Flake8 / other quality tools.
-- Runtime or dynamic analysis engines.
-
-These are planned for **V2+**.
-
-### 3.9 No AI Agentic Scanning or AI-Based Triage
-
-V1 will **not** include:
+Consistent with the "AI-augmented, not AI-driven" principle, lucidscan does **not** include:
 
 - AI-driven triage that changes which issues are surfaced or how they are ordered.
-- AI-based cross-project or cross-repository prioritization.
-- Autonomous AI agents that take actions on behalf of the user (e.g., modifying code, configs, or CI pipelines).
+- AI-based cross-project prioritization.
+- Autonomous AI agents that modify code, configs, or CI pipelines.
 
+AI enriches findings with explanations and context. AI does not make decisions.
 
-### 3.10 No AI/MCP Server Security Scanning
+### 3.7 No AI/MCP Server Security Scanning
 
-Although support for AI/MCP configuration scanning is planned for later releases, V1 will **not** include:
+Although support for AI/MCP configuration scanning is planned for future releases, lucidscan does **not** currently include:
 
 - Parsing MCP configurations.
 - Detecting unsafe tool definitions.
 - Analyzing AI-agent system boundaries.
-- Modeling LLM threat surfaces.
 
-This will be introduced in **V2+**.
+This is a future scanner plugin domain, not a core framework feature.
 
-### 3.11 No Enterprise-Grade Features
+### 3.8 No Enterprise-Grade Features
 
-V1 excludes:
+lucidscan does not currently include:
 
 - RBAC.
 - SSO/SAML/OIDC.
@@ -299,15 +432,15 @@ V1 excludes:
 - Multi-project/org management.
 - Compliance reporting.
 
-These will be added once the core scanning engine and unified model are validated.
+These may be added once the core framework and plugin ecosystem are validated.
 
 ---
 
 ## 4. Target Users
 
-V1 targets **developers, DevOps engineers, and security practitioners** who need a fast, transparent, open-source security scanning tool that covers code, dependencies, containers, and IaC with minimal setup. The product is optimized for individuals and small-to-medium teams who want actionable results without the complexity, cost, or overhead of commercial platforms.
+lucidscan targets **developers, DevOps engineers, and security practitioners** who need a fast, transparent, open-source security scanning framework that covers code, dependencies, containers, and IaC with minimal setup. The framework is optimized for individuals and small-to-medium teams who want actionable results without the complexity, cost, or overhead of commercial platforms.
 
-### 4.1 Primary Users (V1)
+### 4.1 Primary Users
 
 #### 4.1.1 Software Developers
 
@@ -342,7 +475,7 @@ Security professionals who:
 
 **Motivation**: a single consistent source of truth across multiple domains.
 
-### 4.2 Secondary Users (Not Fully Targeted in V1, but Supported)
+### 4.2 Secondary Users
 
 #### 4.2.1 Open Source Maintainers
 
@@ -360,9 +493,9 @@ Consultants who need to:
 - Avoid expensive commercial licenses.
 - Store results locally for compliance or audit reporting.
 
-### 4.3 Future Users (V2+)
+### 4.3 Future Users
 
-These users are relevant for product direction but are not the primary targets in V1.
+These users are relevant for product direction but are not the primary targets currently.
 
 #### 4.3.1 Larger Enterprises
 
@@ -388,19 +521,19 @@ Teams that require:
 
 These represent future product expansion areas.
 
-### 4.4 User Assumptions for V1
+### 4.4 User Assumptions
 
-For the initial release, we assume:
+We assume:
 
 - Users are comfortable running CLI tools and using JSON outputs.
 - Users have access to CI/CD and container environments.
 - Users understand basic security concepts.
 - Users are willing to configure minimal settings (e.g., `.lucidscan.yml`).
-- Users accept that V1 is not a fully managed platform (no dashboard yet).
+- Users accept that lucidscan is a CLI framework (no dashboard).
 
 ### 4.5 User Goals Summary
 
-Across all personas, V1 is designed to help users:
+Across all personas, lucidscan helps users:
 
 - Detect vulnerabilities in dependencies, containers, IaC, and code.
 - Run everything from **one command and one workflow**.
@@ -410,9 +543,9 @@ Across all personas, V1 is designed to help users:
 
 ---
 
-## 5. Core Product Requirements (V1)
+## 5. Core Product Requirements
 
-V1 will implement a unified security scanning tool that orchestrates multiple open-source engines (Trivy, Checkov, Semgrep) behind a single CLI and produces consistent, actionable results. The requirements below define the expected behavior of the system.
+lucidscan is a plugin-based security scanning framework that orchestrates scanner plugins behind a single CLI and produces consistent, actionable results. The requirements below define the expected behavior of the framework.
 
 ### 5.1 General Requirements
 
@@ -442,7 +575,7 @@ Key requirements:
 
 #### 5.1.3 Fast Execution
 
-V1 MUST optimize for minimal scanning time by:
+The framework MUST optimize for minimal scanning time by:
 
 - Reusing scanner binaries when possible.
 - Caching scanner downloads.
@@ -477,11 +610,11 @@ The CLI MUST not require:
 - User accounts.
 - Internet connectivity (after scanner DB is cached).
 
-### 5.2 SCA Requirements (Using Trivy)
+### 5.2 SCA Requirements (Default: Trivy Plugin)
 
 #### 5.2.1 Supported Ecosystems
 
-V1 MUST support the ecosystems that Trivy supports out-of-the-box, including:
+The default SCA plugin (Trivy) MUST support the ecosystems that Trivy supports out-of-the-box, including:
 
 - Node.js (npm, yarn).
 - Python (pip, pipenv, poetry).
@@ -512,11 +645,11 @@ SCA results MUST be normalized to common fields such as:
 - Vulnerability ID.
 - Description and links.
 
-### 5.3 Container Scanning Requirements
+### 5.3 Container Scanning Requirements (Default: Trivy Plugin)
 
 #### 5.3.1 Supported Targets
 
-The tool MUST support scanning:
+The default container plugin (Trivy) MUST support scanning:
 
 - Local Docker images.
 - Remote registry images (Docker Hub, ECR, GCR, etc.).
@@ -538,11 +671,11 @@ Container findings MUST map to unified schema fields like:
 - Severity.
 - CVE/OSV/GHSA ID.
 
-### 5.4 IaC Scanning Requirements (Using Checkov)
+### 5.4 IaC Scanning Requirements (Default: Checkov Plugin)
 
 #### 5.4.1 Supported Formats
 
-V1 MUST support scanning:
+The default IaC plugin (Checkov) MUST support scanning:
 
 - Terraform.
 - Kubernetes manifests.
@@ -569,15 +702,15 @@ IaC results MUST include:
 - Resource name.
 - Remediation summary.
 
-### 5.5 SAST Requirements (Using Semgrep)
+### 5.5 SAST Requirements (Default: OpenGrep Plugin)
 
 #### 5.5.1 Supported Languages
 
-Whatever Semgrep supports by default in OSS rulesets MUST be supported in V1.
+The default SAST plugin (OpenGrep) MUST support whatever languages OpenGrep supports in its OSS rulesets.
 
 #### 5.5.2 Rule Selection
 
-V1 MUST:
+The OpenGrep plugin MUST:
 
 - Run with a baseline community ruleset.
 - Allow users to override rulesets via config.
@@ -601,14 +734,14 @@ The tool MUST support an optional config file `.lucidscan.yml` including:
 - Enabled/disabled scanners.
 - Ignore rules.
 - Severity threshold.
-- Custom Semgrep ruleset path.
+- Custom OpenGrep ruleset path.
 - CI behavior options.
 
 #### 5.6.2 Inline Ignores
 
-V1 MUST support inline ignore annotations (where supported by scanner), such as:
+The framework MUST support inline ignore annotations (where supported by the underlying scanner), such as:
 
-- Semgrep inline comments.
+- OpenGrep inline comments.
 - Checkov skip annotations.
 - Custom ignore IDs.
 
@@ -622,7 +755,7 @@ The system MUST be designed so new scanners can be added with:
 - Standard input/output handlers.
 - Standardized JSON mapping logic.
 
-#### 5.7.2 No Coupling to Trivy/Checkov/Semgrep Internals
+#### 5.7.2 No Coupling to Trivy/Checkov/OpenGrep Internals
 
 The integration MUST remain bounded by:
 
@@ -640,7 +773,7 @@ This ensures future replacements or alternates (e.g., Grype, tfsec, SonarQube) c
 
 ### 5.9 Logging Requirements
 
-V1 MUST support:
+The framework MUST support:
 
 - Quiet mode.
 - Verbose debug mode.
@@ -648,7 +781,7 @@ V1 MUST support:
 
 ### 5.10 Documentation Requirements
 
-V1 MUST include:
+The framework MUST include:
 
 - Installation instructions.
 - CLI usage examples.
@@ -658,57 +791,76 @@ V1 MUST include:
 
 ---
 
-## 6. System Architecture Overview (Thick CLI + Bundled Tools — V1 Architecture)
+## 6. System Architecture Overview
 
-V1 uses a **thick CLI** execution model. The `lucidscan` CLI process runs all orchestration and scanning logic **locally on the user's machine**, using bundled copies of Trivy (binary), Semgrep, and Checkov (both pip-installed into a bundled Python venv). There is **no remote scan server in V1**: source code is never uploaded, and all analysis happens on the local filesystem (or inside a CI container).
+lucidscan uses a **plugin-based framework** architecture, inspired by the LangChain model. The CLI orchestrates security scanning through **scanner plugins**, where each plugin is responsible for managing its own underlying tool (binary download, caching, execution, output normalization).
 
-The CLI is installed via `pip install lucidscan` on developer machines. On first run, it bootstraps a local tool bundle under `~/.lucidscan` and reuses that bundle across subsequent runs. In CI, an official Docker image is used instead of `pip install` to ensure fast, reproducible scans.
+There is **no remote scan server**: source code is never uploaded, and all analysis happens on the local filesystem (or inside a CI container). The CLI is installed via `pip install lucidscan` on developer machines. Scanner binaries are downloaded automatically by each plugin on first use.
 
 ### 6.1 High-Level Architecture
 
-At a high level, `lucidscan` consists of a single process that orchestrates multiple local scanners and post-processing layers:
+At a high level, `lucidscan` is a **framework** that orchestrates pluggable scanner and enricher components:
 
 ```text
-+--------------------------------------------------+
-|                 lucidscan CLI (Python)             |
-+--------------------------------------------------+
-|                Orchestrator                      |
-|  - Scan configuration & routing                  |
-|  - Parallel scanner execution where appropriate  |
----------------------------------------------------+
-|              Scanner Adapters                    |
-|  - Trivy (SCA + containers)                      |
-|  - Checkov (IaC via bundled venv)                |
-|  - Semgrep (SAST via bundled venv)               |
----------------------------------------------------+
-|              Normalization Layer                 |
-|  - Raw scanner JSON → Unified Issue Schema       |
----------------------------------------------------+
-|              Aggregation Layer                   |
-|  - Merge issues, summaries, metadata             |
----------------------------------------------------+
-|        AI Advisory / Explanation Layer           |
-|  - Optional per-issue explanation & mitigation   |
----------------------------------------------------+
-|                Output Renderer                   |
-|  - JSON | Table | Summary                        |
-+--------------------------------------------------+
-                 |
-                 v
-+--------------------------------------------------+
-|              Local Tool Bundle (~/.lucidscan)      |
-+--------------------------------------------------+
-| bin/        → trivy binary                       |
-| venv/       → Python 3.11 venv with semgrep,     |
-|               checkov pip-installed              |
-| cache/      → trivy/ vulnerability DB            |
-| config/     → optional global config             |
-| logs/       → debug / diagnostics (optional)     |
-| versions.json → pinned scanner + bundle versions |
-+--------------------------------------------------+
+┌─────────────────────────────────────────────────────────┐
+│                   lucidscan Framework                   │
+├─────────────────────────────────────────────────────────┤
+│  CLI Layer                                              │
+│  ├── Argument parsing                                   │
+│  ├── Configuration loading                              │
+│  └── Output formatting                                  │
+├─────────────────────────────────────────────────────────┤
+│  Pipeline Orchestrator                                  │
+│  ├── Plugin discovery & loading                         │
+│  ├── Scan context construction                          │
+│  ├── Parallel/sequential execution                      │
+│  └── Result aggregation                                 │
+├─────────────────────────────────────────────────────────┤
+│  Scanner Plugins (each manages its own binary)          │
+│  ├── TrivyScanner     → downloads/runs trivy binary     │
+│  ├── OpenGrepScanner   → downloads/runs opengrep binary   │
+│  ├── CheckovScanner   → downloads/runs checkov binary   │
+│  └── [Future: SnykScanner, CodeQLScanner, etc.]         │
+├─────────────────────────────────────────────────────────┤
+│  Enricher Plugins                                       │
+│  ├── AIExplainer      → LLM-powered explanations        │
+│  ├── CVSSEnricher     → CVSS score lookup               │
+│  └── [Future: EPSSEnricher, ReachabilityAnalyzer]       │
+├─────────────────────────────────────────────────────────┤
+│  Normalization Layer                                    │
+│  └── Raw scanner output → Unified Issue Schema          │
+├─────────────────────────────────────────────────────────┤
+│  Reporter Plugins                                       │
+│  ├── JSONReporter                                       │
+│  ├── TableReporter                                      │
+│  ├── SARIFReporter                                      │
+│  └── [Future: HTMLReporter, DashboardReporter]          │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│           Local Binary Cache (~/.lucidscan/bin/)        │
+├─────────────────────────────────────────────────────────┤
+│  trivy/                                                 │
+│  ├── 0.68.1/trivy          (version-specific binary)    │
+│  └── current -> 0.68.1/    (symlink to active version)  │
+│  opengrep/                                               │
+│  ├── 1.12.1/opengrep                                     │
+│  └── current -> 1.12.1/                                 │
+│  checkov/                                               │
+│  ├── 3.2.495/checkov                                    │
+│  └── current -> 3.2.495/                                │
+│  cache/                                                 │
+│  └── trivy/db/             (vulnerability database)     │
+└─────────────────────────────────────────────────────────┘
 ```
 
-All components shown above run **in-process** within the CLI, invoking local binaries or environments from `~/.lucidscan`. There is no REST API, job queue, or remote worker layer in V1.
+Key architectural principles:
+
+- **Each scanner plugin is self-contained** — it knows how to download, cache, and invoke its tool.
+- **Plugins are composable** — scanners, enrichers, and reporters can be combined in pipelines.
+- **No central bundle** — each plugin manages its own binary independently.
+- **Version isolation** — multiple versions of a tool can coexist.
 
 ### 6.2 CLI & Local Execution Model
 
@@ -717,8 +869,9 @@ The CLI binary (`lucidscan`) acts as the user entry point and is responsible for
 - Parsing command-line flags.
 - Loading local and project configuration (e.g., `.lucidscan.yml` in the repo, and optional global settings under `~/.lucidscan/config`).
 - Discovering the project root and effective scan set (respecting ignore rules).
+- **Loading and initializing scanner plugins** based on configuration.
 - Constructing an in-memory `ScanRequest` object (enabled scanners, paths, thresholds).
-- Running the **local orchestrator** and scanner adapters against the project tree.
+- Running the **pipeline orchestrator** with selected plugins.
 - Rendering the resulting `ScanResult` in the requested output format (JSON, table, summary).
 - Setting exit codes based on severity thresholds.
 
@@ -731,7 +884,24 @@ lucidscan --format json
 lucidscan --severity-threshold high
 ```
 
-The CLI is **self-contained**: once the tool bundle has been downloaded, it does not require any remote scan server for normal operation.
+The CLI is **self-contained**: once scanner binaries have been downloaded by their respective plugins, `lucidscan` does not require any remote server for normal operation.
+
+#### 6.2.1 Plugin Auto-Installation
+
+When a scan requires a scanner plugin that hasn't been used before, the plugin automatically:
+
+1. **Checks for existing binary** in `~/.lucidscan/bin/{tool}/{version}/`.
+2. **Downloads if missing** from the tool's official release channel.
+3. **Verifies integrity** using checksums where available.
+4. **Caches for reuse** across subsequent scans.
+
+This happens transparently on first use:
+
+```bash
+$ lucidscan --sca
+Downloading trivy v0.68.1... done
+Scanning with TrivyScanner...
+```
 
 ### 6.3 Project Discovery & File Selection
 
@@ -768,104 +938,208 @@ Project discovery and file selection MUST adhere to the following security prope
 
 - **Local-only analysis**
   - Source code and configuration files are read from the local filesystem (or CI container filesystem) only.
-  - No code upload, REST calls with source archives, or remote job submission occurs in V1.
+  - No code upload, REST calls with source archives, or remote job submission occurs.
 - **Read-only operation**
   - Scanners and the CLI treat the project directory as read-only; they MUST NOT modify code or configuration files.
 - **Sensitive content handling**
   - Users can explicitly exclude paths that contain highly sensitive data via `.lucidscanignore` and CLI flags.
 
-### 6.4 Local Orchestrator
+### 6.4 Pipeline Orchestrator
 
-The orchestrator is the core control component running **inside the CLI process**. It is responsible for:
+The orchestrator is the core control component running **inside the CLI process**. It manages the plugin lifecycle and scan execution pipeline.
 
-#### 6.4.1 Scanner Selection
+#### 6.4.1 Plugin Discovery & Loading
+
+The orchestrator discovers plugins through:
+
+- **Built-in plugins**: `TrivyScanner`, `OpenGrepScanner`, `CheckovScanner` ship with lucidscan.
+- **Installed plugins**: Third-party plugins installed via pip (e.g., `pip install lucidscan-snyk`).
+- **Entry points**: Plugins register via Python entry points for auto-discovery.
+
+```python
+# Example entry point registration in pyproject.toml
+[project.entry-points."lucidscan.scanners"]
+snyk = "lucidscan_snyk:SnykScanner"
+```
+
+#### 6.4.2 Scanner Selection
 
 Based on:
 
 - CLI flags (e.g., `--sca`, `--sast`, `--all`).
-- `.lucidscan.yml`.
-- Optional automatic project detection (e.g., only run Semgrep if source files exist).
+- `.lucidscan.yml` configuration.
+- Optional automatic project detection (e.g., only run OpenGrep if source files exist).
 
-#### 6.4.2 Building Scan Context
+#### 6.4.3 Building Scan Context
 
 The orchestrator builds a `ScanContext` that includes:
 
 - Target directory / repository path on the local filesystem.
 - Effective scan set after ignore rules.
 - Config overrides (from CLI and config files).
-- Selected scanners and their configuration.
+- Selected scanner plugins and their configuration.
 - Environment variables relevant to scanners (e.g., proxy settings).
-- Paths to bundled scanner binaries and environments under `~/.lucidscan`:
-  - `~/.lucidscan/bin/trivy` (Trivy binary).
-  - `~/.lucidscan/venv/bin/semgrep` (pip-installed in bundled venv).
-  - `~/.lucidscan/venv/bin/checkov` (pip-installed in bundled venv).
 
-#### 6.4.3 Executing Scanner Adapters
+Note: **Binary paths are managed by each plugin**, not by the orchestrator. Each plugin knows where its binary is cached and how to invoke it.
 
-The orchestrator calls the adapter for each enabled scanner:
+#### 6.4.4 Executing Scanner Plugins
 
-```text
-adapter.scan(context) => RawScannerResult
+The orchestrator calls each enabled plugin:
+
+```python
+for plugin in enabled_scanners:
+    plugin.ensure_binary()  # Download if needed
+    result = plugin.scan(context)
+    results.append(result)
 ```
 
 Execution characteristics:
 
-- Scanners MAY be run **in parallel** when system resources allow, to reduce total scan time.
-- Each adapter invokes its tool using the **bundled binaries/environments** from `~/.lucidscan`, never from system PATH.
+- Scanners MAY be run **in parallel** when system resources allow.
+- Each plugin manages its own binary and invocation.
+- Plugins that require external services (e.g., Snyk API) handle authentication internally.
 
-#### 6.4.4 Collecting Raw Outputs
+#### 6.4.5 Running Enricher Pipeline
+
+After scanning, results pass through enricher plugins:
+
+```python
+for enricher in enabled_enrichers:
+    results = enricher.enrich(results, context)
+```
+
+Enrichers can add AI explanations, CVSS scores, or other metadata.
+
+#### 6.4.6 Collecting Results
 
 The orchestrator collects per-scanner metadata:
 
-- Raw JSON outputs.
-- Scanner versions (from `versions.json` and tool `--version` output).
+- Normalized issues (already in unified schema).
+- Scanner versions (from plugin's `get_version()` method).
 - Execution time per scanner.
 - Exit codes and any error messages.
 
-This raw data is then passed to the **Normalization Layer**.
+This data is passed to the selected **Reporter Plugin** for output.
 
-### 6.5 Scanner Adapters
+### 6.5 Scanner Plugins
 
-Each scanner is wrapped by an adapter that abstracts away its CLI interface and enforces consistent behavior.
+Each scanner is implemented as a **plugin** that implements the `ScannerPlugin` interface. Plugins are self-contained and manage their own binary lifecycle.
 
-#### 6.5.1 `TrivyAdapter`
+#### 6.5.1 Plugin Interface
+
+All scanner plugins implement:
+
+```python
+class ScannerPlugin(ABC):
+    """Base class for all scanner plugins."""
+    
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Plugin identifier (e.g., 'trivy', 'opengrep')."""
+        
+    @property
+    @abstractmethod
+    def domains(self) -> List[ScanDomain]:
+        """Scan domains this plugin supports (SCA, SAST, IAC, CONTAINER)."""
+    
+    @abstractmethod
+    def ensure_binary(self) -> Path:
+        """Ensure the scanner binary is available, downloading if needed."""
+        
+    @abstractmethod
+    def get_version(self) -> str:
+        """Return the version of the underlying scanner."""
+        
+    @abstractmethod
+    def scan(self, context: ScanContext) -> List[UnifiedIssue]:
+        """Execute scan and return normalized issues."""
+```
+
+#### 6.5.2 `TrivyScanner` Plugin
 
 Handles:
 
-- SCA scans via `trivy fs` (using the bundled `trivy` binary).
+- SCA scans via `trivy fs`.
 - Container scans via `trivy image`.
 
-Responsibilities:
+Binary management:
 
-- Ensure JSON output (`-f json`).
-- Use the Trivy cache directory under `~/.lucidscan/cache/trivy`.
-- Normalize exit codes for orchestration.
+- Downloads from `https://github.com/aquasecurity/trivy/releases/`.
+- Caches at `~/.lucidscan/bin/trivy/{version}/trivy`.
+- Uses Trivy cache directory at `~/.lucidscan/cache/trivy/`.
 
-#### 6.5.2 `CheckovAdapter`
+```python
+class TrivyScanner(ScannerPlugin):
+    name = "trivy"
+    domains = [ScanDomain.SCA, ScanDomain.CONTAINER]
+    default_version = "0.68.1"
+    
+    def ensure_binary(self) -> Path:
+        cache_dir = get_binary_cache() / "trivy" / self.version
+        binary = cache_dir / "trivy"
+        if not binary.exists():
+            self._download_trivy(cache_dir)
+        return binary
+```
 
-Handles:
-
-- IaC scans for Terraform, Kubernetes, CloudFormation, etc.
-
-Responsibilities:
-
-- Run Checkov from the bundled venv at `~/.lucidscan/venv/bin/checkov`.
-- Call `checkov -o json`.
-- Apply ignore rules based on config.
-- Capture file/line/resource metadata.
-
-#### 6.5.3 `SemgrepAdapter`
+#### 6.5.3 `OpenGrepScanner` Plugin
 
 Handles:
 
 - SAST scanning across supported languages.
 
-Responsibilities:
+Binary management:
 
-- Run Semgrep from the bundled venv at `~/.lucidscan/venv/bin/semgrep`.
-- Execute `semgrep --config <ruleset> --json`.
-- Optionally detect languages automatically.
-- Capture rule metadata and code snippet context.
+- Downloads standalone binary from `https://github.com/opengrep/opengrep/releases/`.
+- Caches at `~/.lucidscan/bin/opengrep/{version}/opengrep`.
+
+```python
+class OpenGrepScanner(ScannerPlugin):
+    name = "opengrep"
+    domains = [ScanDomain.SAST]
+    default_version = "1.12.1"
+```
+
+#### 6.5.4 `CheckovScanner` Plugin
+
+Handles:
+
+- IaC scans for Terraform, Kubernetes, CloudFormation, etc.
+
+Binary management:
+
+- Downloads standalone binary from `https://github.com/bridgecrewio/checkov/releases/`.
+- Caches at `~/.lucidscan/bin/checkov/{version}/checkov`.
+
+```python
+class CheckovScanner(ScannerPlugin):
+    name = "checkov"
+    domains = [ScanDomain.IAC]
+    default_version = "3.2.495"
+```
+
+#### 6.5.5 Binary Download Utility
+
+All plugins share a common binary download utility:
+
+```python
+class BinaryManager:
+    """Shared utility for downloading and caching scanner binaries."""
+    
+    def download(self, url: str, dest: Path, executable: bool = True) -> None:
+        """Download a file, extract if archive, set permissions."""
+        
+    def get_platform(self) -> Tuple[str, str]:
+        """Return (os, arch) tuple for current platform."""
+```
+
+This utility handles:
+
+- Platform detection (darwin/linux/windows, amd64/arm64).
+- Archive extraction (tar.gz, zip).
+- Executable permissions.
+- Checksum verification (where available).
 
 ### 6.6 Normalization Layer
 
@@ -902,7 +1176,7 @@ Each adapter has a corresponding normalization function:
 - `normalizeTrivySca()`
 - `normalizeTrivyContainer()`
 - `normalizeCheckov()`
-- `normalizeSemgrep()`
+- `normalizeOpenGrep()`
 
 ### 6.7 Aggregation Layer
 
@@ -939,51 +1213,82 @@ Example:
     "scanners": [
       { "name": "trivy", "version": "0.68.1", "dbUpdatedAt": "2025-01-01T07:00:00Z" },
       { "name": "checkov", "version": "3.2.346" },
-      { "name": "semgrep", "version": "1.102.0" }
+      { "name": "opengrep", "version": "1.12.1" }
     ]
   }
 }
 ```
 
-### 6.8 AI Advisory Layer (Explanations & Mitigation Advice)
+### 6.8 AI Enricher Plugin (AIExplainer)
 
-The AI advisory layer is an **optional component inside the CLI process** that runs **after** the Aggregation Layer and **before** the Output Renderer. It is responsible for enriching the unified issues with human-readable explanations and mitigation guidance as described in **2.10 AI Explanations and Mitigation Advice**.
+The `AIExplainer` is an **optional enricher plugin** that runs after scanning and before reporting. It enriches unified issues with human-readable explanations and mitigation guidance.
+
+Like all enricher plugins, it implements the `EnricherPlugin` interface:
+
+```python
+class AIExplainer(EnricherPlugin):
+    name = "ai-explainer"
+
+    def enrich(self, issues: List[UnifiedIssue], context: ScanContext) -> List[UnifiedIssue]:
+        """Add AI-generated explanations to each issue."""
+```
 
 Responsibilities:
 
-- Take the aggregated `ScanResult` (issues + summary) as input.
+- Take the aggregated issues as input.
 - For each issue, generate:
   - A plain-language explanation of the issue and its impact.
   - A short risk summary (why it matters in practice).
   - Concrete mitigation steps (configuration or code-level, where applicable).
-- Attach these fields to each issue in the unified schema (e.g., `aiExplanation`, `aiRiskSummary`, `aiMitigationSteps`) or as a separate `aiAdvisories` section in the result.
+- Attach these fields to each issue (e.g., `aiExplanation`, `aiRiskSummary`, `aiMitigationSteps`).
 
-Constraints:
+Constraints (consistent with "AI-augmented, not AI-driven" principle):
 
-- The AI advisory layer is **advisory only** and MUST NOT:
+- The AI enricher is **advisory only** and MUST NOT:
   - Modify source code, configuration, or infrastructure.
   - Change issue severities, filtering, or ordering.
-  - Suppress or re-rank issues (see **3.9 No AI Agentic Scanning or AI-Based Triage**).
-- The AI advisory layer MAY be disabled via configuration (e.g., CLI flag or `.lucidscan.yml`) so that fully offline or air-gapped deployments can run without any AI backend.
-- When disabled, the orchestrator bypasses this layer and returns the raw aggregated issues directly to the Output Renderer.
+  - Suppress or re-rank issues (see **3.6 No AI-Driven Decisions**).
+- The plugin MAY be disabled via configuration (e.g., CLI flag or `.lucidscan.yml`) for offline or air-gapped deployments.
+- When disabled, the pipeline skips this enricher and passes issues directly to reporters.
 
-The actual LLM or AI backend (local model vs. remote service) is configured separately and is not coupled to scanner execution or orchestration.
+The actual LLM backend (local model vs. remote service) is configured separately and is not coupled to scanner execution.
 
-### 6.9 Output Renderer
+### 6.9 Reporter Plugins
 
-The Output Renderer converts `ScanResult` (including any AI-enriched fields when enabled) into user-facing formats:
+Reporter plugins convert `ScanResult` (including any enriched fields) into user-facing output formats. Each reporter implements the `ReporterPlugin` interface:
 
-- **JSON** (full result, including AI explanations/mitigations when present).
-- **Table** (human friendly).
-- **Summary** (high-level stats plus concise advisory text when available).
+```python
+class ReporterPlugin(ABC):
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Reporter identifier (e.g., 'json', 'table', 'sarif')."""
 
-Also:
+    @abstractmethod
+    def report(self, result: ScanResult, output: IO) -> None:
+        """Format and write the scan result."""
+```
 
-- Prints messages clearly to stdout/stderr.
-- Applies severity threshold for exit codes.
-- Optionally writes output to files when requested.
+Built-in reporter plugins:
 
-Exit code logic:
+- **JSONReporter**: Full structured output, including AI explanations when present.
+- **TableReporter**: Human-friendly table format for terminal output.
+- **SARIFReporter**: SARIF format for IDE and CI integrations.
+- **SummaryReporter**: High-level stats plus concise advisory text.
+
+Reporter responsibilities:
+
+- Format results according to their output specification.
+- Write to stdout or specified file.
+- Handle AI-enriched fields when present.
+
+The CLI layer handles:
+
+- Selecting the appropriate reporter based on `--format` flag.
+- Applying severity threshold for exit codes.
+- Routing output to stdout/stderr or files.
+
+Exit code logic (handled by CLI, not reporters):
 
 - `0` → no issues above threshold.
 - `1` → issues found.
@@ -991,7 +1296,7 @@ Exit code logic:
 
 ### 6.10 Tool Installation, Local Layout, and Caching
 
-V1 standardizes how scanners are installed and used to maximize reproducibility.
+The framework standardizes how scanners are installed and used to maximize reproducibility.
 
 #### 6.10.1 Developer Installation (pip)
 
@@ -1003,35 +1308,28 @@ On developer machines:
   pip install lucidscan
   ```
 
-- This installs only the Python CLI code. On first run, the CLI:
-  - Detects OS and architecture (e.g., `linux/amd64`, `linux/arm64`, `darwin/arm64`).
-  - Downloads a **scanner tool bundle** from a hosted URL appropriate for that platform.
-  - Verifies and unpacks the bundle into `~/.lucidscan`.
+- This installs only the Python CLI code. On first run of any scanner:
+  - The scanner plugin detects OS and architecture (e.g., `linux/amd64`, `darwin/arm64`).
+  - Downloads the scanner binary from its official upstream release.
+  - Caches the binary under `~/.lucidscan/bin/{tool}/{version}/`.
 
 #### 6.10.2 `~/.lucidscan` Directory Layout
 
-The local tool bundle is organized as follows:
+The local binary cache is organized as follows:
 
 - `~/.lucidscan/bin/`
-  - `trivy` — bundled Trivy binary for the platform.
-- `~/.lucidscan/venv/`
-  - A self-contained Python 3.11 virtual environment that includes:
-    - Semgrep (pip-installed).
-    - Checkov (pip-installed).
-    - All required Python dependencies.
+  - `trivy/{version}/trivy` — Trivy binary for the platform.
+  - `opengrep/{version}/opengrep` — OpenGrep binary for the platform.
+  - `checkov/{version}/checkov` — Checkov binary for the platform.
+  - Each tool directory has a `current` symlink pointing to the active version.
 - `~/.lucidscan/cache/trivy/`
   - Trivy vulnerability database and related cache files.
 - `~/.lucidscan/config/` (optional)
   - Global configuration overrides (e.g., default severity threshold, default scanners).
 - `~/.lucidscan/logs/` (optional)
   - Diagnostic and debug logs.
-- `~/.lucidscan/versions.json`
-  - Pinned versions for:
-    - Trivy, Semgrep, Checkov, Python.
-    - The bundle format version and platform.
-    - Any auxiliary data files.
 
-The CLI **always uses these bundled tools** instead of any system-installed binaries on PATH.
+Each scanner plugin manages its own binary version independently. Users can have multiple versions installed simultaneously.
 
 #### 6.10.3 Vulnerability Data & Caching
 
@@ -1048,21 +1346,20 @@ Reproducibility considerations:
 
 ### 6.11 Docker Image for CI
 
-Developer machines DO NOT need Docker to use `lucidscan`. However, for CI/CD environments, V1 provides an official Docker image to ensure fast, reproducible scans without bootstrapping tools on every run.
+Developer machines DO NOT need Docker to use `lucidscan`. However, for CI/CD environments, lucidscan provides an official Docker image to ensure fast, reproducible scans without downloading tools on every run.
 
 Characteristics:
 
-- Image name: `ghcr.io/you/lucidscan:latest` (example).
+- Image name: `ghcr.io/voldeq/lucidscan:latest`.
 - Contains:
   - The `lucidscan` CLI.
-  - Bundled Trivy binary.
-  - Bundled Python venv with Semgrep and Checkov.
-  - Optionally, a pre-warmed Trivy DB in the expected cache location.
+  - Pre-downloaded Trivy, OpenGrep, and Checkov binaries.
+  - Pre-warmed Trivy vulnerability database.
 
 Example CI snippet (generic YAML-style):
 
 ```yaml
-image: ghcr.io/you/lucidscan:latest
+image: ghcr.io/voldeq/lucidscan:latest
 
 steps:
   - name: Run security scan
@@ -1072,33 +1369,35 @@ steps:
 
 Guidance:
 
-- **Developer machines**: install with `pip install lucidscan` and let the CLI manage `~/.lucidscan`.
-- **CI environments**: use the official Docker image instead of installing via `pip` for speed and consistency.
+- **Developer machines**: install with `pip install lucidscan` and let scanner plugins auto-download binaries.
+- **CI environments**: use the official Docker image for zero download overhead and consistent scanner versions.
 
 ### 6.12 Extensibility Model and Future Server Mode
 
-The architecture treats each scanner as a module with:
+The plugin-based architecture treats each scanner as a self-contained plugin with:
 
-- An adapter.
-- A normalization function.
-- Metadata describing capabilities.
+- Binary management (download, cache, invoke).
+- A normalization function (raw output → unified schema).
+- Metadata describing capabilities (domains, versions).
 
 Adding future scanners such as:
 
-- Secret scanners.
-- SonarQube ingestion.
-- AI/MCP config analysis.
-- SBOM generation.
+- Snyk (SCA, containers).
+- CodeQL (SAST).
+- Gitleaks (secrets).
+- SonarQube (import existing results).
 
-…requires minimal changes to orchestrator code.
+…requires only implementing a new `ScannerPlugin` class. No changes to orchestrator code needed.
 
-Although earlier iterations considered a remote server mode, **V1 is strictly local-only**. A future version (V2+) MAY introduce an optional server/orchestrator mode (for centralized scanning, policy enforcement, or large multi-repo environments), but that is out of scope for this design and will not change the core thick-CLI and bundled-tools model described above.
+Third-party plugins can be published to PyPI and auto-discovered via Python entry points.
 
-## 7. Data Sources & Vulnerability Ingestion (Thick CLI Architecture)
+lucidscan is **strictly local-only**. A future version may introduce an optional server/orchestrator mode (for centralized scanning, policy enforcement, or large multi-repo environments), but that is out of scope for this design and will not change the core plugin-based framework model described above.
 
-In the thick-CLI architecture, all scanning, vulnerability ingestion, rule loading, and updates occur locally on the developer’s machine. There is no remote server and no code ever leaves the local environment. The CLI bundles or bootstraps all required scanning engines (Trivy, Checkov, Semgrep) and manages their versions independently from the system environment.
+## 7. Data Sources & Vulnerability Ingestion (Plugin-Based Architecture)
 
-The CLI’s responsibility is to provide a predictable, reproducible, and self-contained scanning environment with zero external tooling requirements beyond the initial installation of the `lucidscan` Python package.
+In the plugin-based architecture, all scanning, vulnerability ingestion, rule loading, and updates occur locally on the developer's machine. There is no remote server and no code ever leaves the local environment. Each scanner plugin manages its own binary, downloading and caching tools under `~/.lucidscan/bin/`.
+
+The CLI's responsibility is to provide a predictable, reproducible, and self-contained scanning environment with zero external tooling requirements beyond the initial installation of the `lucidscan` Python package.
 
 ### 7.1 Overview of Ingestion Model
 
@@ -1106,9 +1405,9 @@ All vulnerability data comes from the open-source scanning engines that `lucidsc
 
 - **Trivy**: vulnerability databases for OS packages and SCA.
 - **Checkov**: IaC rulepacks for Terraform, Kubernetes, CloudFormation.
-- **Semgrep**: SAST rulesets for source code analysis.
+- **OpenGrep**: SAST rulesets for source code analysis.
 
-`lucidscan` does not maintain its own vulnerability database in V1. Instead, it relies on the upstream scanners to download and maintain their own rulepacks or vulnerability feeds.
+`lucidscan` does not maintain its own vulnerability database. Instead, it relies on the upstream scanners to download and maintain their own rulepacks or vulnerability feeds.
 
 All ingestion processes happen inside the user’s local runtime:
 
@@ -1144,17 +1443,17 @@ Checkov uses:
 
 Checkov’s rules remain static unless the tool itself is updated. `lucidscan` keeps Checkov inside a packaged Python virtual environment to ensure deterministic behavior regardless of the system Python installation.
 
-#### 7.2.3 Semgrep (SAST Rulesets)
+#### 7.2.3 OpenGrep (SAST Rulesets)
 
-Semgrep uses:
+OpenGrep uses:
 
 - Built-in core rules.
 - Optionally downloaded community rulepacks.
-- Local `.semgrep.yml` files if present.
+- Local `.opengrep.yml` files if present.
 
-Semgrep maintains a small cache for downloaded rulepacks under:
+OpenGrep maintains a small cache for downloaded rulepacks under:
 
-- `~/.lucidscan/cache/semgrep`
+- `~/.lucidscan/cache/opengrep`
 
 Rule ingestion is lightweight and safe to run as part of a local scan.
 
@@ -1168,16 +1467,17 @@ The ingestion process per scan follows these steps:
    lucidscan --all
    ```
 
-2. **`lucidscan` locates the bundled tools** under:
+2. **Each scanner plugin locates or downloads its binary** under:
 
-   - `~/.lucidscan/bin` (Trivy binary)
-   - `~/.lucidscan/venv` (Python venv with Semgrep and Checkov)
+   - `~/.lucidscan/bin/trivy/{version}/trivy`
+   - `~/.lucidscan/bin/opengrep/{version}/opengrep`
+   - `~/.lucidscan/bin/checkov/{version}/checkov`
 
 3. **For each scanner**:
 
    - Trivy updates its local vulnerability DB (unless fresh or explicitly disabled).
    - Checkov loads its built-in rulepacks.
-   - Semgrep loads rulepacks or uses local cached copies.
+   - OpenGrep loads rulepacks or uses local cached copies.
 
 4. **Each scanner produces raw JSON output.**
 
@@ -1217,13 +1517,13 @@ Each scan result includes metadata such as:
 - `lucidscan` version.
 - Trivy version and DB update timestamp.
 - Checkov version.
-- Semgrep version.
+- OpenGrep version.
 
 Users can upgrade tools when `lucidscan` is upgraded via:
 
 ```bash
 pip install --upgrade lucidscan
-lucidscan --update-tools
+lucidscan --clear-cache  # Force re-download of scanner binaries
 ```
 
 This allows consistent results across machines and CI.
@@ -1234,7 +1534,7 @@ Because ingestion is local:
 
 - Offline scanning is fully supported once tools and DBs are installed.
 - Trivy DB can be pre-fetched and transported manually.
-- Checkov and Semgrep require no network access after installation.
+- Checkov and OpenGrep require no network access after installation.
 - Companies in air-gapped or regulated environments can use `lucidscan` without modification.
 - Organizations that need strict offline readiness can optionally bundle a pre-warmed Trivy DB.
 
@@ -1259,9 +1559,9 @@ This satisfies:
 
 #### 7.8.1 `lucidscan` (CLI) responsibilities
 
-- Manage bundled tools.
+- Manage scanner plugins and their binaries.
 - Ensure correct versioning and reproducibility.
-- Trigger Trivy / Checkov / Semgrep with local paths.
+- Trigger Trivy / Checkov / OpenGrep with local paths.
 - Maintain local caches.
 - Normalize results.
 - Produce unified output.
@@ -1269,16 +1569,16 @@ This satisfies:
 #### 7.8.2 External scanner responsibilities
 
 - Download and apply vulnerability feeds (Trivy).
-- Provide rulepacks (Checkov, Semgrep).
+- Provide rulepacks (Checkov, OpenGrep).
 - Detect vulnerabilities and misconfigurations.
 - Emit machine-readable JSON for `lucidscan`.
 
 
 ## 8. Dependency Resolution Strategy
 
-This section defines how `lucidscan` identifies, resolves, and analyzes open-source dependencies across supported languages and package ecosystems. In the thick-CLI architecture, all dependency resolution is performed locally using the bundled Trivy engine. The CLI acts as the orchestrator but delegates the heavy lifting of dependency discovery, graph expansion, and vulnerability matching to Trivy.
+This section defines how `lucidscan` identifies, resolves, and analyzes open-source dependencies across supported languages and package ecosystems. Consistent with the framework's plugin architecture, all dependency resolution is delegated to the **Trivy scanner plugin**. The framework orchestrates the scan but delegates dependency discovery, graph expansion, and vulnerability matching to Trivy.
 
-The goal of this strategy is to support multi-language repositories with minimal configuration, predictable performance, and consistent output across environments.
+The goal is to support multi-language repositories with minimal configuration, predictable performance, and consistent output across environments.
 
 ### 8.1 Overview
 
@@ -1289,20 +1589,20 @@ Dependency resolution determines:
 - How transitive dependencies are affected.
 - Which vulnerabilities apply to each dependency.
 
-`lucidscan` does not implement its own resolver. It relies entirely on Trivy’s built-in SCA analyzers, which support a wide range of ecosystems.
+Consistent with the framework's non-goal of **not building custom scanning engines** (see section 3.1), lucidscan delegates all dependency resolution to the Trivy scanner plugin. The plugin uses Trivy's built-in SCA analyzers, which support a wide range of ecosystems.
 
-`lucidscan`:
+The framework:
 
 - Discovers relevant manifest files.
-- Invokes Trivy with the correct context.
-- Collects Trivy’s resolved dependency graph and vulnerability matches.
-- Converts results into the unified issue schema.
+- Invokes the Trivy plugin with the correct context.
+- Collects Trivy's resolved dependency graph and vulnerability matches.
+- Normalizes results into the unified issue schema.
 
 This ensures correctness and full alignment with a trusted, actively maintained vulnerability scanning engine.
 
-### 8.2 Supported Dependency Ecosystems (via Trivy)
+### 8.2 Supported Dependency Ecosystems (via Trivy Plugin)
 
-Trivy supports many ecosystems. `lucidscan` inherits them automatically.
+The Trivy plugin supports all ecosystems that Trivy supports. The framework inherits them automatically.
 
 **Package Managers**
 
@@ -1339,15 +1639,15 @@ Examples:
 
 Ignore logic is applied (e.g., skip `node_modules/`, `.lucidscanignore`, `.git/`).
 
-#### Step 2 — `lucidscan` invokes Trivy in filesystem mode
+#### Step 2 — The framework invokes the Trivy plugin
 
-Example invocation (abstracted):
+The Trivy plugin invokes Trivy in filesystem mode:
 
 ```bash
 trivy fs --security-checks vuln --format json <project-root>
 ```
 
-This triggers Trivy’s built-in resolvers:
+This triggers Trivy's built-in resolvers:
 
 - Ecosystem-specific dependency extraction.
 - Graph walking.
@@ -1366,9 +1666,9 @@ Trivy outputs, for each ecosystem:
 - Vulnerability list.
 - Fixed version information.
 
-#### Step 4 — `lucidscan` normalizes results
+#### Step 4 — The framework normalizes results
 
-Results are mapped into `lucidscan`’s unified issue schema:
+Results are mapped into the unified issue schema:
 
 For each vulnerable dependency:
 
@@ -1390,9 +1690,9 @@ Modern repos may contain:
 - Container images.
 - IaC.
 
-Trivy automatically detects each ecosystem independently.
+The Trivy plugin automatically detects each ecosystem independently.
 
-`lucidscan` aggregates all dependency issues together into a single final `ScanResult`:
+The framework aggregates all dependency issues together into a single final `ScanResult`:
 
 - No configuration required.
 - Developers do not need to specify project type.
@@ -1407,10 +1707,10 @@ services/
   worker/package.json
 ```
 
-`lucidscan`:
+The framework:
 
 - Treats each manifest independently.
-- Invokes Trivy once for the entire directory.
+- Invokes the Trivy plugin once for the entire directory.
 - Relies on Trivy to resolve all manifests recursively.
 - Keeps issues grouped by manifest path in the normalized output.
 
@@ -1424,7 +1724,7 @@ Trivy supports:
 - Parallel resolution.
 - (Future) Incremental scanning.
 
-`lucidscan` ensures speed by:
+The framework ensures speed by:
 
 - Using local package manager lockfiles where available (fast path).
 - Skipping directories via a unified ignore system.
@@ -1434,7 +1734,7 @@ On large JavaScript or Java projects, caching the Trivy DB locally significantly
 
 ### 8.7 Limitations & Known Constraints
 
-While Trivy is powerful, dependency resolution has some natural limitations:
+While the Trivy plugin is powerful, dependency resolution has some natural limitations inherited from Trivy:
 
 1. **Incomplete lockfiles**
    - If a lockfile is missing, Trivy may fall back to best-effort graph generation, which may:
@@ -1463,7 +1763,7 @@ Dependency vulnerability results depend on:
 - Trivy version.
 - Trivy DB updated timestamp.
 
-`lucidscan` includes all three in output metadata.
+The framework includes all three in output metadata.
 
 Developers can disable DB updates for audit-mode scans:
 
@@ -1477,11 +1777,11 @@ This ensures deterministic scanning.
 
 Future improvements may include:
 
-- SBOM generation via Trivy (CycloneDX / SPDX).
+- SBOM generation via the Trivy plugin (CycloneDX / SPDX).
 - Enhanced dependency chain visualization.
 - License policy enforcement.
-- Deeper integration with the AI explanation engine for remediation context.
-- More precise reachability analysis (combining SAST + SCA signals).
+- Deeper integration with AI enricher plugins for remediation context.
+- More precise reachability analysis (combining SAST + SCA signals via enricher plugins).
 
 
 ## 9. Unified Issue Schema
@@ -1503,7 +1803,7 @@ This section defines the schema used internally and in output formats (e.g., `--
 The schema must support:
 
 - **Cross-scanner compatibility**
-  - SAST (Semgrep), SCA (Trivy), and IaC (Checkov) should be mappable.
+  - SAST (OpenGrep), SCA (Trivy), and IaC (Checkov) should be mappable.
 - **Minimal but expressive field set**
   - It should be easy to understand and easy to extend.
 - **Structured machine-readable data**
@@ -1525,7 +1825,7 @@ Each scan returns a `ScanResult`:
     "lucidscanVersion": "0.7.0",
     "trivyVersion": "0.68.1",
     "trivyDbUpdatedAt": "2025-01-10T12:00:00Z",
-    "semgrepVersion": "1.145.0",
+    "opengrepVersion": "1.12.1",
     "checkovVersion": "3.2.495",
     "scanStartedAt": "...",
     "scanFinishedAt": "...",
@@ -1544,7 +1844,7 @@ Each issue conforms to the following structure:
 {
   "id": "unique-issue-id",
   "scanner": "sca|sast|iac",
-  "sourceTool": "trivy|semgrep|checkov",
+  "sourceTool": "trivy|opengrep|checkov",
   "severity": "critical|high|medium|low|info",
   "title": "...",
   "description": "...",
@@ -1578,7 +1878,7 @@ sourceTool + filePath + lineStart + ruleId + (dependencyName if applicable)
 High-level category:
 
 - `sca` → Trivy.
-- `sast` → Semgrep.
+- `sast` → OpenGrep.
 - `iac` → Checkov.
 
 #### 9.4.3 `sourceTool`
@@ -1586,7 +1886,7 @@ High-level category:
 The underlying tool:
 
 - `trivy`
-- `semgrep`
+- `opengrep`
 - `checkov`
 
 #### 9.4.4 `severity`
@@ -1596,7 +1896,7 @@ Mapped into a unified severity model:
 | Scanner | Native severity                  | Mapped        |
 |---------|----------------------------------|---------------|
 | Trivy   | `CRITICAL` / `HIGH` / `MEDIUM` / `LOW` | same   |
-| Semgrep | `ERROR` / `WARNING` / `INFO`     | `high` / `medium` / `info` |
+| OpenGrep | `ERROR` / `WARNING` / `INFO`     | `high` / `medium` / `info` |
 | Checkov | `HIGH` / `MEDIUM` / `LOW`        | same          |
 
 #### 9.4.5 `title`
@@ -1622,7 +1922,7 @@ This field is **not AI-generated**. AI explanations appear separately.
 
 #### 9.4.7 `filePath`, `lineStart`, `lineEnd`
 
-Where applicable (Semgrep, sometimes Checkov).
+Where applicable (OpenGrep, sometimes Checkov).
 
 For Trivy/SCA, `filePath` points to the manifest, for example:
 
@@ -1711,9 +2011,9 @@ lucidscan --fail-on=high
 
 ```json
 {
-  "id": "semgrep:PY001:/src/app/handlers.py:42",
+  "id": "opengrep:PY001:/src/app/handlers.py:42",
   "scanner": "sast",
-  "sourceTool": "semgrep",
+  "sourceTool": "opengrep",
   "severity": "high",
   "title": "Hardcoded credentials detected",
   "description": "Hardcoded values used for authentication.",
@@ -1797,24 +2097,26 @@ The schema is versioned specifically to allow for backward-compatible growth.
 
 ## 10. Packaging & Installation Strategy
 
-`lucidscan` is distributed as a lightweight Python package that delivers the CLI and bootstrap logic, while all heavy scanning tools (Trivy, Semgrep, Checkov) are bundled separately and downloaded automatically on first run. This design provides near-zero installation friction, reproducibility across environments, and excellent performance in both local development and CI environments.
+`lucidscan` is distributed as a lightweight Python package. Scanner binaries are **not bundled** — instead, each scanner plugin downloads its own binary on first use. This plugin-managed approach provides:
 
-The installation strategy is built around four pillars:
+- **Minimal package size** — the pip package is < 1 MB.
+- **On-demand installation** — users only download scanners they actually use.
+- **Version flexibility** — different projects can use different scanner versions.
+- **Simplified builds** — no need to build platform-specific bundles.
 
-- Simple installation for developers.
-- Bundled, version-pinned scanner tools.
-- First-run bootstrapping to fetch platform-specific tool bundles.
+The installation strategy is built around three pillars:
+
+- Simple installation via pip.
+- Plugin-managed binary downloads on first use.
 - Fully self-contained Docker image for CI pipelines.
-
-The goal is to make `lucidscan` trivial to install, consistent across systems, and as fast as possible.
 
 ### 10.0 Build Artifacts Overview
 
-The build process produces two types of artifacts:
+The build process produces a single artifact type:
 
-1. **Python Package (CLI)**: A lightweight pip-installable package containing only the `lucidscan` CLI code, orchestrator, adapters, and bootstrap logic. Published to PyPI.
+**Python Package (CLI)**: A lightweight pip-installable package containing the `lucidscan` framework, built-in scanner plugins, and binary management utilities. Published to PyPI.
 
-2. **Platform-Specific Tool Bundles**: Self-contained archives containing a Python virtual environment with Semgrep and Checkov pre-installed, plus the Trivy binary. One bundle is built per supported platform and published to GitHub Releases.
+Scanner binaries are downloaded from their **upstream release channels** (Trivy from GitHub releases, OpenGrep from GitHub releases, Checkov from GitHub releases) by each plugin when first invoked.
 
 ### 10.1 Distribution Channels
 
@@ -1831,412 +2133,275 @@ pip install lucidscan
 The PyPI package contains:
 
 - The `lucidscan` CLI entrypoint.
-- Orchestrator, adapters, normalization logic.
-- Bootstrap code for downloading scanner bundles.
+- Pipeline orchestrator and plugin loader.
+- Built-in scanner plugins (Trivy, OpenGrep, Checkov).
+- Built-in enricher plugins (AIExplainer).
+- Binary download and caching utilities.
 - Configuration loader.
 - Unified schema definitions.
 
-It does **not** contain scanner binaries, keeping the wheel small (target: < 5 MB).
+It does **not** contain scanner binaries, keeping the wheel small (target: < 1 MB).
 
-#### 10.1.2 GitHub Releases (Tool Bundles)
-
-Platform-specific tool bundles are published to GitHub Releases:
-
-```text
-https://github.com/voldeq/lucidscan/releases/download/v{version}/lucidscan-bundle-{platform}-{arch}.tar.gz
-```
-
-Example bundle names:
-
-- `lucidscan-bundle-linux-amd64.tar.gz`
-- `lucidscan-bundle-linux-arm64.tar.gz`
-- `lucidscan-bundle-darwin-arm64.tar.gz`
-- `lucidscan-bundle-windows-amd64.zip`
-
-Each release includes:
-
-- All platform bundles.
-- Checksums file (`SHA256SUMS`).
-- Release notes with scanner versions.
-
-#### 10.1.3 Docker Image (for CI use)
+#### 10.1.2 Docker Image (for CI use)
 
 A pre-packaged image is hosted at:
 
 ```text
-ghcr.io/<org>/lucidscan:latest
+ghcr.io/voldeq/lucidscan:latest
 ```
 
 This image contains:
 
 - `lucidscan` CLI.
-- Trivy binary.
-- Python 3.11 virtual environment with Semgrep and Checkov pip-installed.
-- Pre-warmed Trivy DB (optional).
-- Stable directory structure identical to the local environment.
+- Pre-downloaded Trivy, OpenGrep, and Checkov binaries.
+- Pre-warmed Trivy vulnerability database.
+- All dependencies pre-installed.
 
-This ensures extremely fast CI execution and avoids `pip` installation overhead.
+This ensures extremely fast CI execution with zero download overhead.
 
-### 10.2 First-Run Bootstrap Process
+### 10.2 Plugin-Managed Binary Installation
 
-After installing via `pip`, the user runs:
+Each scanner plugin manages its own binary. When a scan requires a scanner that hasn't been used before, the plugin automatically downloads it.
+
+#### 10.2.1 On-Demand Download Flow
 
 ```bash
-lucidscan --all
+$ lucidscan --sca
+[TrivyScanner] Binary not found, downloading trivy v0.68.1...
+[TrivyScanner] Downloading from https://github.com/aquasecurity/trivy/releases/...
+[TrivyScanner] Extracting to ~/.lucidscan/bin/trivy/0.68.1/
+[TrivyScanner] Download complete (45 MB)
+Scanning with TrivyScanner...
 ```
 
-If the environment is not yet initialized, `lucidscan` performs an automatic bootstrap.
+#### 10.2.2 Platform Detection
 
-#### 10.2.1 Detect Platform
+Each plugin detects the platform when downloading:
 
-The bootstrapper identifies:
+- Operating system: `darwin`, `linux`, `windows`
+- Architecture: `amd64`, `arm64`
 
-- Operating system: macOS, Linux, Windows.
-- Architecture: `amd64` or `arm64`.
+Plugins use this to construct the correct download URL for upstream releases.
 
-#### 10.2.2 Download Tool Bundle
+#### 10.2.3 Binary Sources
 
-`lucidscan` downloads a platform-specific tarball or zip file from GitHub Releases:
+Each scanner plugin downloads from its **official upstream source**:
 
-```text
-https://github.com/voldeq/lucidscan/releases/download/v{version}/lucidscan-bundle-{platform}-{arch}.tar.gz
-```
+| Scanner | Source URL |
+|---------|------------|
+| Trivy | `https://github.com/aquasecurity/trivy/releases/download/v{version}/trivy_{version}_{os}_{arch}.tar.gz` |
+| OpenGrep | `https://github.com/opengrep/opengrep/releases/download/v{version}/opengrep-{version}-{platform}.zip` |
+| Checkov | `https://github.com/bridgecrewio/checkov/releases/download/{version}/checkov_{platform}.zip` |
 
-Each bundle contains:
+This means lucidscan **does not host any binaries** — it simply orchestrates downloads from official sources.
 
-- `bin/trivy` — Trivy binary for the target platform.
-- `venv/` — A complete Python virtual environment with:
-  - Semgrep (pip-installed).
-  - Checkov (pip-installed).
-  - All required Python dependencies.
-- `versions.json` — Pinned versions of all bundled tools.
+#### 10.2.4 Verification
 
-Approximate bundle size: **~150–250 MB compressed** (varies by platform).
+After download, plugins verify:
 
-#### 10.2.3 Extract to Local Directory
-
-Tools are unpacked into:
-
-```text
-~/.lucidscan/
-  bin/
-    trivy               # Trivy binary
-  venv/                 # Python virtual environment
-    bin/
-      python
-      semgrep           # Semgrep CLI (pip-installed)
-      checkov           # Checkov CLI (pip-installed)
-    lib/python3.11/...  # Python packages
-  cache/
-    trivy/
-  config/
-    versions.json
-```
-
-#### 10.2.4 Verify Installation
-
-`lucidscan` verifies:
-
-- Trivy binary exists and is executable.
-- Virtual environment is intact.
-- Semgrep and Checkov are runnable from the venv.
-- Expected versions match `versions.json`.
-- Directory integrity.
-
-After this, the system is fully operational.
+- Binary exists and is executable.
+- Binary runs successfully (`{tool} --version`).
+- Version matches expected version.
 
 ### 10.3 Local Directory Structure
 
-The installation produces:
+Scanner binaries are cached under `~/.lucidscan/bin/`:
 
 ```text
 ~/.lucidscan/
   bin/
-    trivy                # Trivy binary for the platform
-  venv/                  # Self-contained Python 3.11 virtual environment
-    bin/
-      python             # Python interpreter
-      semgrep            # Semgrep CLI entry point
-      checkov            # Checkov CLI entry point
-    lib/python3.11/
-      site-packages/     # All Python dependencies
+    trivy/
+      0.68.1/
+        trivy              # Trivy binary
+      current -> 0.68.1/   # Symlink to active version
+    opengrep/
+      1.12.1/
+        opengrep            # OpenGrep binary
+      current -> 1.12.1/
+    checkov/
+      3.2.495/
+        checkov            # Checkov binary
+      current -> 3.2.495/
   cache/
-    trivy/db/            # Trivy vulnerability database
+    trivy/
+      db/                  # Trivy vulnerability database
   config/
-    versions.json        # Pinned tool versions
-    user-config.yml      # User configuration overrides
+    config.yml             # User configuration overrides
 ```
 
-All scanners run from this directory rather than the system `PATH`, ensuring consistent tool versions across all users. The bundled venv is completely isolated from the system Python installation.
+Key properties:
 
-### 10.4 Version Pinning & Updates
+- **Version isolation**: Multiple versions can coexist.
+- **Per-tool directories**: Each scanner has its own directory.
+- **Current symlink**: Points to the default version for each tool.
 
-#### 10.4.1 Source of Truth: `pyproject.toml`
+### 10.4 Version Pinning & Configuration
 
-The canonical source of truth for scanner versions is the `[tool.lucidscan.scanners]` section in `pyproject.toml`:
+#### 10.4.1 Default Versions
 
-```toml
-[tool.lucidscan.scanners]
-trivy = "0.58.1"
-semgrep = "1.102.0"
-checkov = "3.2.346"
+Each scanner plugin has a **default version** hardcoded in the plugin:
+
+```python
+class TrivyScanner(ScannerPlugin):
+    default_version = "0.68.1"
 ```
 
-This section:
+This default version is updated with each `lucidscan` release.
 
-- **Defines exact versions** of Trivy, Semgrep, and Checkov to bundle.
-- **Is version-controlled** with the `lucidscan` source code.
-- **Is read by the build process** to create platform bundles.
-- **Can be updated via PRs** when scanner versions need to be bumped.
-- **Follows Python ecosystem conventions** using the standard `[tool.X]` pattern.
+#### 10.4.2 User Override via Configuration
 
-When a new `lucidscan` release is tagged, the build process reads these versions and uses them to:
+Users can override scanner versions in `.lucidscan.yml`:
 
-1. Download the specified Trivy binary.
-2. `pip install` the specified Semgrep and Checkov versions into the bundle venv.
-3. Generate the bundle's `versions.json` with all version metadata.
-
-#### 10.4.2 Installed Version Information: `versions.json`
-
-After installation, version information is stored locally in:
-
-```text
-~/.lucidscan/config/versions.json
+```yaml
+scanners:
+  trivy:
+    version: "0.70.0"     # Use specific version
+  opengrep:
+    version: "1.150.0"
+  checkov:
+    version: "latest"     # Always use latest (downloads fresh)
 ```
 
-Example:
+Or globally in `~/.lucidscan/config/config.yml`.
 
-```json
-{
-  "lucidscan": "0.7.0",
-  "trivy": "0.68.1",
-  "semgrep": "1.145.0",
-  "checkov": "3.2.495",
-  "python": "3.11",
-  "platform": "linux-amd64",
-  "bundleVersion": "2025.01.25"
-}
+#### 10.4.3 Version Command
+
+Users can check installed scanner versions:
+
+```bash
+$ lucidscan --version
+lucidscan 0.7.0
+
+Scanner versions:
+  trivy:   0.68.1 (default)
+  opengrep: 1.12.1 (default)
+  checkov: 3.2.495 (default)
 ```
 
-This file is generated during the build and included in the bundle. It allows:
+#### 10.4.4 Update Flow
 
-- The CLI to report exact versions via `lucidscan --version`.
-- Scan results to include scanner version metadata.
-- Debugging and reproducibility verification.
-
-#### 10.4.3 Update Flow
-
-Users update via `pip`:
+Users update lucidscan itself via pip:
 
 ```bash
 pip install --upgrade lucidscan
 ```
 
-And optionally refresh tool bundles:
+Scanner binaries are updated by clearing the cache:
 
 ```bash
-lucidscan --update-tools
+lucidscan --clear-cache          # Remove all cached binaries
+lucidscan --clear-cache trivy    # Remove only trivy
 ```
 
-On update, only changed scanners are re-downloaded.
+On next run, plugins will download fresh binaries with the new default versions.
 
-### 10.5 No External Dependencies
+### 10.5 System PATH Fallback
 
-The Python package does not require:
+Plugins check for binaries in this order:
 
-- System Python versions (beyond the one used to install `lucidscan`).
-- System `pip`.
-- System Semgrep installation.
-- System Checkov installation.
-- Docker (for local CLI usage).
-- Node / Java / Go / Ruby / other package managers.
+1. **Cached binary**: `~/.lucidscan/bin/{tool}/current/{tool}`
+2. **System PATH**: `which {tool}`
 
-Everything required for scanning is bundled.
+This allows users who have scanners pre-installed to use them:
 
-This eliminates dependency hell and makes installation extremely stable.
+```yaml
+# .lucidscan.yml
+scanners:
+  trivy:
+    use_system: true    # Use system-installed trivy instead of downloading
+```
 
 ### 10.6 Offline / Air-Gapped Support
 
-Once the tool bundle is downloaded, `lucidscan` runs fully offline.
+For environments without internet access, organizations can:
 
-Organizations can:
-
-- Pre-download tool bundles.
-- Distribute them internally.
-- Configure `lucidscan` to install tools from an internal server mirror via configuration, e.g.:
+1. **Pre-download binaries** on a connected machine.
+2. **Copy to target machines** under `~/.lucidscan/bin/`.
+3. **Configure mirror URLs** for internal artifact servers:
 
 ```yaml
-toolBundleUrl: "https://internal-artifacts.mycorp/lucidscan-tools"
+# ~/.lucidscan/config/config.yml
+binary_mirrors:
+  trivy: "https://internal-artifacts.mycorp/trivy/{version}/trivy_{platform}.tar.gz"
+  opengrep: "https://internal-artifacts.mycorp/opengrep/{version}/opengrep_{platform}.zip"
 ```
 
 ### 10.7 Cross-Platform Support
 
-`lucidscan` builds and supports the following platform matrix:
+Scanner plugins support the following platform matrix:
 
-| OS             | Arch    | Python | Notes                              |
-|----------------|---------|--------|------------------------------------|
-| ubuntu-latest  | amd64   | 3.11   | Primary Linux target               |
-| ubuntu         | arm64   | 3.11   | Built via QEMU container emulation |
-| macos-latest   | arm64   | 3.11   | Supports all modern Apple Silicon Macs |
-| windows-latest | amd64   | 3.11   | Windows 10+ users                  |
+| OS             | Arch    | Notes                              |
+|----------------|---------|-----------------------------------|
+| Linux          | amd64   | Primary target, used in most CI   |
+| Linux          | arm64   | AWS Graviton, Raspberry Pi        |
+| macOS          | arm64   | Apple Silicon (M1, M2, M3+)       |
+| macOS          | amd64   | Intel Macs (legacy)               |
+| Windows        | amd64   | Windows 10+                       |
 
-**Platform Notes:**
+Each scanner plugin is responsible for detecting the platform and downloading the correct binary. Platform detection is handled by a shared utility:
 
-- **Linux amd64**: The primary and most tested platform. Used in most CI environments.
-- **Linux arm64**: Supports AWS Graviton, Raspberry Pi, and other ARM64 Linux systems. Built using QEMU emulation in GitHub Actions.
-- **macOS arm64**: Native Apple Silicon support. Covers M1, M2, M3, and future Apple chips.
-- **Windows amd64**: Native Windows support. Bundles Windows-compatible binaries (Trivy `.exe`) and a Windows Python venv.
-
-All platforms use Python 3.11 for the bundled virtual environment to ensure consistency. Semgrep and Checkov are pip-installed into the bundled venv on each platform during the build process.
+```python
+def get_platform() -> Tuple[str, str]:
+    """Return (os, arch) tuple for current platform."""
+    system = platform.system().lower()
+    machine = platform.machine().lower()
+    
+    os_map = {"darwin": "darwin", "linux": "linux", "windows": "windows"}
+    arch_map = {"x86_64": "amd64", "amd64": "amd64", "arm64": "arm64", "aarch64": "arm64"}
+    
+    return os_map[system], arch_map[machine]
+```
 
 ### 10.8 Build Process & GitHub Actions
 
-The build process is fully automated via GitHub Actions and produces both the Python package and platform-specific tool bundles.
+The build process is simplified since scanner binaries are downloaded on-demand by plugins.
 
-#### 10.8.1 Build Matrix
+#### 10.8.1 Python Package Build
 
-GitHub Actions runs a matrix build across all supported platforms:
-
-```yaml
-strategy:
-  matrix:
-    include:
-      - os: ubuntu-latest
-        arch: amd64
-        python: "3.11"
-        bundle_name: lucidscan-bundle-linux-amd64.tar.gz
-      - os: ubuntu-latest
-        arch: arm64
-        python: "3.11"
-        bundle_name: lucidscan-bundle-linux-arm64.tar.gz
-        container: arm64v8/python:3.11
-      - os: macos-latest
-        arch: arm64
-        python: "3.11"
-        bundle_name: lucidscan-bundle-darwin-arm64.tar.gz
-      - os: windows-latest
-        arch: amd64
-        python: "3.11"
-        bundle_name: lucidscan-bundle-windows-amd64.zip
-```
-
-#### 10.8.2 Bundle Build Steps
-
-For each platform, the build process:
-
-1. **Read scanner versions from `pyproject.toml`** — Extract pinned versions:
-   ```bash
-   # Using Python to read the TOML
-   TRIVY_VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['lucidscan']['scanners']['trivy'])")
-   SEMGREP_VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['lucidscan']['scanners']['semgrep'])")
-   CHECKOV_VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['lucidscan']['scanners']['checkov'])")
-   ```
-
-2. **Set up Python 3.11** — Install the target Python version.
-
-3. **Create virtual environment** — Create an isolated venv for the bundle:
-   ```bash
-   python -m venv bundle/venv
-   ```
-
-4. **Install Semgrep** — Install the pinned Semgrep version into the venv:
-   ```bash
-   bundle/venv/bin/pip install semgrep==${SEMGREP_VERSION}
-   ```
-
-5. **Install Checkov** — Install the pinned Checkov version into the venv:
-   ```bash
-   bundle/venv/bin/pip install checkov==${CHECKOV_VERSION}
-   ```
-
-6. **Download Trivy binary** — Fetch the pinned Trivy release for the platform from `get.trivy.dev`:
-   ```bash
-   # macOS arm64
-   curl -sfL "https://get.trivy.dev/trivy?type=tar.gz&version=${TRIVY_VERSION}&os=macos&arch=arm64" | tar xzf - -C bundle/bin trivy
-   # macOS amd64
-   curl -sfL "https://get.trivy.dev/trivy?type=tar.gz&version=${TRIVY_VERSION}&os=macos&arch=amd64" | tar xzf - -C bundle/bin trivy
-   # Linux amd64
-   curl -sfL "https://get.trivy.dev/trivy?type=tar.gz&version=${TRIVY_VERSION}&os=linux&arch=amd64" | tar xzf - -C bundle/bin trivy
-   # Linux arm64
-   curl -sfL "https://get.trivy.dev/trivy?type=tar.gz&version=${TRIVY_VERSION}&os=linux&arch=arm64" | tar xzf - -C bundle/bin trivy
-   # Windows amd64
-   curl -sfL "https://get.trivy.dev/trivy?type=zip&version=${TRIVY_VERSION}&os=windows&arch=amd64" -o trivy.zip
-   ```
-
-7. **Generate versions.json** — Record all tool versions from `pyproject.toml`:
-   ```json
-   {
-     "lucidscan": "0.7.0",
-     "trivy": "0.68.1",
-     "semgrep": "1.145.0",
-     "checkov": "3.2.495",
-     "python": "3.11",
-     "platform": "linux-amd64",
-     "bundleVersion": "2025.01.25"
-   }
-   ```
-
-8. **Package bundle** — Create the distributable archive:
-   ```bash
-   # Linux/macOS
-   tar -czvf lucidscan-bundle-{platform}-{arch}.tar.gz -C bundle .
-   
-   # Windows
-   Compress-Archive -Path bundle/* -DestinationPath lucidscan-bundle-windows-amd64.zip
-   ```
-
-#### 10.8.3 Python Package Build
-
-Separately, the CLI package is built and published to PyPI:
+The only build artifact is the Python package:
 
 ```bash
 python -m build
 twine upload dist/*
 ```
 
-The PyPI package contains only the `lucidscan` Python code (< 5 MB) and does not include scanner binaries.
+The PyPI package contains only the `lucidscan` Python code (< 1 MB) and does not include scanner binaries.
 
-#### 10.8.4 Release Process
+#### 10.8.2 Release Process
 
 On tagged releases (e.g., `v0.7.0`):
 
-1. GitHub Actions builds all platform bundles in parallel.
-2. Checksums are generated (`SHA256SUMS`).
-3. All bundles are uploaded to GitHub Releases.
-4. The Python package is published to PyPI.
-5. Docker images are built and pushed to GHCR.
+1. GitHub Actions runs tests on all supported platforms.
+2. The Python package is built and published to PyPI.
+3. Docker images are built (with pre-downloaded scanners) and pushed to GHCR.
+4. Release notes document the default scanner versions.
 
 Release artifacts:
 
 ```text
 lucidscan v0.7.0 Release
-├── lucidscan-bundle-linux-amd64.tar.gz
-├── lucidscan-bundle-linux-arm64.tar.gz
-├── lucidscan-bundle-darwin-arm64.tar.gz
-├── lucidscan-bundle-windows-amd64.zip
-├── SHA256SUMS
-└── Release Notes
+├── PyPI: lucidscan==0.7.0
+├── Docker: ghcr.io/voldeq/lucidscan:0.7.0
+└── Release Notes (with default scanner versions)
 ```
 
-#### 10.8.5 ARM64 Linux Build (QEMU)
+#### 10.8.3 Testing Across Platforms
 
-The ARM64 Linux build uses QEMU emulation within GitHub Actions:
+CI tests run on multiple platforms to ensure scanner plugins correctly download and execute binaries:
 
 ```yaml
-- name: Set up QEMU
-  uses: docker/setup-qemu-action@v3
-  with:
-    platforms: arm64
+strategy:
+  matrix:
+    os: [ubuntu-latest, macos-latest, windows-latest]
+    python: ["3.10", "3.11", "3.12"]
 
-- name: Build ARM64 bundle
-  run: |
-    docker run --rm --platform linux/arm64 \
-      -v ${{ github.workspace }}:/workspace \
-      arm64v8/python:3.11 \
-      /workspace/scripts/build-bundle.sh
+steps:
+  - name: Install lucidscan
+    run: pip install -e .
+    
+  - name: Run integration tests
+    run: pytest tests/integration --run-scanners
 ```
-
-This produces native ARM64 binaries without requiring dedicated ARM64 runners.
 
 ### 10.9 Docker Image for CI (Recommended)
 
@@ -2267,7 +2432,7 @@ Image contents:
   venv/                  # Python 3.11 virtual environment
     bin/
       python
-      semgrep            # pip-installed
+      opengrep            # pip-installed
       checkov            # pip-installed
   cache/
     trivy/db/            # Pre-warmed vulnerability database
@@ -2281,22 +2446,31 @@ Environment variable:
 export LUCIDSCAN_HOME=/usr/local/lucidscan
 ```
 
-The Docker image is built from the Linux amd64 bundle and includes a pre-downloaded Trivy vulnerability database for instant scanning.
+The Docker image includes pre-downloaded Trivy, OpenGrep, and Checkov binaries plus a pre-warmed Trivy vulnerability database for instant scanning.
 
 ### 10.10 Optional Portable Mode
 
-Users can run `lucidscan` directly from an unpacked tool bundle, bypassing installation into `~/.lucidscan/`.
+Users can configure a custom binary cache location, bypassing the default `~/.lucidscan/`.
 
 This is useful for:
 
 - CI debugging.
 - Ephemeral environments.
 - Security-sensitive environments.
+- Shared binary caches across teams.
 
-Portable mode is activated via:
+Custom cache location is configured via:
 
 ```bash
-lucidscan --portable
+export LUCIDSCAN_HOME=/path/to/custom/cache
+lucidscan --all
+```
+
+Or in configuration:
+
+```yaml
+# .lucidscan.yml
+cache_dir: /path/to/custom/cache
 ```
 
 ### 10.11 Why This Strategy Works
@@ -2305,14 +2479,14 @@ This packaging strategy satisfies all design constraints:
 
 | Requirement                | Achieved by                              |
 |---------------------------|-------------------------------------------|
-| Zero-setup for developers | `pip install` + bootstrap                 |
-| Fast local runs           | Cached tools + local scanning             |
-| Fast CI runs              | Official Docker image                     |
-| Reproducible scans        | Version pinning + consistent bundles      |
-| Cross-platform            | Platform-specific bundles                 |
-| No dependency conflicts   | Tools run from isolated directories       |
-| Easy updates              | `pip` upgrade + bundle refresh            |
-| Offline-capable           | Local cache + mirrored tools              |
+| Zero-setup for developers | `pip install` + auto-download on first use |
+| Fast local runs           | Cached binaries + local scanning           |
+| Fast CI runs              | Official Docker image                      |
+| Reproducible scans        | Version pinning in plugin defaults         |
+| Cross-platform            | Per-scanner platform detection             |
+| No dependency conflicts   | Tools run from isolated directories        |
+| Easy updates              | `pip` upgrade + cache clear                |
+| Offline-capable           | Local cache + configurable mirrors         |
 
 This is the simplest and most reliable developer experience possible for a security scanning tool.
 
@@ -2327,7 +2501,7 @@ The `lucidscan` CLI is the primary interface through which developers run securi
 - **Predictable**: clear, stable output and exit codes.
 - **Scriptable**: machine-readable output for CI.
 
-The CLI is installed via `pip` and runs instantly after bootstrap.
+The CLI is installed via `pip` and runs instantly (scanner binaries are downloaded on first use).
 
 This section defines commands, flags, defaults, and usage patterns.
 
@@ -2374,7 +2548,7 @@ Everything is flag-driven to keep the CLI small and memorable.
 |-----------------------------|----------------------------------------------------------|
 | `--all`                     | Run all scanners (default behavior).                     |
 | `--sca`                     | Run Trivy dependency analysis.                           |
-| `--sast`                    | Run Semgrep static analysis.                             |
+| `--sast`                    | Run OpenGrep static analysis.                             |
 | `--iac`                     | Run Checkov IaC scanning.                                |
 | `--path <dir>`              | Scan a specific directory (default: current directory).  |
 | `--format table|json|sarif` | Select output format.                                    |
@@ -2383,16 +2557,16 @@ Everything is flag-driven to keep the CLI small and memorable.
 | `--ignore-file <file>`      | Additional ignore file.                                  |
 | `--config <file>`           | Load `.lucidscan.yml` from a custom path.                  |
 | `--debug`                   | Verbose logs for troubleshooting.                        |
-| `--version`                 | Show tool + bundled scanner versions.                    |
-| `--update-tools`            | Refresh the local bundled tools.                         |
+| `--version`                 | Show tool + scanner versions.                            |
+| `--clear-cache [tool]`      | Clear cached scanner binaries.                           |
 
 **Internal maintenance commands** (hidden by default in help):
 
-| Command               | Purpose                                                     |
-|-----------------------|-------------------------------------------------------------|
-| `lucidscan doctor`      | Diagnose installation, missing tools, corrupted bundles.   |
-| `lucidscan cache clean` | Delete cache (Trivy DB, Semgrep cache).                    |
-| `lucidscan bundle path` | Print bundle installation path.                             |
+| Command                 | Purpose                                                     |
+|-------------------------|-------------------------------------------------------------|
+| `lucidscan doctor`      | Diagnose installation, missing tools, download issues.      |
+| `lucidscan cache clean` | Delete cache (Trivy DB, scanner binaries).                  |
+| `lucidscan cache path`  | Print cache installation path.                              |
 ### 11.3 Default Behavior
 
 Running:
@@ -2410,7 +2584,7 @@ lucidscan --all --format table
 Default includes:
 
 - SCA (Trivy).
-- SAST (Semgrep).
+- SAST (OpenGrep).
 - IaC (Checkov).
 
 Unless overridden in `.lucidscan.yml`.
@@ -2425,9 +2599,9 @@ Exit codes are essential for CI/CD.
 |-----------|--------------------------------------------------------------------|
 | `0`       | Scan completed with no issues at or above fail threshold.         |
 | `1`       | Issues found at or above the severity threshold set by `--fail-on`. |
-| `2`       | Scanner failure (Semgrep/Trivy/Checkov error).                    |
+| `2`       | Scanner failure (OpenGrep/Trivy/Checkov error).                    |
 | `3`       | Invalid CLI usage or configuration.                               |
-| `4`       | Tool bootstrap failure or missing tool bundle.                    |
+| `4`       | Scanner binary download failure or missing tool.                  |
 
 CI uses:
 
@@ -2532,7 +2706,7 @@ failOn: medium
 ignore:
   - "tests/"
   - "**/*.md"
-semgrep:
+opengrep:
   ruleset: "p/ci"
 ```
 
@@ -2630,23 +2804,22 @@ Future subcommands may include:
 ```bash
 lucidscan sbom
 lucidscan ai-explain
-lucidscan login   # if SaaS is added later
-lucidscan serve   # future server mode
+lucidscan serve   # future self-hosted server mode
 ```
 
-But V1 keeps the experience tight and minimalist.
+The framework keeps the experience tight and minimalist.
 
 
 ## 12. Configuration System (`.lucidscan.yml`)
 
-`lucidscan` provides a flexible configuration system that allows developers and teams to customize scanning behavior at the project level and globally across machines. The configuration mechanism is inspired by tools like Semgrep, ESLint, and Prettier—designed to be simple, predictable, and overrideable by CLI flags.
+`lucidscan` provides a flexible configuration system that allows developers and teams to customize scanning behavior at the project level and globally across machines. The configuration mechanism is inspired by tools like OpenGrep, ESLint, and Prettier—designed to be simple, predictable, and overrideable by CLI flags.
 
 Configuration can:
 
 - Enable / disable scanners.
 - Control severity thresholds.
 - Specify ignore rules.
-- Configure Semgrep rulepacks.
+- Configure OpenGrep rulepacks.
 - Specify CI behavior.
 - Toggle AI explanations.
 - Define advanced scanner options.
@@ -2685,7 +2858,7 @@ ignore:
   - "tests/"
   - "*.md"
 
-semgrep:
+opengrep:
   ruleset: "p/default"
   additionalRules:
     - "rules/custom-security.yml"
@@ -2768,21 +2941,21 @@ ignore:
 
 These patterns are merged with `.lucidscanignore` (if present).
 
-### 12.4 Semgrep Configuration
+### 12.4 OpenGrep Configuration
 
-Semgrep-specific config is nested under `semgrep`.
+OpenGrep-specific config is nested under `opengrep`.
 
 #### 12.4.1 `ruleset`
 
 One of:
 
-- Semgrep built-in packs (e.g., `p/security-audit`, `p/r2c`).
+- OpenGrep built-in packs (e.g., `p/security-audit`, `p/r2c`).
 - Multiple rulepacks possible.
 
 Example:
 
 ```yaml
-semgrep:
+opengrep:
   ruleset:
     - "p/security-audit"
     - "p/secrets"
@@ -2793,17 +2966,17 @@ semgrep:
 Allows teams to specify project-level rules:
 
 ```yaml
-semgrep:
+opengrep:
   additionalRules:
-    - "semgrep/custom/*.yml"
+    - "opengrep/custom/*.yml"
 ```
 
 #### 12.4.3 `timeout`
 
-Override Semgrep scan timeout:
+Override OpenGrep scan timeout:
 
 ```yaml
-semgrep:
+opengrep:
   timeout: 120
 ```
 
@@ -2877,7 +3050,7 @@ checkov:
 
 ### 12.7 AI Configuration
 
-Although AI explanations are not part of V1 scanning logic, the schema supports a toggle:
+The AIExplainer enricher plugin is optional and disabled by default. The configuration schema supports a toggle:
 
 ```yaml
 ai:
@@ -2976,7 +3149,7 @@ ignore:
   - "dist/"
   - "**/*.md"
 
-semgrep:
+opengrep:
   ruleset:
     - "p/security-audit"
     - "p/secrets"
@@ -3008,13 +3181,13 @@ output:
 `lucidscan` integrates seamlessly with all major CI/CD systems by providing a fully self-contained Docker image that includes:
 
 - `lucidscan` CLI.
-- Trivy, Semgrep, Checkov (already installed).
+- Trivy, OpenGrep, Checkov (already installed).
 - A pre-warmed Trivy DB (optional, configurable).
 - Identical directory structure to local installations.
 
-This ensures CI scans are fast, reproducible, and require zero setup: no `pip` installation, no downloading tools inside pipelines, no Python conflicts, and no long bootstrap times.
+This ensures CI scans are fast, reproducible, and require zero setup: no `pip` installation, no downloading tools inside pipelines, no Python conflicts, and no waiting for scanner downloads.
 
-Local development uses `pip install` → bootstrap, whereas CI uses the official container image for maximum speed.
+Local development uses `pip install` with on-demand scanner downloads, whereas CI uses the official container image for maximum speed.
 
 ### 13.1 Docker Image Overview
 
@@ -3033,7 +3206,7 @@ It contains:
   venv/                  # Python 3.11 virtual environment
     bin/
       python
-      semgrep            # pip-installed
+      opengrep            # pip-installed
       checkov            # pip-installed
   cache/
     trivy/db/            # Pre-warmed vulnerability database
@@ -3082,7 +3255,7 @@ Exit code behavior:
 | `1`       | Issues found at or above threshold.    |
 | `2`       | Scanner execution failed.              |
 | `3`       | Invalid usage or configuration.        |
-| `4`       | Tool bundle problem (not expected in CI). |
+| `4`       | Scanner binary problem (not expected in CI). |
 
 Typical usage:
 
@@ -3200,7 +3373,7 @@ pipeline {
 
 ### 13.8 Caching Considerations
 
-Because all scanners and DBs are pre-bundled in the Docker image:
+Because all scanners and DBs are pre-downloaded in the Docker image:
 
 - CI pipelines rarely need caching.
 - No tool installation is repeated.
@@ -3293,9 +3466,9 @@ This allows security gates to be configured per repo.
 - **Pattern 4 – “Allow-listed repos”**
   - Disable scanners selectively via `.lucidscan.yml`.
 
-### 13.14 Future CI Enhancements (Not in V1)
+### 13.14 Future CI Enhancements
 
-Planned (not implemented in V1):
+Planned for future releases:
 
 - Uploading results to a hosted dashboard.
 - Incremental scanning (only changed files).
@@ -3329,7 +3502,7 @@ This section defines how `lucidscan` logs, reports errors, and optionally emits 
 - **Debug mode provides full insight**
   - Raw scanner process output.
   - Internal decisions (ignore patterns, config path).
-  - Tool bundle paths.
+  - Scanner binary paths.
   - Timings.
 
 No logs are ever sent to external services (unless telemetry is explicitly enabled by the user).
@@ -3382,7 +3555,7 @@ Debug mode includes:
 - Timing for each scanner.
 - Config file resolution.
 - Ignore rule evaluation.
-- Download status for tool bundles.
+- Download status for scanner binaries.
 - System information (OS, architecture).
 
 Used for troubleshooting or filing bug reports.
@@ -3417,16 +3590,16 @@ Exit code: 3
 
 #### 14.3.2 Scanner Errors
 
-Triggered when a scanner (Trivy, Semgrep, Checkov) fails unexpectedly:
+Triggered when a scanner (Trivy, OpenGrep, Checkov) fails unexpectedly:
 
 - Non-zero exit code from underlying process.
-- Missing dependencies inside the bundle.
-- Corrupted bundle installation.
+- Missing or corrupted binary.
+- Version mismatch.
 
 Examples:
 
 ```text
-Scanner error (semgrep): process exited with code 2
+Scanner error (opengrep): process exited with code 2
 Checkov failed: invalid Terraform syntax in modules/security/main.tf
 ```
 
@@ -3434,20 +3607,22 @@ Checkov failed: invalid Terraform syntax in modules/security/main.tf
 
 Exit code: `2`.
 
-#### 14.3.3 Tool Bundle Failures
+#### 14.3.3 Scanner Binary Failures
 
-Issues with bundle installation:
+Issues with scanner binary management:
 
-- Corrupted extraction.
-- Missing expected files.
-- Wrong architecture.
+- Download failure (network, server unavailable).
+- Corrupted archive extraction.
+- Missing expected binary after extraction.
+- Wrong architecture binary.
 - Checksum mismatch (if enabled).
 
 Example:
 
 ```text
-lucidscan: Tool bundle integrity check failed.
-Try: lucidscan --update-tools
+lucidscan: Failed to download trivy v0.68.1
+Error: Connection timeout
+Try: lucidscan --clear-cache trivy
 ```
 
 Exit code: `4`.
@@ -3478,7 +3653,7 @@ If one scanner fails but others succeed, `lucidscan`:
 Example:
 
 ```text
-Warning: Semgrep failed, but SCA and IaC scans completed.
+Warning: OpenGrep failed, but SCA and IaC scans completed.
 ```
 
 Whether this fails CI depends on the user’s `--fail-on` threshold.
@@ -3554,13 +3729,13 @@ No logs are ever written silently.
 
 - Temporary directories cleaned on failure.
 - Trivy DB corruption autocorrected by forcing re-download.
-- Bundled venv rebuilt if inconsistency detected.
-- Bundle reinstallation triggered automatically if binaries are missing.
+- Scanner binaries re-downloaded if corruption detected.
+- Cache cleared automatically if version mismatch detected.
 
 In worst-case scenarios, `lucidscan` suggests:
 
 ```bash
-lucidscan --update-tools
+lucidscan --clear-cache
 ```
 
 or deleting the `~/.lucidscan` directory.
@@ -3579,34 +3754,35 @@ or deleting the `~/.lucidscan` directory.
 This provides a high level of trust and predictability in development and CI workflows.
 
 
-## 15. AI Explanation Module
+## 15. AI Enricher Plugin (AIExplainer)
 
-The AI Explanation Module enhances lucidscan's findings by generating clear, actionable, context-aware guidance for developers. It transforms raw scanner results into high-quality narrative explanations that help developers understand what the issue means, why it matters, and how to fix it.
+The `AIExplainer` is an **optional enricher plugin** that enhances scan findings by generating clear, actionable, context-aware guidance for developers. It transforms raw scanner results into high-quality narrative explanations that help developers understand what the issue means, why it matters, and how to fix it.
 
-AI explanations are an optional feature. The core security scanning remains fully functional without AI, ensuring lucidscan is 100% open source, privacy-preserving, and fully local by default.
+Consistent with the "AI-augmented, not AI-driven" principle (section 1.1), the AIExplainer enriches findings but never alters scanner decisions. The core security scanning remains fully functional without AI, ensuring lucidscan is 100% open source, privacy-preserving, and fully local by default.
 
 ### 15.1 Goals
 
-The AI module aims to:
+The AIExplainer plugin aims to:
 
 - Provide human-readable descriptions of problems.
 - Offer actionable remediation steps with examples.
 - Reduce developer time spent interpreting findings.
 - Improve onboarding for junior engineers.
-- Provide value as a paid feature without limiting open-source functionality.
+- Make security findings more accessible and actionable for all developers.
 
-AI enhancements sit on top of the Unified Issue Schema (Section 9).
+Like all enricher plugins, AIExplainer operates on the Unified Issue Schema (Section 9).
 
 ### 15.2 Non-Goals
 
-AI does **not**:
+Consistent with section 3.6 (No AI-Driven Decisions), the AIExplainer does **not**:
 
-- Alter scanner outputs.
-- Automatically apply fixes (future feature).
+- Alter scanner outputs or severity levels.
+- Change issue ordering or filtering.
+- Automatically apply fixes.
 - Upload any code without explicit permission.
 - Operate silently in the background.
 
-AI is always explicitly triggered.
+The plugin is always explicitly enabled and triggered.
 
 ### 15.3 Invocation Methods
 
@@ -3670,7 +3846,7 @@ When enabled, users select a provider:
 - Anthropic.
 - OpenAI.
 - Local LLM (e.g., Ollama).
-- A future `lucidscan` SaaS server.
+- Self-hosted inference server.
 
 Control is via config:
 
@@ -3684,7 +3860,7 @@ ai:
 
 ### 15.6 Context Passed to the LLM
 
-`lucidscan` prepares a minimal, privacy-conscious prompt containing:
+The AIExplainer plugin prepares a minimal, privacy-conscious prompt containing:
 
 Always included:
 
@@ -3733,7 +3909,7 @@ Prompt templates are versioned and can be updated independently of scanner logic
 
 ### 15.8 Caching & Performance
 
-AI explanations may be slow (1–5 seconds per issue). `lucidscan` provides:
+AI explanations may be slow (1–5 seconds per issue). The plugin provides:
 
 1. **Per-issue caching**
 
@@ -3751,7 +3927,7 @@ AI explanations may be slow (1–5 seconds per issue). `lucidscan` provides:
 
 2. **Batch requests**
 
-   For JSON output, `lucidscan` can send multiple issues in a single API call (if the provider supports it).
+   For JSON output, the plugin can send multiple issues in a single API call (if the provider supports it).
 
 ### 15.9 CI Behavior
 
@@ -3769,37 +3945,10 @@ Use cases:
 - Developer training.
 - Nightly reports.
 
-Not recommended for blocking builds.  
+Not recommended for blocking builds.
 AI explanations **never** affect exit codes.
 
-### 15.10 Premium / Monetization Strategy (Optional)
-
-AI explanations are an ideal paid feature while keeping `lucidscan`’s core open source.
-
-Possible monetization tiers:
-
-- **Free Tier**
-  - Scanning only.
-  - No AI.
-
-- **Pro (Developer License)**
-  - Limited AI calls per month.
-  - Up to N issues explained (e.g., 100).
-
-- **Team / Enterprise**
-  - Unlimited AI calls.
-  - Custom prompts.
-  - Self-hosted AI inference server.
-  - Audit logs.
-  - Central configuration.
-
-- **Enterprise Offline**
-  - Local LLM support (e.g., via Ollama).
-  - Model hosting on-prem.
-
-Scanning capabilities are **never** gated behind paywalls.
-
-### 15.11 Risks & Mitigations
+### 15.10 Risks & Mitigations
 
 | Risk                             | Mitigation                                      |
 |----------------------------------|-------------------------------------------------|
@@ -3808,29 +3957,38 @@ Scanning capabilities are **never** gated behind paywalls.
 | Low-quality responses            | Curated prompts + feedback loop.                |
 | LLM hallucinations               | Present clear disclaimer; avoid auto-fixes.     |
 | Vendor lock-in                   | Pluggable provider architecture.                |
-### 15.12 Internal Architecture
 
-The AI module consists of:
+### 15.11 Plugin Architecture
+
+The AIExplainer plugin implements the `EnricherPlugin` interface and consists of:
+
+```python
+class AIExplainer(EnricherPlugin):
+    name = "ai-explainer"
+
+    def enrich(self, issues: List[UnifiedIssue], context: ScanContext) -> List[UnifiedIssue]:
+        """Add AI-generated explanations to each issue."""
+```
+
+Internal components:
 
 - **Issue Normalizer**
-  - Converts UIS issues into AI prompt-ready inputs.
-- **Provider Adapter**
+  - Converts unified issues into AI prompt-ready inputs.
+- **Provider Adapter** (pluggable)
   - `openai` (HTTP).
   - `anthropic`.
   - Local LLM (Ollama subprocess).
-  - Placeholder for future SaaS backend.
+  - Self-hosted inference server.
 - **Prompt Composer**
   - Templates per issue type (SAST, SCA, IaC).
 - **Response Parser**
   - Converts LLM output into structured fields.
 - **Cache Manager**
   - Stores explanations keyed by issue ID + scanner version.
-- **Output Merger**
-  - Injects explanations into the final result.
 
-All are local components inside the Python CLI.
+All components run locally inside the CLI process. The plugin receives issues from the pipeline orchestrator and returns enriched issues to the next stage (reporter plugins).
 
-### 15.13 Example Final Output (Human Format)
+### 15.12 Example Final Output (Human Format)
 
 ```text
 Issue: Hardcoded credentials detected
@@ -3854,11 +4012,11 @@ AI Explanation:
       password = os.environ["APP_PASSWORD"]
 ```
 
-### 15.14 Example Final Output (JSON)
+### 15.13 Example Final Output (JSON)
 
 ```json
 {
-  "id": "semgrep:PY001:/src/auth/login.py:27",
+  "id": "opengrep:PY001:/src/auth/login.py:27",
   "scanner": "sast",
   "severity": "high",
   "title": "Hardcoded credentials",
@@ -3873,9 +4031,9 @@ AI Explanation:
 
 ## 16. Future Extensions (Roadmap)
 
-lucidscan is intentionally designed with a modular architecture that can evolve well beyond the initial CLI release. The following roadmap outlines future capabilities that build on the foundation of the thick CLI, bundled scanners, unified issue schema, and optional AI explanations.
+lucidscan is intentionally designed with a **plugin-based framework architecture** (the "LangChain for DevSecOps" model) that can evolve well beyond the initial CLI release. The following roadmap outlines future capabilities that build on the foundation of the plugin framework, unified issue schema, and AI-powered enrichment.
 
-These items are not part of V1 but represent logical, high-impact directions for the project.
+The plugin architecture is **core to the framework** — what follows are extensions that leverage this architecture.
 
 ### 16.1 Short-Term Enhancements (1–3 Months After Launch)
 
@@ -3886,7 +4044,7 @@ Improve performance by scanning only changed files rather than the entire direct
 **Approach:**
 
 - Detect git diff changes.
-- Skip unchanged Semgrep targets.
+- Skip unchanged OpenGrep targets.
 - Skip unmodified IaC files.
 - Allow an `--incremental` flag.
 
@@ -3931,7 +4089,7 @@ Provide:
 - Hover explanations.
 - Quick-fix suggestions.
 - Rule suppression features.
-- Integration with local `lucidscan` bundle.
+- Integration with local `lucidscan` CLI and cached scanners.
 
 Mechanism:
 
@@ -3953,9 +4111,9 @@ A local or server-hosted dashboard to:
 Modes:
 
 - Local UI (Electron or minimal web server).
-- Enterprise mode: multi-user dashboard.
+- Self-hosted mode: multi-user dashboard.
 
-This can be an entry point into a future SaaS.
+This provides team visibility while keeping everything self-hosted and open source.
 
 #### 16.2.3 SARIF Rule Mapping Improvements
 
@@ -3967,20 +4125,46 @@ Better integration with:
 
 This increases compatibility with enterprise pipelines.
 
-#### 16.2.4 Plugin System for Custom Scanners
+#### 16.2.4 Third-Party Scanner Plugins
 
-Users can hook in additional scanners:
+The core plugin architecture enables a rich ecosystem of third-party scanner plugins:
+
+**Community Plugins (Published to PyPI):**
 
 ```bash
-lucidscan plugin install bandit
+pip install lucidscan-snyk      # Snyk integration
+pip install lucidscan-codeql    # GitHub CodeQL
+pip install lucidscan-gitleaks  # Secret detection
+pip install lucidscan-bandit    # Python security linter
 ```
 
-Or define custom adapters:
+**Custom Corporate Plugins:**
+
+Organizations can create internal scanner plugins:
+
+```python
+# my_corp_scanner/plugin.py
+from lucidscan.scanners import ScannerPlugin
+
+class CorpSecurityScanner(ScannerPlugin):
+    name = "corp-security"
+    domains = [ScanDomain.SAST]
+    
+    def scan(self, context: ScanContext) -> List[UnifiedIssue]:
+        # Run internal security checks
+        ...
+```
+
+**Lightweight Script Adapters:**
+
+For simple integrations, users can wrap shell scripts:
 
 ```yaml
-plugins:
-  - name: my-corp-custom-checks
-    command: ./scripts/check-security.sh
+# .lucidscan.yml
+custom_scanners:
+  - name: license-check
+    command: ./scripts/check-licenses.sh
+    output_format: json
 ```
 
 #### 16.2.5 Secrets Scanning
@@ -3989,7 +4173,7 @@ Add optional integration with:
 
 - Trivy secrets scanner.
 - Gitleaks.
-- Semgrep secrets rules.
+- OpenGrep secrets rules.
 
 Future CLI flag:
 
@@ -4011,12 +4195,13 @@ lucidscan fix <issue-id>
 lucidscan fix --all
 ```
 
-AI-assisted auto-fix can become a premium offering.
+AI-assisted auto-fix significantly improves developer productivity.
 
 ### 16.3 Long-Term Extensions (9–24 Months)
-#### 16.3.1 Hosted SaaS (Optional Product Line)
 
-A centralized hosted version that supports:
+#### 16.3.1 Self-Hosted Server Mode
+
+A self-hosted server component that supports:
 
 - Team dashboards.
 - Policy enforcement.
@@ -4027,15 +4212,14 @@ A centralized hosted version that supports:
 
 Architecture:
 
-- Thin CLI sends results, not code.
+- CLI sends results, not code.
 - Core scanning remains local to maintain privacy.
-- Only metadata leaves the machine.
+- Only metadata is aggregated.
+- Fully self-hosted and open source.
 
-This keeps the privacy-first promise intact.
+#### 16.3.2 Enterprise Self-Hosted Features
 
-#### 16.3.2 Full “Server Mode” for Large Enterprises
-
-Self-hosted on-prem server for:
+Additional self-hosted capabilities for larger teams:
 
 - Centralized configuration.
 - Centralized AI inference.
@@ -4055,17 +4239,17 @@ Ideal for monorepos:
 
 #### 16.3.4 Reachability Analysis (Advanced SAST + SCA Correlation)
 
-Correlate Semgrep findings with dependency vulnerabilities to reduce noise.
+Correlate OpenGrep findings with dependency vulnerabilities to reduce noise.
 
 Example:
 
 > “This vulnerable dependency is only reachable through code path X.”
 
-This dramatically reduces false positives and can become a premium differentiator.
+This dramatically reduces false positives and improves the signal-to-noise ratio for developers.
 
-#### 16.3.5 ML-Based Issue Ranking (Local or SaaS)
+#### 16.3.5 ML-Based Issue Ranking
 
-Use local ML models or remote inference to compute:
+Use local ML models to compute:
 
 - Exploit likelihood.
 - Contextual severity.
@@ -4073,9 +4257,9 @@ Use local ML models or remote inference to compute:
 
 Expose via a `riskScore` field in the Unified Issue Schema.
 
-#### 16.3.6 Enterprise Knowledge Graph (Future SaaS/Enterprise Feature)
+#### 16.3.6 Organization-Wide Knowledge Graph
 
-Aggregate organization-wide:
+For self-hosted server mode, aggregate organization-wide:
 
 - Dependencies.
 - IaC resources.
@@ -4098,8 +4282,7 @@ The roadmap positions `lucidscan` to evolve into:
 
 - A full security platform.
 - With optional AI augmentation.
-- Optional SaaS backend.
-- Enterprise features.
+- Optional self-hosted server mode for teams.
 - Wide integration with development ecosystems.
 
-All without compromising its local-first foundation.
+All while remaining fully open source and local-first.
