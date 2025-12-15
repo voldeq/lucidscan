@@ -12,18 +12,18 @@ from lucidscan.scanners.trivy import TrivyScanner
 from lucidscan.bootstrap.paths import LucidscanPaths
 
 
-def _is_trivy_available() -> bool:
-    """Check if Trivy binary is available (downloaded or in PATH)."""
-    # Check if already downloaded by lucidscan
+def _ensure_trivy_downloaded() -> bool:
+    """Ensure Trivy binary is downloaded. Returns True if available."""
     scanner = TrivyScanner()
-    paths = LucidscanPaths.default()
-    binary_dir = paths.plugin_bin_dir(scanner.name, scanner.get_version())
-    binary_path = binary_dir / "trivy"
-
-    if binary_path.exists():
+    try:
+        scanner.ensure_binary()
         return True
+    except Exception:
+        return False
 
-    # Check if trivy is in PATH
+
+def _is_trivy_in_path() -> bool:
+    """Check if trivy is in PATH."""
     return shutil.which("trivy") is not None
 
 
@@ -41,14 +41,18 @@ def _is_docker_available() -> bool:
         return False
 
 
+# Download Trivy at module load time so skipif markers work correctly
+_trivy_available = _ensure_trivy_downloaded() or _is_trivy_in_path()
+_docker_available = _is_docker_available()
+
 # Pytest markers for conditional test execution
 trivy_available = pytest.mark.skipif(
-    not _is_trivy_available(),
-    reason="Trivy binary not available (run `lucidscan --sca` once to download)"
+    not _trivy_available,
+    reason="Trivy binary not available and could not be downloaded"
 )
 
 docker_available = pytest.mark.skipif(
-    not _is_docker_available(),
+    not _docker_available,
     reason="Docker not available or not running"
 )
 
