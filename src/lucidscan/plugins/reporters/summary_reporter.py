@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import IO, List
 
 from lucidscan.core.models import ScanResult
-from lucidscan.reporters.base import ReporterPlugin
+from lucidscan.plugins.reporters.base import ReporterPlugin
 
 
 class SummaryReporter(ReporterPlugin):

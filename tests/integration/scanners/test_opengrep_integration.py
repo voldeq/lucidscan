@@ -18,7 +18,7 @@ import pytest
 
 from lucidscan.config.models import LucidScanConfig, ScannerDomainConfig
 from lucidscan.core.models import ScanContext, ScanDomain, Severity
-from lucidscan.scanners.opengrep import OpenGrepScanner
+from lucidscan.plugins.scanners.opengrep import OpenGrepScanner
 from tests.integration.conftest import opengrep_available
 
 
@@ -357,6 +357,7 @@ class TestOpenGrepCLIIntegration:
 
         try:
             exit_code = cli.main([
+                "scan",
                 "--sast",
                 "--format", "json",
                 str(project_root),
@@ -385,6 +386,7 @@ class TestOpenGrepCLIIntegration:
 
         try:
             exit_code = cli.main([
+                "scan",
                 "--sast",
                 "--format", "table",
                 str(project_root),
@@ -409,6 +411,7 @@ class TestOpenGrepCLIIntegration:
 
         try:
             exit_code = cli.main([
+                "scan",
                 "--sast",
                 "--format", "summary",
                 str(project_root),
@@ -446,6 +449,7 @@ class TestOpenGrepCLIIntegration:
 
             try:
                 exit_code = cli.main([
+                    "scan",
                     "--sca",
                     "--sast",
                     "--format", "json",
@@ -483,6 +487,7 @@ def run(cmd):
 
             try:
                 exit_code = cli.main([
+                    "scan",
                     "--sast",
                     "--format", "json",
                     "--fail-on", "high",

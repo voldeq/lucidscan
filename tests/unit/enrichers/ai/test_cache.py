@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from lucidscan.enrichers.ai.cache import (
+from lucidscan.plugins.enrichers.ai.cache import (
     AIExplanationCache,
     CacheEntry,
     create_cache_entry,

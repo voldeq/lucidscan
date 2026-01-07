@@ -1,7 +1,10 @@
 """Path management for lucidscan plugin binary cache.
 
-Handles the ~/.lucidscan directory structure and path resolution.
-Each scanner plugin manages its own binary under ~/.lucidscan/bin/{tool}/{version}/.
+Handles the .lucidscan directory structure and path resolution.
+Each scanner plugin manages its own binary under .lucidscan/bin/{tool}/{version}/.
+
+By default, tools are stored in the project root under .lucidscan/.
+The LUCIDSCAN_HOME environment variable can override this for global installations.
 """
 
 from __future__ import annotations
@@ -9,29 +12,40 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, Optional
 
-# Default directory name under user home
+# Default directory name
 DEFAULT_HOME_DIR_NAME = ".lucidscan"
 
-# Environment variable to override home directory
+# Environment variable to override home directory (for global installations)
 LUCIDSCAN_HOME_ENV = "LUCIDSCAN_HOME"
 
 
-def get_lucidscan_home() -> Path:
+def get_lucidscan_home(project_root: Optional[Path] = None) -> Path:
     """Get the lucidscan home directory path.
 
     Resolution order:
-    1. LUCIDSCAN_HOME environment variable (if set)
-    2. ~/.lucidscan (default)
+    1. LUCIDSCAN_HOME environment variable (if set) - for global installations
+    2. {project_root}/.lucidscan (if project_root provided)
+    3. {cwd}/.lucidscan (default)
+
+    Args:
+        project_root: Optional project root directory. If not provided,
+                     uses current working directory.
 
     Returns:
         Path to the lucidscan home directory.
     """
+    # Global override takes precedence
     env_home = os.environ.get(LUCIDSCAN_HOME_ENV)
     if env_home:
         return Path(env_home)
-    return Path.home() / DEFAULT_HOME_DIR_NAME
+
+    # Use project root or current directory
+    if project_root:
+        return project_root / DEFAULT_HOME_DIR_NAME
+
+    return Path.cwd() / DEFAULT_HOME_DIR_NAME
 
 
 @dataclass
@@ -39,11 +53,12 @@ class LucidscanPaths:
     """Manages paths within the lucidscan home directory.
 
     Directory structure (plugin-based):
-        ~/.lucidscan/
+        {project}/.lucidscan/
             bin/
                 trivy/{version}/trivy       - Trivy binary
                 opengrep/{version}/opengrep - OpenGrep binary
                 checkov/{version}/venv/     - Checkov virtualenv
+                ruff/{version}/ruff         - Ruff binary
             cache/
                 trivy/                      - Trivy vulnerability DB
             config/                         - Configuration files
@@ -60,8 +75,20 @@ class LucidscanPaths:
 
     @classmethod
     def default(cls) -> "LucidscanPaths":
-        """Create paths from the default lucidscan home."""
+        """Create paths from the default lucidscan home (cwd/.lucidscan)."""
         return cls(get_lucidscan_home())
+
+    @classmethod
+    def for_project(cls, project_root: Path) -> "LucidscanPaths":
+        """Create paths for a specific project.
+
+        Args:
+            project_root: Project root directory.
+
+        Returns:
+            LucidscanPaths configured for the project.
+        """
+        return cls(get_lucidscan_home(project_root))
 
     @property
     def bin_dir(self) -> Path:

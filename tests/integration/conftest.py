@@ -8,9 +8,9 @@ from pathlib import Path
 
 import pytest
 
-from lucidscan.scanners.trivy import TrivyScanner
-from lucidscan.scanners.opengrep import OpenGrepScanner
-from lucidscan.scanners.checkov import CheckovScanner
+from lucidscan.plugins.scanners.trivy import TrivyScanner
+from lucidscan.plugins.scanners.opengrep import OpenGrepScanner
+from lucidscan.plugins.scanners.checkov import CheckovScanner
 from lucidscan.bootstrap.paths import LucidscanPaths
 
 

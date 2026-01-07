@@ -10,7 +10,7 @@ import venv
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from lucidscan.scanners.base import ScannerPlugin
+from lucidscan.plugins.scanners.base import ScannerPlugin
 from lucidscan.core.models import ScanContext, ScanDomain, Severity, UnifiedIssue
 from lucidscan.bootstrap.paths import LucidscanPaths
 from lucidscan.core.logging import get_logger
@@ -82,12 +82,19 @@ class CheckovScanner(ScannerPlugin):
 
     Binary management:
     - Installs via pip into a virtual environment
-    - Caches at ~/.lucidscan/bin/checkov/{version}/venv/
+    - Caches at {project}/.lucidscan/bin/checkov/{version}/venv/
     """
 
-    def __init__(self, version: str = DEFAULT_VERSION) -> None:
+    def __init__(
+        self,
+        version: str = DEFAULT_VERSION,
+        project_root: Optional[Path] = None,
+    ) -> None:
         self._version = version
-        self._paths = LucidscanPaths.default()
+        if project_root:
+            self._paths = LucidscanPaths.for_project(project_root)
+        else:
+            self._paths = LucidscanPaths.default()
 
     @property
     def name(self) -> str:

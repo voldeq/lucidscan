@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from lucidscan.config.models import AIConfig
-from lucidscan.enrichers.ai.providers import (
+from lucidscan.plugins.enrichers.ai.providers import (
     DEFAULT_MODELS,
     ProviderError,
     get_llm,
@@ -82,13 +82,13 @@ class TestGetLLM:
 
     def test_ollama_does_not_require_api_key(self) -> None:
         """Test Ollama works without API key (local provider)."""
-        with patch("lucidscan.enrichers.ai.providers._init_ollama") as mock:
+        with patch("lucidscan.plugins.enrichers.ai.providers._init_ollama") as mock:
             mock.return_value = MagicMock()
             config = AIConfig(provider="ollama", model="llama3", api_key="")
             get_llm(config)
             mock.assert_called_once()
 
-    @patch("lucidscan.enrichers.ai.providers._init_openai")
+    @patch("lucidscan.plugins.enrichers.ai.providers._init_openai")
     def test_openai_provider_calls_init_openai(
         self, mock_init: MagicMock
     ) -> None:
@@ -98,7 +98,7 @@ class TestGetLLM:
         get_llm(config)
         mock_init.assert_called_once_with(config, "gpt-4")
 
-    @patch("lucidscan.enrichers.ai.providers._init_anthropic")
+    @patch("lucidscan.plugins.enrichers.ai.providers._init_anthropic")
     def test_anthropic_provider_calls_init_anthropic(
         self, mock_init: MagicMock
     ) -> None:
@@ -108,7 +108,7 @@ class TestGetLLM:
         get_llm(config)
         mock_init.assert_called_once_with(config, "claude-3")
 
-    @patch("lucidscan.enrichers.ai.providers._init_ollama")
+    @patch("lucidscan.plugins.enrichers.ai.providers._init_ollama")
     def test_ollama_provider_calls_init_ollama(
         self, mock_init: MagicMock
     ) -> None:
@@ -120,7 +120,7 @@ class TestGetLLM:
 
     def test_provider_case_insensitive(self) -> None:
         """Test provider name is case insensitive."""
-        with patch("lucidscan.enrichers.ai.providers._init_openai") as mock:
+        with patch("lucidscan.plugins.enrichers.ai.providers._init_openai") as mock:
             mock.return_value = MagicMock()
             config = AIConfig(provider="OpenAI", model="gpt-4", api_key="test-key")
             get_llm(config)
@@ -133,7 +133,7 @@ class TestInitOpenAI:
     def test_raises_when_package_not_installed(self) -> None:
         """Test raises ProviderError when langchain-openai not installed."""
         import sys
-        from lucidscan.enrichers.ai import providers
+        from lucidscan.plugins.enrichers.ai import providers
 
         # Mock the import to fail
         with patch.dict(sys.modules, {"langchain_openai": None}):
@@ -153,7 +153,7 @@ class TestInitAnthropic:
 
     def test_raises_when_package_not_installed(self) -> None:
         """Test raises ProviderError when langchain-anthropic not installed."""
-        from lucidscan.enrichers.ai import providers
+        from lucidscan.plugins.enrichers.ai import providers
 
         with patch.object(
             providers,
@@ -170,7 +170,7 @@ class TestInitOllama:
 
     def test_raises_when_package_not_installed(self) -> None:
         """Test raises ProviderError when langchain-ollama not installed."""
-        from lucidscan.enrichers.ai import providers
+        from lucidscan.plugins.enrichers.ai import providers
 
         with patch.object(
             providers,

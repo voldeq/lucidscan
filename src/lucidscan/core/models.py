@@ -11,12 +11,26 @@ if TYPE_CHECKING:
 
 
 class ScanDomain(str, Enum):
-    """Scanning domains supported by lucidscan."""
+    """Scanning domains supported by lucidscan (security-focused)."""
 
     SCA = "sca"
     CONTAINER = "container"
     IAC = "iac"
     SAST = "sast"
+
+
+class ToolDomain(str, Enum):
+    """All tool domains supported by lucidscan pipeline.
+
+    This enum covers all types of tools in the quality pipeline:
+    linting, type checking, security scanning, testing, and coverage.
+    """
+
+    LINTING = "linting"
+    TYPE_CHECKING = "type_checking"
+    SECURITY = "security"
+    TESTING = "testing"
+    COVERAGE = "coverage"
 
 
 class Severity(str, Enum):

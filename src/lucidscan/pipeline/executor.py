@@ -120,7 +120,7 @@ class PipelineExecutor:
         of the previous enricher.
         """
         # Import here to avoid circular imports
-        from lucidscan.enrichers import get_enricher_plugin
+        from lucidscan.plugins.enrichers import get_enricher_plugin
 
         enriched = issues
 

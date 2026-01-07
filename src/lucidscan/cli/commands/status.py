@@ -9,7 +9,7 @@ from lucidscan.bootstrap.platform import get_platform_info
 from lucidscan.bootstrap.validation import validate_binary, ToolStatus
 from lucidscan.cli.commands import Command
 from lucidscan.cli.exit_codes import EXIT_SUCCESS
-from lucidscan.scanners import discover_scanner_plugins
+from lucidscan.plugins.scanners import discover_scanner_plugins
 
 
 class StatusCommand(Command):
@@ -39,13 +39,14 @@ class StatusCommand(Command):
         Returns:
             Exit code (always 0 for status).
         """
+        # Use current directory as project root
         home = get_lucidscan_home()
         paths = LucidscanPaths(home)
         platform_info = get_platform_info()
 
         print(f"lucidscan version: {self._version}")
         print(f"Platform: {platform_info.os}-{platform_info.arch}")
-        print(f"Binary cache: {home}/bin/")
+        print(f"Tool cache: {home}/bin/")
         print()
 
         # Discover plugins via entry points
@@ -73,6 +74,6 @@ class StatusCommand(Command):
             print("  No plugins discovered.")
 
         print()
-        print("Scanner binaries are downloaded automatically on first use.")
+        print("Tools are downloaded to .lucidscan/ on first scan.")
 
         return EXIT_SUCCESS

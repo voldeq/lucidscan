@@ -8,14 +8,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
-from lucidscan.enrichers.base import EnricherPlugin
+from lucidscan.plugins.enrichers.base import EnricherPlugin
 from lucidscan.core.logging import get_logger
 
 if TYPE_CHECKING:
     from langchain_core.language_models import BaseChatModel
     from lucidscan.config.models import AIConfig
     from lucidscan.core.models import ScanContext, UnifiedIssue
-    from lucidscan.enrichers.ai.cache import AIExplanationCache
+    from lucidscan.plugins.enrichers.ai.cache import AIExplanationCache
 
 LOGGER = get_logger(__name__)
 
@@ -120,7 +120,7 @@ class AIExplainerEnricher(EnricherPlugin):
             return True
 
         try:
-            from lucidscan.enrichers.ai.providers import get_llm, ProviderError
+            from lucidscan.plugins.enrichers.ai.providers import get_llm, ProviderError
 
             self._llm = get_llm(self._config)
             LOGGER.debug(f"Initialized {self._config.provider} LLM provider")
@@ -137,7 +137,7 @@ class AIExplainerEnricher(EnricherPlugin):
         if self._cache is not None:
             return
 
-        from lucidscan.enrichers.ai.cache import AIExplanationCache
+        from lucidscan.plugins.enrichers.ai.cache import AIExplanationCache
 
         self._cache = AIExplanationCache()
         LOGGER.debug(f"AI cache initialized at {self._cache.cache_dir}")
@@ -168,7 +168,7 @@ class AIExplainerEnricher(EnricherPlugin):
 
             # Store in cache
             if self._cache and cache_key and explanation:
-                from lucidscan.enrichers.ai.cache import create_cache_entry
+                from lucidscan.plugins.enrichers.ai.cache import create_cache_entry
 
                 entry = create_cache_entry(
                     explanation=explanation,
@@ -192,7 +192,7 @@ class AIExplainerEnricher(EnricherPlugin):
         Returns:
             Generated explanation text, or None on failure.
         """
-        from lucidscan.enrichers.ai.prompts import SYSTEM_PROMPT, format_prompt
+        from lucidscan.plugins.enrichers.ai.prompts import SYSTEM_PROMPT, format_prompt
 
         # Import LangChain message types lazily
         try:
@@ -242,6 +242,6 @@ class AIExplainerEnricher(EnricherPlugin):
         Returns:
             Model name from config or default for provider.
         """
-        from lucidscan.enrichers.ai.providers import get_model_name
+        from lucidscan.plugins.enrichers.ai.providers import get_model_name
 
         return get_model_name(self._config)

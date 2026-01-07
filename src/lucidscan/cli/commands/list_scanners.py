@@ -6,7 +6,7 @@ from argparse import Namespace
 
 from lucidscan.cli.commands import Command
 from lucidscan.cli.exit_codes import EXIT_SUCCESS
-from lucidscan.scanners import discover_scanner_plugins
+from lucidscan.plugins.scanners import discover_scanner_plugins
 
 
 class ListScannersCommand(Command):

@@ -38,5 +38,7 @@ htmlcov/
 docs/plan/
 docs/instructions/
 
+# LucidScan tool cache
+.lucidscan/
 
 .env

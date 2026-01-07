@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from lucidscan.core.models import ScanDomain, Severity, UnifiedIssue
-from lucidscan.enrichers.ai.prompts import (
+from lucidscan.plugins.enrichers.ai.prompts import (
     PROMPT_VERSION,
     SYSTEM_PROMPT,
     format_prompt,

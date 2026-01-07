@@ -7,8 +7,8 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from lucidscan.scanners.checkov import CheckovScanner, DEFAULT_VERSION, _glob_to_regex
-from lucidscan.scanners.base import ScannerPlugin
+from lucidscan.plugins.scanners.checkov import CheckovScanner, DEFAULT_VERSION, _glob_to_regex
+from lucidscan.plugins.scanners.base import ScannerPlugin
 from lucidscan.core.models import ScanDomain, Severity
 
 

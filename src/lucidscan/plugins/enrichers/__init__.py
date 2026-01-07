@@ -14,7 +14,7 @@ Example registration in pyproject.toml:
 
 from typing import Dict, List, Optional, Type
 
-from lucidscan.enrichers.base import EnricherPlugin
+from lucidscan.plugins.enrichers.base import EnricherPlugin
 from lucidscan.plugins.discovery import (
     ENRICHER_ENTRY_POINT_GROUP,
     discover_plugins,

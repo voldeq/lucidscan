@@ -20,6 +20,12 @@ SCANNER_ENTRY_POINT_GROUP = "lucidscan.scanners"
 ENRICHER_ENTRY_POINT_GROUP = "lucidscan.enrichers"
 REPORTER_ENTRY_POINT_GROUP = "lucidscan.reporters"
 
+# New plugin groups for v0.2+ quality pipeline
+LINTER_ENTRY_POINT_GROUP = "lucidscan.linters"
+TYPE_CHECKER_ENTRY_POINT_GROUP = "lucidscan.type_checkers"
+TEST_RUNNER_ENTRY_POINT_GROUP = "lucidscan.test_runners"
+COVERAGE_ENTRY_POINT_GROUP = "lucidscan.coverage"
+
 T = TypeVar("T")
 
 
@@ -63,13 +69,21 @@ def discover_plugins(group: str, base_class: Type[T] | None = None) -> Dict[str,
     return plugins
 
 
-def get_plugin(group: str, name: str, base_class: Type[T] | None = None) -> T | None:
+def get_plugin(
+    group: str,
+    name: str,
+    base_class: Type[T] | None = None,
+    **kwargs,
+) -> T | None:
     """Get an instantiated plugin by name.
 
     Args:
         group: Entry point group name.
         name: Plugin name (e.g., 'trivy').
         base_class: Optional base class to validate against.
+        **kwargs: Additional arguments to pass to the plugin constructor.
+                  Common kwargs include:
+                  - project_root: Path to project root for tool installation.
 
     Returns:
         Instantiated plugin or None if not found.
@@ -77,7 +91,7 @@ def get_plugin(group: str, name: str, base_class: Type[T] | None = None) -> T | 
     plugins = discover_plugins(group, base_class)
     plugin_class = plugins.get(name)
     if plugin_class:
-        return plugin_class()
+        return plugin_class(**kwargs)
     return None
 
 

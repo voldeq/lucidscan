@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from lucidscan.core.logging import get_logger
 from lucidscan.core.models import ScanContext, ScanDomain, UnifiedIssue
-from lucidscan.scanners import get_scanner_plugin
+from lucidscan.plugins.scanners import get_scanner_plugin
 
 LOGGER = get_logger(__name__)
 
@@ -135,7 +135,7 @@ class ParallelScannerExecutor:
 
         This method is thread-safe and catches all exceptions.
         """
-        scanner = get_scanner_plugin(scanner_name)
+        scanner = get_scanner_plugin(scanner_name, project_root=context.project_root)
         if not scanner:
             LOGGER.error(f"Scanner plugin '{scanner_name}' not found")
             return ScannerResult(

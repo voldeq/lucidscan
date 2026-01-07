@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, IO, List, Optional
 
-from lucidscan.reporters.base import ReporterPlugin
+from lucidscan.plugins.reporters.base import ReporterPlugin
 from lucidscan.core.models import ScanResult, Severity, UnifiedIssue
 
 # SARIF schema URL

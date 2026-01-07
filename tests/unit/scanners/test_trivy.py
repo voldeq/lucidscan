@@ -7,8 +7,8 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from lucidscan.scanners.trivy import TrivyScanner, DEFAULT_VERSION
-from lucidscan.scanners.base import ScannerPlugin
+from lucidscan.plugins.scanners.trivy import TrivyScanner, DEFAULT_VERSION
+from lucidscan.plugins.scanners.base import ScannerPlugin
 from lucidscan.core.models import ScanDomain
 
 
@@ -88,7 +88,7 @@ class TestTrivyScannerDownloadUrl:
         """Test download URL for Linux amd64."""
         scanner = TrivyScanner(version="0.68.1")
 
-        with patch("lucidscan.scanners.trivy.get_platform_info") as mock_platform:
+        with patch("lucidscan.plugins.scanners.trivy.get_platform_info") as mock_platform:
             mock_platform.return_value = MagicMock(os="linux", arch="amd64")
 
             # We can't easily test the URL directly, but we can verify
@@ -99,7 +99,7 @@ class TestTrivyScannerDownloadUrl:
         """Test download URL for macOS arm64."""
         scanner = TrivyScanner(version="0.68.1")
 
-        with patch("lucidscan.scanners.trivy.get_platform_info") as mock_platform:
+        with patch("lucidscan.plugins.scanners.trivy.get_platform_info") as mock_platform:
             mock_platform.return_value = MagicMock(os="darwin", arch="arm64")
 
             assert hasattr(scanner, "_download_binary")

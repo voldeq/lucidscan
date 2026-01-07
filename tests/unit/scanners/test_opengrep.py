@@ -7,8 +7,8 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from lucidscan.scanners.opengrep import OpenGrepScanner, DEFAULT_VERSION
-from lucidscan.scanners.base import ScannerPlugin
+from lucidscan.plugins.scanners.opengrep import OpenGrepScanner, DEFAULT_VERSION
+from lucidscan.plugins.scanners.base import ScannerPlugin
 from lucidscan.core.models import ScanDomain
 
 
@@ -87,7 +87,7 @@ class TestOpenGrepScannerBinaryNaming:
         """Test binary name on Linux."""
         scanner = OpenGrepScanner()
 
-        with patch("lucidscan.scanners.opengrep.get_platform_info") as mock_platform:
+        with patch("lucidscan.plugins.scanners.opengrep.get_platform_info") as mock_platform:
             mock_platform.return_value = MagicMock(os="linux", arch="amd64")
             assert scanner._get_binary_name() == "opengrep"
 
@@ -95,7 +95,7 @@ class TestOpenGrepScannerBinaryNaming:
         """Test binary name on macOS."""
         scanner = OpenGrepScanner()
 
-        with patch("lucidscan.scanners.opengrep.get_platform_info") as mock_platform:
+        with patch("lucidscan.plugins.scanners.opengrep.get_platform_info") as mock_platform:
             mock_platform.return_value = MagicMock(os="darwin", arch="arm64")
             assert scanner._get_binary_name() == "opengrep"
 
@@ -103,7 +103,7 @@ class TestOpenGrepScannerBinaryNaming:
         """Test binary name on Windows."""
         scanner = OpenGrepScanner()
 
-        with patch("lucidscan.scanners.opengrep.get_platform_info") as mock_platform:
+        with patch("lucidscan.plugins.scanners.opengrep.get_platform_info") as mock_platform:
             mock_platform.return_value = MagicMock(os="windows", arch="amd64")
             assert scanner._get_binary_name() == "opengrep.exe"
 
@@ -115,7 +115,7 @@ class TestOpenGrepScannerDownloadUrl:
         """Test download URL for Linux amd64."""
         scanner = OpenGrepScanner(version="1.12.1")
 
-        with patch("lucidscan.scanners.opengrep.get_platform_info") as mock_platform:
+        with patch("lucidscan.plugins.scanners.opengrep.get_platform_info") as mock_platform:
             mock_platform.return_value = MagicMock(os="linux", arch="amd64")
 
             # Verify the method exists and platform mapping works
@@ -125,7 +125,7 @@ class TestOpenGrepScannerDownloadUrl:
         """Test download URL for macOS arm64."""
         scanner = OpenGrepScanner(version="1.12.1")
 
-        with patch("lucidscan.scanners.opengrep.get_platform_info") as mock_platform:
+        with patch("lucidscan.plugins.scanners.opengrep.get_platform_info") as mock_platform:
             mock_platform.return_value = MagicMock(os="darwin", arch="arm64")
 
             assert hasattr(scanner, "_download_binary")

@@ -128,7 +128,7 @@ class TestParallelScannerExecutor:
         with patch(
             "lucidscan.pipeline.parallel.get_scanner_plugin"
         ) as mock_get:
-            mock_get.side_effect = lambda name: MockScanner(name, issues=2)
+            mock_get.side_effect = lambda name, **kwargs: MockScanner(name, issues=2)
 
             executor = ParallelScannerExecutor(max_workers=2)
             issues, results = executor.execute(
@@ -142,7 +142,7 @@ class TestParallelScannerExecutor:
         """Test that sequential mode runs scanners one at a time."""
         call_order = []
 
-        def mock_scanner(name: str) -> MockScanner:
+        def mock_scanner(name: str, **kwargs) -> MockScanner:
             scanner = MockScanner(name)
             original_scan = scanner.scan
 

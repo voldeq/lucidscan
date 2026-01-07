@@ -30,38 +30,60 @@ class ConfigBridge:
         overrides: Dict[str, Any] = {}
 
         # Domain toggles - only set if explicitly provided on CLI
+        # Use getattr with defaults for subcommand compatibility
         scanners: Dict[str, Dict[str, Any]] = {}
+        linters: Dict[str, Dict[str, Any]] = {}
 
-        if args.all:
-            # Enable all domains
+        all_domains = getattr(args, "all", False)
+        sca = getattr(args, "sca", False)
+        sast = getattr(args, "sast", False)
+        iac = getattr(args, "iac", False)
+        container = getattr(args, "container", False)
+        lint = getattr(args, "lint", False)
+        fix = getattr(args, "fix", False)
+        images = getattr(args, "images", None)
+
+        if all_domains:
+            # Enable all domains including linting
             for domain in ["sca", "sast", "iac", "container"]:
                 scanners[domain] = {"enabled": True}
+            linters["ruff"] = {"enabled": True}
         else:
-            if args.sca:
+            if sca:
                 scanners["sca"] = {"enabled": True}
-            if args.sast:
+            if sast:
                 scanners["sast"] = {"enabled": True}
-            if args.iac:
+            if iac:
                 scanners["iac"] = {"enabled": True}
-            if args.container:
+            if container:
                 scanners["container"] = {"enabled": True}
+            if lint:
+                linters["ruff"] = {"enabled": True}
 
         # Container images go into container scanner options
-        if args.images:
+        if images:
             if "container" not in scanners:
                 scanners["container"] = {}
             scanners["container"]["enabled"] = True
-            scanners["container"]["images"] = args.images
+            scanners["container"]["images"] = images
 
         if scanners:
             overrides["scanners"] = scanners
 
+        if linters:
+            overrides["linters"] = linters
+
+        # Fix mode for linting
+        if fix:
+            overrides["fix"] = True
+
         # Fail-on threshold
-        if args.fail_on:
-            overrides["fail_on"] = args.fail_on
+        fail_on = getattr(args, "fail_on", None)
+        if fail_on:
+            overrides["fail_on"] = fail_on
 
         # AI enrichment toggle
-        if hasattr(args, "ai") and args.ai:
+        if getattr(args, "ai", False):
             overrides["ai"] = {"enabled": True}
 
         return overrides
@@ -83,19 +105,20 @@ class ConfigBridge:
         Returns:
             List of enabled ScanDomain values.
         """
+        # Use getattr for subcommand compatibility
+        sca = getattr(args, "sca", False)
+        sast = getattr(args, "sast", False)
+        iac = getattr(args, "iac", False)
+        container = getattr(args, "container", False)
+        all_domains = getattr(args, "all", False)
+
         # Check if any domain flags were explicitly set on CLI
-        cli_domains_set = any([
-            args.sca,
-            args.sast,
-            args.iac,
-            args.container,
-            args.all,
-        ])
+        cli_domains_set = any([sca, sast, iac, container, all_domains])
 
         if cli_domains_set:
             # CLI flags take precedence - use what was explicitly requested
             domains: List[ScanDomain] = []
-            if args.all:
+            if all_domains:
                 domains = [
                     ScanDomain.SCA,
                     ScanDomain.SAST,
@@ -103,13 +126,13 @@ class ConfigBridge:
                     ScanDomain.CONTAINER,
                 ]
             else:
-                if args.sca:
+                if sca:
                     domains.append(ScanDomain.SCA)
-                if args.sast:
+                if sast:
                     domains.append(ScanDomain.SAST)
-                if args.iac:
+                if iac:
                     domains.append(ScanDomain.IAC)
-                if args.container:
+                if container:
                     domains.append(ScanDomain.CONTAINER)
             return domains
 

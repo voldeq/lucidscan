@@ -7,7 +7,7 @@ import pytest
 
 from lucidscan.config.models import AIConfig, LucidScanConfig
 from lucidscan.core.models import ScanContext, ScanDomain, Severity, UnifiedIssue
-from lucidscan.enrichers.ai_explainer import AIExplainerEnricher
+from lucidscan.plugins.enrichers.ai_explainer import AIExplainerEnricher
 
 
 class TestAIExplainerEnricher:
@@ -117,7 +117,7 @@ class TestAIExplainerEnricher:
         result = enricher.enrich([], context_ai_enabled)
         assert result == []
 
-    @patch("lucidscan.enrichers.ai.providers.get_llm")
+    @patch("lucidscan.plugins.enrichers.ai.providers.get_llm")
     def test_adds_explanation_to_issues(
         self,
         mock_get_llm: MagicMock,
@@ -155,7 +155,7 @@ class TestAIExplainerEnricher:
             assert issue.scanner_metadata["ai_explanation"] == "This is a test explanation."
             assert "ai_model" in issue.scanner_metadata
 
-    @patch("lucidscan.enrichers.ai.providers.get_llm")
+    @patch("lucidscan.plugins.enrichers.ai.providers.get_llm")
     def test_handles_llm_failure_gracefully(
         self,
         mock_get_llm: MagicMock,
@@ -176,7 +176,7 @@ class TestAIExplainerEnricher:
         for issue in result:
             assert "ai_explanation" not in issue.scanner_metadata
 
-    @patch("lucidscan.enrichers.ai.providers.get_llm")
+    @patch("lucidscan.plugins.enrichers.ai.providers.get_llm")
     def test_never_modifies_severity(
         self,
         mock_get_llm: MagicMock,
@@ -198,7 +198,7 @@ class TestAIExplainerEnricher:
         for i, issue in enumerate(result):
             assert issue.severity == original_severities[i]
 
-    @patch("lucidscan.enrichers.ai.providers.get_llm")
+    @patch("lucidscan.plugins.enrichers.ai.providers.get_llm")
     def test_handles_provider_init_failure(
         self,
         mock_get_llm: MagicMock,
@@ -207,7 +207,7 @@ class TestAIExplainerEnricher:
         context_ai_enabled: ScanContext,
     ) -> None:
         """Test enricher handles provider initialization failure."""
-        from lucidscan.enrichers.ai.providers import ProviderError
+        from lucidscan.plugins.enrichers.ai.providers import ProviderError
 
         mock_get_llm.side_effect = ProviderError("Provider init failed")
 
@@ -216,8 +216,8 @@ class TestAIExplainerEnricher:
         # Issues should be returned unchanged
         assert result == sample_issues
 
-    @patch("lucidscan.enrichers.ai.providers.get_llm")
-    @patch("lucidscan.enrichers.ai.cache.AIExplanationCache")
+    @patch("lucidscan.plugins.enrichers.ai.providers.get_llm")
+    @patch("lucidscan.plugins.enrichers.ai.cache.AIExplanationCache")
     def test_uses_cache_when_enabled(
         self,
         mock_cache_class: MagicMock,

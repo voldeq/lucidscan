@@ -16,10 +16,10 @@ from lucidscan.core.models import (
     Severity,
     UnifiedIssue,
 )
-from lucidscan.reporters.json_reporter import JSONReporter
-from lucidscan.reporters.table_reporter import TableReporter
-from lucidscan.reporters.summary_reporter import SummaryReporter
-from lucidscan.reporters.sarif_reporter import SARIFReporter
+from lucidscan.plugins.reporters.json_reporter import JSONReporter
+from lucidscan.plugins.reporters.table_reporter import TableReporter
+from lucidscan.plugins.reporters.summary_reporter import SummaryReporter
+from lucidscan.plugins.reporters.sarif_reporter import SARIFReporter
 
 
 @pytest.fixture
@@ -86,7 +86,7 @@ def sample_result(sample_issues: list[UnifiedIssue]) -> ScanResult:
     result = ScanResult(issues=sample_issues)
     result.summary = result.compute_summary()
     result.metadata = ScanMetadata(
-        lucidscan_version="0.1.12",
+        lucidscan_version="0.2.0",
         scan_started_at="2025-01-01T10:00:00Z",
         scan_finished_at="2025-01-01T10:00:05Z",
         duration_ms=5000,
@@ -132,7 +132,7 @@ class TestJSONReporter:
         assert data["schema_version"] == "1.0"
         assert len(data["issues"]) == 3
         assert data["summary"]["total"] == 3
-        assert data["metadata"]["lucidscan_version"] == "0.1.12"
+        assert data["metadata"]["lucidscan_version"] == "0.2.0"
 
     def test_issue_serialization(self, sample_result: ScanResult) -> None:
         reporter = JSONReporter()
@@ -337,7 +337,7 @@ class TestSARIFReporter:
 
         run = data["runs"][0]
         assert run["tool"]["driver"]["name"] == "lucidscan"
-        assert run["tool"]["driver"]["version"] == "0.1.12"
+        assert run["tool"]["driver"]["version"] == "0.2.0"
         assert len(run["results"]) == 3
 
     def test_sarif_schema_url(self, sample_result: ScanResult) -> None:
@@ -624,35 +624,35 @@ class TestReporterDiscovery:
     """Tests for reporter plugin discovery."""
 
     def test_discover_json_reporter(self) -> None:
-        from lucidscan.reporters import get_reporter_plugin
+        from lucidscan.plugins.reporters import get_reporter_plugin
 
         reporter = get_reporter_plugin("json")
         assert reporter is not None
         assert reporter.name == "json"
 
     def test_discover_table_reporter(self) -> None:
-        from lucidscan.reporters import get_reporter_plugin
+        from lucidscan.plugins.reporters import get_reporter_plugin
 
         reporter = get_reporter_plugin("table")
         assert reporter is not None
         assert reporter.name == "table"
 
     def test_discover_summary_reporter(self) -> None:
-        from lucidscan.reporters import get_reporter_plugin
+        from lucidscan.plugins.reporters import get_reporter_plugin
 
         reporter = get_reporter_plugin("summary")
         assert reporter is not None
         assert reporter.name == "summary"
 
     def test_discover_sarif_reporter(self) -> None:
-        from lucidscan.reporters import get_reporter_plugin
+        from lucidscan.plugins.reporters import get_reporter_plugin
 
         reporter = get_reporter_plugin("sarif")
         assert reporter is not None
         assert reporter.name == "sarif"
 
     def test_list_available_reporters(self) -> None:
-        from lucidscan.reporters import list_available_reporters
+        from lucidscan.plugins.reporters import list_available_reporters
 
         reporters = list_available_reporters()
         assert "json" in reporters

@@ -19,7 +19,7 @@ import pytest
 
 from lucidscan.config.models import LucidScanConfig, ScannerDomainConfig
 from lucidscan.core.models import ScanContext, ScanDomain, Severity
-from lucidscan.scanners.trivy import TrivyScanner
+from lucidscan.plugins.scanners.trivy import TrivyScanner
 from tests.integration.conftest import trivy_available, docker_available
 
 
@@ -431,6 +431,7 @@ class TestTrivyCLIIntegration:
 
         try:
             exit_code = cli.main([
+                "scan",
                 "--sca",
                 "--format", "json",
                 str(project_root),
@@ -459,6 +460,7 @@ class TestTrivyCLIIntegration:
 
         try:
             exit_code = cli.main([
+                "scan",
                 "--sca",
                 "--format", "table",
                 str(project_root),
@@ -483,6 +485,7 @@ class TestTrivyCLIIntegration:
 
         try:
             exit_code = cli.main([
+                "scan",
                 "--sca",
                 "--format", "summary",
                 str(project_root),
@@ -513,6 +516,7 @@ class TestTrivyCLIIntegration:
 
             try:
                 exit_code = cli.main([
+                    "scan",
                     "--sca",
                     "--format", "json",
                     "--fail-on", "high",

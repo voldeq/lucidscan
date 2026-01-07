@@ -17,7 +17,7 @@ import pytest
 
 from lucidscan.config.models import LucidScanConfig, ScannerDomainConfig
 from lucidscan.core.models import ScanContext, ScanDomain, Severity
-from lucidscan.scanners.checkov import CheckovScanner
+from lucidscan.plugins.scanners.checkov import CheckovScanner
 from tests.integration.conftest import checkov_available
 
 

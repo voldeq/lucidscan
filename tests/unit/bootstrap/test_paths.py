@@ -18,18 +18,27 @@ from lucidscan.bootstrap.paths import (
 class TestGetLucidscanHome:
     """Tests for get_lucidscan_home function."""
 
-    def test_returns_default_in_user_home(self, tmp_path: Path) -> None:
-        with patch.dict(os.environ, {"HOME": str(tmp_path)}, clear=False):
-            with patch.dict(os.environ, {"LUCIDSCAN_HOME": ""}, clear=False):
-                # Remove LUCIDSCAN_HOME if it exists
-                os.environ.pop("LUCIDSCAN_HOME", None)
-                home = get_lucidscan_home()
-                assert home == tmp_path / DEFAULT_HOME_DIR_NAME
+    def test_returns_default_in_cwd(self) -> None:
+        """Default is cwd/.lucidscan when no project_root is provided."""
+        with patch.dict(os.environ, {}, clear=False):
+            # Remove LUCIDSCAN_HOME if it exists
+            os.environ.pop("LUCIDSCAN_HOME", None)
+            home = get_lucidscan_home()
+            assert home == Path.cwd() / DEFAULT_HOME_DIR_NAME
+
+    def test_returns_project_root_lucidscan(self, tmp_path: Path) -> None:
+        """When project_root is provided, returns {project_root}/.lucidscan."""
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("LUCIDSCAN_HOME", None)
+            home = get_lucidscan_home(project_root=tmp_path)
+            assert home == tmp_path / DEFAULT_HOME_DIR_NAME
 
     def test_respects_lucidscan_home_env_var(self, tmp_path: Path) -> None:
+        """LUCIDSCAN_HOME env var overrides project-local path."""
         custom_home = tmp_path / "custom-lucidscan"
         with patch.dict(os.environ, {"LUCIDSCAN_HOME": str(custom_home)}):
-            home = get_lucidscan_home()
+            # Even with project_root, env var takes precedence
+            home = get_lucidscan_home(project_root=tmp_path / "some_project")
             assert home == custom_home
 
     def test_returns_path_object(self) -> None:

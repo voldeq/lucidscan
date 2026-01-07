@@ -41,10 +41,12 @@ class Command(ABC):
 from lucidscan.cli.commands.status import StatusCommand
 from lucidscan.cli.commands.list_scanners import ListScannersCommand
 from lucidscan.cli.commands.scan import ScanCommand
+from lucidscan.cli.commands.init import InitCommand
 
 __all__ = [
     "Command",
     "StatusCommand",
     "ListScannersCommand",
     "ScanCommand",
+    "InitCommand",
 ]

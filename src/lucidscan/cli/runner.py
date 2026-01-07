@@ -1,4 +1,7 @@
-"""CLI runner orchestration."""
+"""CLI runner orchestration.
+
+This module handles command dispatch and execution for the lucidscan CLI.
+"""
 
 from __future__ import annotations
 
@@ -15,7 +18,6 @@ from lucidscan.cli.exit_codes import (
     EXIT_SUCCESS,
 )
 from lucidscan.cli.commands.status import StatusCommand
-from lucidscan.cli.commands.list_scanners import ListScannersCommand
 from lucidscan.cli.commands.scan import ScanCommand
 from lucidscan.config import load_config
 from lucidscan.config.loader import ConfigError
@@ -39,15 +41,28 @@ def get_version() -> str:
 
 
 class CLIRunner:
-    """Orchestrates CLI execution."""
+    """Orchestrates CLI execution with subcommand dispatch."""
 
     def __init__(self) -> None:
         """Initialize CLIRunner with parser and commands."""
         self.parser = build_parser()
         self._version = get_version()
         self.status_cmd = StatusCommand(version=self._version)
-        self.list_cmd = ListScannersCommand()
         self.scan_cmd = ScanCommand(version=self._version)
+        # InitCommand will be imported lazily when needed to avoid
+        # import errors until the module is created
+        self._init_cmd = None
+
+    @property
+    def init_cmd(self):
+        """Lazy-load InitCommand to avoid import errors during development."""
+        if self._init_cmd is None:
+            try:
+                from lucidscan.cli.commands.init import InitCommand
+                self._init_cmd = InitCommand()
+            except ImportError:
+                self._init_cmd = None
+        return self._init_cmd
 
     def run(self, argv: Optional[Iterable[str]] = None) -> int:
         """Run the CLI.
@@ -81,23 +96,44 @@ class CLIRunner:
             print(self._version)
             return EXIT_SUCCESS
 
-        # Handle --status
-        if args.status:
-            return self.status_cmd.execute(args)
+        # Dispatch to appropriate command handler
+        command = getattr(args, "command", None)
 
-        # Handle --list-scanners
-        if args.list_scanners:
-            return self.list_cmd.execute(args)
+        if command == "init":
+            return self._handle_init(args)
+        elif command == "scan":
+            return self._handle_scan(args)
+        elif command == "status":
+            return self._handle_status(args)
+        else:
+            # No command specified - show help
+            self.parser.print_help()
+            return EXIT_SUCCESS
 
-        # Check if we should run a scan
-        cli_scan_requested = any([
-            args.sca,
-            args.container,
-            args.iac,
-            args.sast,
-            args.all,
-        ])
+    def _handle_init(self, args) -> int:
+        """Handle the init command.
 
+        Args:
+            args: Parsed command-line arguments.
+
+        Returns:
+            Exit code.
+        """
+        if self.init_cmd is None:
+            LOGGER.error("Init command not available. This feature is in development.")
+            return EXIT_INVALID_USAGE
+
+        return self.init_cmd.execute(args)
+
+    def _handle_scan(self, args) -> int:
+        """Handle the scan command.
+
+        Args:
+            args: Parsed command-line arguments.
+
+        Returns:
+            Exit code.
+        """
         # Load configuration
         project_root = Path(args.path).resolve()
         cli_overrides = ConfigBridge.args_to_overrides(args)
@@ -105,12 +141,22 @@ class CLIRunner:
         try:
             config = load_config(
                 project_root=project_root,
-                cli_config_path=args.config,
+                cli_config_path=getattr(args, "config", None),
                 cli_overrides=cli_overrides,
             )
         except ConfigError as e:
             LOGGER.error(str(e))
             return EXIT_INVALID_USAGE
+
+        # Check if any domains are enabled
+        cli_scan_requested = any([
+            getattr(args, "sca", False),
+            getattr(args, "container", False),
+            getattr(args, "iac", False),
+            getattr(args, "sast", False),
+            getattr(args, "lint", False),
+            getattr(args, "all", False),
+        ])
 
         config_has_enabled_domains = bool(config.get_enabled_domains())
 
@@ -123,8 +169,21 @@ class CLIRunner:
                 if args.debug:
                     import traceback
                     traceback.print_exc()
+                LOGGER.error(f"Scan failed: {e}")
                 return EXIT_SCANNER_ERROR
 
-        # If no scanners are selected, show help to guide users
-        self.parser.print_help()
+        # No scanners selected - show scan help
+        print("No scan domains selected. Use --sca, --sast, --iac, --lint, or --all.")
+        print("\nRun 'lucidscan scan --help' for more options.")
         return EXIT_SUCCESS
+
+    def _handle_status(self, args) -> int:
+        """Handle the status command.
+
+        Args:
+            args: Parsed command-line arguments.
+
+        Returns:
+            Exit code.
+        """
+        return self.status_cmd.execute(args)

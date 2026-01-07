@@ -3,18 +3,18 @@
 Provides LLM-powered explanations for security issues using LangChain.
 """
 
-from lucidscan.enrichers.ai.cache import (
+from lucidscan.plugins.enrichers.ai.cache import (
     AIExplanationCache,
     CacheEntry,
     create_cache_entry,
 )
-from lucidscan.enrichers.ai.prompts import (
+from lucidscan.plugins.enrichers.ai.prompts import (
     PROMPT_VERSION,
     SYSTEM_PROMPT,
     format_prompt,
     get_prompt_template,
 )
-from lucidscan.enrichers.ai.providers import (
+from lucidscan.plugins.enrichers.ai.providers import (
     DEFAULT_MODELS,
     ProviderError,
     get_llm,

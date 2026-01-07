@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from lucidscan.scanners import (
+from lucidscan.plugins.scanners import (
     discover_scanner_plugins,
     get_scanner_plugin,
     list_available_scanners,

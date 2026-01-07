@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.request import urlopen
 
-from lucidscan.scanners.base import ScannerPlugin
+from lucidscan.plugins.scanners.base import ScannerPlugin
 from lucidscan.core.models import ScanContext, ScanDomain, Severity, UnifiedIssue
 from lucidscan.bootstrap.paths import LucidscanPaths
 from lucidscan.bootstrap.platform import get_platform_info
@@ -43,12 +43,19 @@ class OpenGrepScanner(ScannerPlugin):
 
     Binary management:
     - Downloads from https://github.com/opengrep/opengrep/releases/
-    - Caches at ~/.lucidscan/bin/opengrep/{version}/opengrep
+    - Caches at {project}/.lucidscan/bin/opengrep/{version}/opengrep
     """
 
-    def __init__(self, version: str = DEFAULT_VERSION) -> None:
+    def __init__(
+        self,
+        version: str = DEFAULT_VERSION,
+        project_root: Optional[Path] = None,
+    ) -> None:
         self._version = version
-        self._paths = LucidscanPaths.default()
+        if project_root:
+            self._paths = LucidscanPaths.for_project(project_root)
+        else:
+            self._paths = LucidscanPaths.default()
 
     @property
     def name(self) -> str:

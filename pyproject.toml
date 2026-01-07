@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lucidscan"
-version = "0.1.12"
-description = "LucidScan unified security scanner CLI"
+version = "0.2.0"
+description = "LucidScan - The trust layer for AI-assisted development"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
@@ -51,6 +51,8 @@ dependencies = [
   "langchain-openai>=0.2",
   "langchain-anthropic>=0.2",
   "langchain-ollama>=0.2",
+  "questionary>=2.0",
+  "Jinja2>=3.0",
 ]
 
 [project.optional-dependencies]
@@ -60,18 +62,21 @@ dev = ["pytest>=7.0"]
 lucidscan = "lucidscan.cli:main"
 
 [project.entry-points."lucidscan.scanners"]
-trivy = "lucidscan.scanners.trivy:TrivyScanner"
-opengrep = "lucidscan.scanners.opengrep:OpenGrepScanner"
-checkov = "lucidscan.scanners.checkov:CheckovScanner"
+trivy = "lucidscan.plugins.scanners.trivy:TrivyScanner"
+opengrep = "lucidscan.plugins.scanners.opengrep:OpenGrepScanner"
+checkov = "lucidscan.plugins.scanners.checkov:CheckovScanner"
 
 [project.entry-points."lucidscan.reporters"]
-json = "lucidscan.reporters.json_reporter:JSONReporter"
-table = "lucidscan.reporters.table_reporter:TableReporter"
-summary = "lucidscan.reporters.summary_reporter:SummaryReporter"
-sarif = "lucidscan.reporters.sarif_reporter:SARIFReporter"
+json = "lucidscan.plugins.reporters.json_reporter:JSONReporter"
+table = "lucidscan.plugins.reporters.table_reporter:TableReporter"
+summary = "lucidscan.plugins.reporters.summary_reporter:SummaryReporter"
+sarif = "lucidscan.plugins.reporters.sarif_reporter:SARIFReporter"
 
 [project.entry-points."lucidscan.enrichers"]
-ai_explainer = "lucidscan.enrichers.ai_explainer:AIExplainerEnricher"
+ai_explainer = "lucidscan.plugins.enrichers.ai_explainer:AIExplainerEnricher"
+
+[project.entry-points."lucidscan.linters"]
+ruff = "lucidscan.plugins.linters.ruff:RuffLinter"
 
 # Default scanner plugin versions
 # These are the source of truth for the build process

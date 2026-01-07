@@ -5,11 +5,11 @@ Plugins are discovered via Python entry points (lucidscan.reporters group).
 
 from typing import Dict, Type
 
-from lucidscan.reporters.base import ReporterPlugin
-from lucidscan.reporters.json_reporter import JSONReporter
-from lucidscan.reporters.table_reporter import TableReporter
-from lucidscan.reporters.summary_reporter import SummaryReporter
-from lucidscan.reporters.sarif_reporter import SARIFReporter
+from lucidscan.plugins.reporters.base import ReporterPlugin
+from lucidscan.plugins.reporters.json_reporter import JSONReporter
+from lucidscan.plugins.reporters.table_reporter import TableReporter
+from lucidscan.plugins.reporters.summary_reporter import SummaryReporter
+from lucidscan.plugins.reporters.sarif_reporter import SARIFReporter
 from lucidscan.plugins import REPORTER_ENTRY_POINT_GROUP
 from lucidscan.plugins.discovery import (
     discover_plugins,

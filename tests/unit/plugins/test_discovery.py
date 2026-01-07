@@ -8,8 +8,8 @@ from lucidscan.plugins import (
     list_available_plugins,
     SCANNER_ENTRY_POINT_GROUP,
 )
-from lucidscan.scanners.base import ScannerPlugin
-from lucidscan.scanners.trivy import TrivyScanner
+from lucidscan.plugins.scanners.base import ScannerPlugin
+from lucidscan.plugins.scanners.trivy import TrivyScanner
 
 
 class TestDiscoverPlugins:

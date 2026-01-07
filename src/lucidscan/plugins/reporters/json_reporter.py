@@ -7,7 +7,7 @@ from dataclasses import asdict
 from typing import Any, Dict, IO
 
 from lucidscan.core.models import ScanResult, UnifiedIssue
-from lucidscan.reporters.base import ReporterPlugin
+from lucidscan.plugins.reporters.base import ReporterPlugin
 
 
 class JSONReporter(ReporterPlugin):

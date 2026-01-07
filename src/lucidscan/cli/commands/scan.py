@@ -17,9 +17,9 @@ from lucidscan.cli.exit_codes import (
 from lucidscan.config.ignore import load_ignore_patterns
 from lucidscan.config.models import LucidScanConfig
 from lucidscan.core.logging import get_logger
-from lucidscan.core.models import ScanContext, ScanResult
+from lucidscan.core.models import ScanContext, ScanResult, UnifiedIssue
 from lucidscan.pipeline import PipelineConfig, PipelineExecutor
-from lucidscan.reporters import get_reporter_plugin
+from lucidscan.plugins.reporters import get_reporter_plugin
 
 LOGGER = get_logger(__name__)
 
@@ -89,9 +89,10 @@ class ScanCommand(Command):
         """Execute the scan based on CLI arguments and config.
 
         Uses PipelineExecutor to run the scan pipeline:
-        1. Scanner execution (parallel by default)
-        2. Enricher execution (sequential, in configured order)
-        3. Result aggregation
+        1. Linting (if --lint or --all)
+        2. Scanner execution (parallel by default)
+        3. Enricher execution (sequential, in configured order)
+        4. Result aggregation
 
         Args:
             args: Parsed CLI arguments.
@@ -106,9 +107,6 @@ class ScanCommand(Command):
             raise FileNotFoundError(f"Path does not exist: {project_root}")
 
         enabled_domains = ConfigBridge.get_enabled_domains(config, args)
-        if not enabled_domains:
-            LOGGER.warning("No scan domains enabled")
-            return ScanResult()
 
         # Load ignore patterns from .lucidscanignore and config
         ignore_patterns = load_ignore_patterns(project_root, config.ignore)
@@ -122,32 +120,97 @@ class ScanCommand(Command):
             ignore_patterns=ignore_patterns,
         )
 
-        # Collect unique scanners needed based on config
-        needed_scanners: List[str] = []
-        for domain in enabled_domains:
-            scanner_name = config.get_plugin_for_domain(domain.value)
-            if scanner_name and scanner_name not in needed_scanners:
-                needed_scanners.append(scanner_name)
-            elif not scanner_name:
-                LOGGER.warning(
-                    f"No scanner plugin configured for domain: {domain.value}"
+        all_issues: List[UnifiedIssue] = []
+
+        # Run linting if requested
+        lint_enabled = getattr(args, "lint", False) or getattr(args, "all", False)
+        fix_enabled = getattr(args, "fix", False)
+
+        if lint_enabled:
+            lint_issues = self._run_linting(context, fix_enabled)
+            all_issues.extend(lint_issues)
+
+        # Run security scanning if any domains are enabled
+        if enabled_domains:
+            # Collect unique scanners needed based on config
+            needed_scanners: List[str] = []
+            for domain in enabled_domains:
+                scanner_name = config.get_plugin_for_domain(domain.value)
+                if scanner_name and scanner_name not in needed_scanners:
+                    needed_scanners.append(scanner_name)
+                elif not scanner_name:
+                    LOGGER.warning(
+                        f"No scanner plugin configured for domain: {domain.value}"
+                    )
+
+            if needed_scanners:
+                # Build pipeline configuration
+                pipeline_config = PipelineConfig(
+                    sequential_scanners=getattr(args, "sequential", False),
+                    max_workers=config.pipeline.max_workers,
+                    enricher_order=config.pipeline.enrichers,
                 )
 
-        # Build pipeline configuration
-        pipeline_config = PipelineConfig(
-            sequential_scanners=getattr(args, "sequential", False),
-            max_workers=config.pipeline.max_workers,
-            enricher_order=config.pipeline.enrichers,
-        )
+                # Execute pipeline
+                executor = PipelineExecutor(
+                    config=config,
+                    pipeline_config=pipeline_config,
+                    lucidscan_version=self._version,
+                )
 
-        # Execute pipeline
-        executor = PipelineExecutor(
-            config=config,
-            pipeline_config=pipeline_config,
-            lucidscan_version=self._version,
-        )
+                scan_result = executor.execute(needed_scanners, context)
+                all_issues.extend(scan_result.issues)
 
-        return executor.execute(needed_scanners, context)
+        # Build final result
+        result = ScanResult(issues=all_issues)
+        result.summary = result.compute_summary()
+
+        return result
+
+    def _run_linting(
+        self, context: ScanContext, fix: bool = False
+    ) -> List[UnifiedIssue]:
+        """Run linting checks.
+
+        Args:
+            context: Scan context.
+            fix: If True, apply automatic fixes.
+
+        Returns:
+            List of linting issues.
+        """
+        from lucidscan.plugins.linters import discover_linter_plugins
+
+        issues: List[UnifiedIssue] = []
+
+        # Discover and run linter plugins
+        linter_plugins = discover_linter_plugins()
+
+        if not linter_plugins:
+            LOGGER.warning("No linter plugins found")
+            return issues
+
+        for name, plugin_class in linter_plugins.items():
+            try:
+                LOGGER.info(f"Running linter: {name}")
+                plugin = plugin_class(project_root=context.project_root)
+
+                if fix and plugin.supports_fix:
+                    # Run fix mode
+                    fix_result = plugin.fix(context)
+                    LOGGER.info(
+                        f"{name}: Fixed {fix_result.issues_fixed} issues, "
+                        f"{fix_result.issues_remaining} remaining"
+                    )
+                    # Run again to get remaining issues
+                    issues.extend(plugin.lint(context))
+                else:
+                    issues.extend(plugin.lint(context))
+
+            except Exception as e:
+                LOGGER.error(f"Linter {name} failed: {e}")
+
+        return issues
 
     def _check_severity_threshold(
         self, result: ScanResult, threshold: Optional[str]

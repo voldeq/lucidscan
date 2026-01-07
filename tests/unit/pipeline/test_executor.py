@@ -143,7 +143,7 @@ class TestPipelineExecutor:
         with patch.object(
             PipelineExecutor, "_execute_scanners"
         ) as mock_scan, patch(
-            "lucidscan.enrichers.get_enricher_plugin",
+            "lucidscan.plugins.enrichers.get_enricher_plugin",
             side_effect=mock_enricher,
         ):
             mock_scan.return_value = ([], [])
@@ -164,7 +164,7 @@ class TestPipelineExecutor:
         with patch.object(
             PipelineExecutor, "_execute_scanners"
         ) as mock_scan, patch(
-            "lucidscan.enrichers.get_enricher_plugin",
+            "lucidscan.plugins.enrichers.get_enricher_plugin",
             return_value=None,
         ):
             mock_scan.return_value = ([], [])
@@ -188,7 +188,7 @@ class TestPipelineExecutor:
         with patch.object(
             PipelineExecutor, "_execute_scanners"
         ) as mock_scan, patch(
-            "lucidscan.enrichers.get_enricher_plugin",
+            "lucidscan.plugins.enrichers.get_enricher_plugin",
             return_value=failing_enricher,
         ):
             mock_scan.return_value = ([], [])
