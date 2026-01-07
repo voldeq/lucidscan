@@ -47,11 +47,11 @@ One command runs your entire quality pipeline:
 
 | Domain | Tools | What It Catches |
 |--------|-------|-----------------|
-| **Linting** | Ruff, ESLint, Biome | Style issues, code smells |
-| **Type Checking** | mypy, TypeScript | Type errors |
+| **Linting** | Ruff, ESLint, Biome, Checkstyle | Style issues, code smells |
+| **Type Checking** | mypy, pyright, TypeScript | Type errors |
 | **Security** | Trivy, OpenGrep, Checkov | Vulnerabilities, misconfigs |
-| **Testing** | pytest, Jest | Test failures |
-| **Coverage** | coverage.py, Istanbul | Coverage gaps |
+| **Testing** | pytest, Jest | Test failures (planned) |
+| **Coverage** | coverage.py, Istanbul | Coverage gaps (planned) |
 
 All results normalized to a common format. One exit code for CI.
 
@@ -66,8 +66,8 @@ LucidScan analyzes your codebase and asks targeted questions:
 ```
 Detected: Python 3.11, FastAPI, pytest
 
-? Linter: [Ruff (recommended)] / Flake8 / Skip
-? Type checker: [mypy (recommended)] / Pyright / Skip
+? Linter: [Ruff (recommended)] / Skip
+? Type checker: [mypy (recommended)] / pyright / Skip
 ? Security scanner: [Trivy + OpenGrep (recommended)] / Trivy only / Skip
 ? CI platform: [GitHub Actions (detected)] / GitLab / Bitbucket / Skip
 ```
@@ -217,9 +217,10 @@ ignore:
 lucidscan init [--ci github|gitlab|bitbucket] [--non-interactive]
 
 # Run quality pipeline
-lucidscan scan [--domain linting|security|testing|...] [--fix] [--format table|json|sarif|ai]
+lucidscan scan [--lint] [--type-check] [--sca] [--sast] [--iac] [--all]
+lucidscan scan [--fix] [--format table|json|sarif|summary]
 
-# Start server for AI integration
+# Start server for AI integration (planned)
 lucidscan serve [--mcp] [--watch]
 
 # Show status
