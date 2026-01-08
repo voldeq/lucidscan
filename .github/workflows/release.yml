@@ -36,8 +36,8 @@ jobs:
 
       - name: Run tests
         run: |
-          pip install pytest
-          pytest tests/ -v || echo "Tests not yet implemented"
+          pip install pytest pytest-asyncio
+          pytest tests/ -v
 
   # Build and publish Python package to PyPI
   publish-pypi:
@@ -172,9 +172,9 @@ jobs:
         with:
           generate_release_notes: true
           body: |
-            ## lucidscan - Plugin-Based Security Scanning Framework
+            ## LucidScan - The Trust Layer for AI-Assisted Development
 
-            The "LangChain for DevSecOps" - a framework that orchestrates security scanners through a unified plugin architecture.
+            LucidScan unifies code quality tools (linting, type checking, security, testing, coverage) into a single pipeline that auto-configures for any project and integrates with AI coding tools like Claude Code and Cursor.
 
             ## Installation
 
@@ -182,7 +182,7 @@ jobs:
             pip install lucidscan
             ```
 
-            On first run, scanner plugins automatically download their binaries for your platform.
+            On first run, plugins automatically download their binaries for your platform.
 
             ## Docker Image (Recommended for CI)
 
@@ -192,6 +192,52 @@ jobs:
 
             The Docker image includes pre-downloaded scanner binaries and a pre-warmed Trivy vulnerability database for instant scanning.
 
+            ## Features
+
+            - **Security Scanning**: Trivy (SCA), OpenGrep (SAST), Checkov (IaC)
+            - **Linting**: Ruff, ESLint, Biome, Checkstyle
+            - **Type Checking**: mypy, pyright, TypeScript
+            - **Testing**: pytest, Jest
+            - **Coverage**: coverage.py, Istanbul
+            - **AI Integration**: MCP server for Claude Code and Cursor
+
+            ## Quick Start
+
+            ```bash
+            # Initialize project
+            lucidscan init
+
+            # Run all checks
+            lucidscan scan --all
+
+            # Run specific domains
+            lucidscan scan --lint --type-check --test --coverage
+
+            # Auto-fix linting issues
+            lucidscan scan --lint --fix
+
+            # MCP server for AI tools
+            lucidscan serve --mcp
+
+            # File watcher mode
+            lucidscan serve --watch
+            ```
+
+            ## AI Tool Integration
+
+            Add to your Claude Code or Cursor MCP configuration:
+
+            ```json
+            {
+              "mcpServers": {
+                "lucidscan": {
+                  "command": "lucidscan",
+                  "args": ["serve", "--mcp"]
+                }
+              }
+            }
+            ```
+
             ## Default Scanner Plugin Versions
 
             | Scanner Plugin | Version |
@@ -199,15 +245,5 @@ jobs:
             | Trivy | ${{ steps.versions.outputs.trivy }} |
             | OpenGrep | ${{ steps.versions.outputs.opengrep }} |
             | Checkov | ${{ steps.versions.outputs.checkov }} |
-
-            ## Quick Start
-
-            ```bash
-            # Scan current directory
-            lucidscan --all
-
-            # In CI with Docker
-            docker run --rm -v $(pwd):/workspace ghcr.io/voldeq/lucidscan:latest --all
-            ```
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
