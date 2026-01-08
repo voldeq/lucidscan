@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -17,17 +16,14 @@ class TestMCPServerIntegration:
     """Integration tests for MCP server."""
 
     @pytest.fixture
-    def project_root(self) -> Path:
+    def project_root(self, tmp_path: Path) -> Path:
         """Create a temporary project root with some files."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            root = Path(tmpdir)
+        # Create a Python file
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "main.py").write_text("print('hello')\n")
 
-            # Create a Python file
-            src_dir = root / "src"
-            src_dir.mkdir()
-            (src_dir / "main.py").write_text("print('hello')\n")
-
-            yield root
+        return tmp_path
 
     @pytest.fixture
     def config(self) -> LucidScanConfig:
@@ -60,7 +56,6 @@ class TestMCPServerIntegration:
         assert "scanners" in result["available_tools"]
         assert "linters" in result["available_tools"]
 
-    @pytest.mark.asyncio
     async def test_check_file_with_real_file(
         self, project_root: Path, config: LucidScanConfig
     ) -> None:
@@ -75,7 +70,6 @@ class TestMCPServerIntegration:
         # Should return formatted result
         assert "total_issues" in result
 
-    @pytest.mark.asyncio
     async def test_scan_empty_project(
         self, project_root: Path, config: LucidScanConfig
     ) -> None:
@@ -95,17 +89,14 @@ class TestFileWatcherIntegration:
     """Integration tests for file watcher."""
 
     @pytest.fixture
-    def project_root(self) -> Path:
+    def project_root(self, tmp_path: Path) -> Path:
         """Create a temporary project root."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            root = Path(tmpdir)
+        # Create source directory
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "main.py").write_text("x = 1\n")
 
-            # Create source directory
-            src_dir = root / "src"
-            src_dir.mkdir()
-            (src_dir / "main.py").write_text("x = 1\n")
-
-            yield root
+        return tmp_path
 
     @pytest.fixture
     def config(self) -> LucidScanConfig:
@@ -164,15 +155,12 @@ class TestMCPEndToEnd:
     """End-to-end tests for MCP workflow."""
 
     @pytest.fixture
-    def project_with_issues(self) -> Path:
+    def project_with_issues(self, tmp_path: Path) -> Path:
         """Create a project with intentional issues."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            root = Path(tmpdir)
-
-            # Create Python file with type issue
-            src_dir = root / "src"
-            src_dir.mkdir()
-            (src_dir / "app.py").write_text('''
+        # Create Python file with type issue
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "app.py").write_text('''
 def greet(name: str) -> str:
     return "Hello, " + name
 
@@ -180,14 +168,13 @@ def greet(name: str) -> str:
 unused_var = 42
 ''')
 
-            yield root
+        return tmp_path
 
     @pytest.fixture
     def config(self) -> LucidScanConfig:
         """Create test configuration."""
         return LucidScanConfig()
 
-    @pytest.mark.asyncio
     async def test_scan_and_format_workflow(
         self, project_with_issues: Path, config: LucidScanConfig
     ) -> None:
@@ -203,7 +190,7 @@ unused_var = 42
         assert "summary" in result
         assert "instructions" in result
 
-        # Each instruction should have required fields
+        # Each instruction should have required fields (if any issues found)
         for instruction in result["instructions"]:
             assert "priority" in instruction
             assert "action" in instruction
@@ -211,7 +198,6 @@ unused_var = 42
             assert "file" in instruction
             assert "fix_steps" in instruction
 
-    @pytest.mark.asyncio
     async def test_check_specific_file(
         self, project_with_issues: Path, config: LucidScanConfig
     ) -> None:
@@ -224,7 +210,6 @@ unused_var = 42
         assert "total_issues" in result
         assert isinstance(result["instructions"], list)
 
-    @pytest.mark.asyncio
     async def test_issue_caching_and_retrieval(
         self, project_with_issues: Path, config: LucidScanConfig
     ) -> None:

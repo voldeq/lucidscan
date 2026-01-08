@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import json
 import subprocess
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -76,115 +75,112 @@ class TestTrivySCAScanning:
             assert issue.scanner == ScanDomain.SCA
             assert issue.source_tool == "trivy"
 
-    def test_scan_with_vulnerable_package(self, trivy_scanner: TrivyScanner) -> None:
+    def test_scan_with_vulnerable_package(
+        self, trivy_scanner: TrivyScanner, tmp_path: Path
+    ) -> None:
         """Test scanning a directory with a known vulnerable package."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
+        # Create a package.json with a known vulnerable package
+        # lodash 4.17.15 has known vulnerabilities
+        package_json = tmp_path / "package.json"
+        package_json.write_text(json.dumps({
+            "name": "test-project",
+            "version": "1.0.0",
+            "dependencies": {
+                "lodash": "4.17.15"
+            }
+        }))
 
-            # Create a package.json with a known vulnerable package
-            # lodash 4.17.15 has known vulnerabilities
-            package_json = tmpdir_path / "package.json"
-            package_json.write_text(json.dumps({
-                "name": "test-project",
-                "version": "1.0.0",
-                "dependencies": {
-                    "lodash": "4.17.15"
-                }
-            }))
-
-            # Create a minimal package-lock.json
-            package_lock = tmpdir_path / "package-lock.json"
-            package_lock.write_text(json.dumps({
-                "name": "test-project",
-                "version": "1.0.0",
-                "lockfileVersion": 2,
-                "requires": True,
-                "packages": {
-                    "": {
-                        "name": "test-project",
-                        "version": "1.0.0",
-                        "dependencies": {
-                            "lodash": "4.17.15"
-                        }
-                    },
-                    "node_modules/lodash": {
-                        "version": "4.17.15",
-                        "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.15.tgz"
+        # Create a minimal package-lock.json
+        package_lock = tmp_path / "package-lock.json"
+        package_lock.write_text(json.dumps({
+            "name": "test-project",
+            "version": "1.0.0",
+            "lockfileVersion": 2,
+            "requires": True,
+            "packages": {
+                "": {
+                    "name": "test-project",
+                    "version": "1.0.0",
+                    "dependencies": {
+                        "lodash": "4.17.15"
                     }
                 },
-                "dependencies": {
-                    "lodash": {
-                        "version": "4.17.15"
-                    }
+                "node_modules/lodash": {
+                    "version": "4.17.15",
+                    "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.15.tgz"
                 }
-            }))
+            },
+            "dependencies": {
+                "lodash": {
+                    "version": "4.17.15"
+                }
+            }
+        }))
 
-            context = ScanContext(
-                project_root=tmpdir_path,
-                paths=[tmpdir_path],
-                enabled_domains=[ScanDomain.SCA],
-            )
+        context = ScanContext(
+            project_root=tmp_path,
+            paths=[tmp_path],
+            enabled_domains=[ScanDomain.SCA],
+        )
 
-            issues = trivy_scanner.scan(context)
+        issues = trivy_scanner.scan(context)
 
-            # lodash 4.17.15 should have vulnerabilities
-            assert len(issues) > 0, "Expected vulnerabilities in lodash 4.17.15"
+        # lodash 4.17.15 should have vulnerabilities
+        assert len(issues) > 0, "Expected vulnerabilities in lodash 4.17.15"
 
-            # Verify issue structure
-            issue = issues[0]
-            assert issue.scanner == ScanDomain.SCA
-            assert issue.source_tool == "trivy"
-            assert issue.severity in [
-                Severity.CRITICAL,
-                Severity.HIGH,
-                Severity.MEDIUM,
-                Severity.LOW,
-                Severity.INFO,
-            ]
-            assert issue.dependency is not None
-            assert "lodash" in issue.dependency.lower()
+        # Verify issue structure
+        issue = issues[0]
+        assert issue.scanner == ScanDomain.SCA
+        assert issue.source_tool == "trivy"
+        assert issue.severity in [
+            Severity.CRITICAL,
+            Severity.HIGH,
+            Severity.MEDIUM,
+            Severity.LOW,
+            Severity.INFO,
+        ]
+        assert issue.dependency is not None
+        assert "lodash" in issue.dependency.lower()
 
-    def test_scan_empty_directory(self, trivy_scanner: TrivyScanner) -> None:
+    def test_scan_empty_directory(
+        self, trivy_scanner: TrivyScanner, tmp_path: Path
+    ) -> None:
         """Test scanning an empty directory returns no issues."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
+        context = ScanContext(
+            project_root=tmp_path,
+            paths=[tmp_path],
+            enabled_domains=[ScanDomain.SCA],
+        )
 
-            context = ScanContext(
-                project_root=tmpdir_path,
-                paths=[tmpdir_path],
-                enabled_domains=[ScanDomain.SCA],
-            )
+        issues = trivy_scanner.scan(context)
 
-            issues = trivy_scanner.scan(context)
+        assert issues == []
 
-            assert issues == []
-
-    def test_scan_python_requirements(self, trivy_scanner: TrivyScanner) -> None:
+    def test_scan_python_requirements(
+        self, trivy_scanner: TrivyScanner, tmp_path: Path
+    ) -> None:
         """Test scanning a Python project with requirements.txt."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
+        # Create a requirements.txt with a known vulnerable package
+        # django 2.2.0 has known vulnerabilities
+        requirements = tmp_path / "requirements.txt"
+        requirements.write_text("django==2.2.0\n")
 
-            # Create a requirements.txt with a known vulnerable package
-            # django 2.2.0 has known vulnerabilities
-            requirements = tmpdir_path / "requirements.txt"
-            requirements.write_text("django==2.2.0\n")
+        context = ScanContext(
+            project_root=tmp_path,
+            paths=[tmp_path],
+            enabled_domains=[ScanDomain.SCA],
+        )
 
-            context = ScanContext(
-                project_root=tmpdir_path,
-                paths=[tmpdir_path],
-                enabled_domains=[ScanDomain.SCA],
-            )
+        issues = trivy_scanner.scan(context)
 
-            issues = trivy_scanner.scan(context)
+        # django 2.2.0 should have vulnerabilities
+        assert len(issues) > 0, "Expected vulnerabilities in django 2.2.0"
 
-            # django 2.2.0 should have vulnerabilities
-            assert len(issues) > 0, "Expected vulnerabilities in django 2.2.0"
-
-            # Find django-related issues
-            django_issues = [
-                i for i in issues if "django" in (i.dependency or "").lower()
-            ]
-            assert len(django_issues) > 0, "Expected django vulnerabilities"
+        # Find django-related issues
+        django_issues = [
+            i for i in issues if "django" in (i.dependency or "").lower()
+        ]
+        assert len(django_issues) > 0, "Expected django vulnerabilities"
 
 
 @trivy_available
@@ -338,80 +334,61 @@ class TestTrivyContainerScanning:
 class TestTrivyOutputParsing:
     """Tests for Trivy JSON output parsing."""
 
-    def test_severity_mapping(self, trivy_scanner: TrivyScanner) -> None:
-        """Test that severity levels are correctly mapped."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
-
-            # Create requirements with packages of varying severity
-            requirements = tmpdir_path / "requirements.txt"
-            requirements.write_text("django==2.2.0\nrequests==2.20.0\n")
-
-            context = ScanContext(
-                project_root=tmpdir_path,
-                paths=[tmpdir_path],
-                enabled_domains=[ScanDomain.SCA],
-            )
-
-            issues = trivy_scanner.scan(context)
-
-            # Verify severity is one of the expected values
-            severities = {issue.severity for issue in issues}
-            valid_severities = {
-                Severity.CRITICAL,
-                Severity.HIGH,
-                Severity.MEDIUM,
-                Severity.LOW,
-                Severity.INFO,
-            }
-            assert severities.issubset(valid_severities)
-
-    def test_issue_id_is_deterministic(self, trivy_scanner: TrivyScanner) -> None:
-        """Test that issue IDs are deterministic across scans."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
-
-            requirements = tmpdir_path / "requirements.txt"
-            requirements.write_text("django==2.2.0\n")
-
-            context = ScanContext(
-                project_root=tmpdir_path,
-                paths=[tmpdir_path],
-                enabled_domains=[ScanDomain.SCA],
-            )
-
-            # Run scan twice
-            issues1 = trivy_scanner.scan(context)
-            issues2 = trivy_scanner.scan(context)
-
-            # Same issues should have same IDs
-            ids1 = {issue.id for issue in issues1}
-            ids2 = {issue.id for issue in issues2}
-            assert ids1 == ids2
-
-    def test_scanner_metadata_contains_raw_data(
-        self, trivy_scanner: TrivyScanner
+    def test_severity_mapping_and_metadata(
+        self, trivy_scanner: TrivyScanner, tmp_path: Path
     ) -> None:
-        """Test that scanner_metadata contains raw Trivy data."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
+        """Test severity mapping and metadata in a single scan."""
+        # Create requirements with packages of varying severity
+        requirements = tmp_path / "requirements.txt"
+        requirements.write_text("django==2.2.0\nrequests==2.20.0\n")
 
-            requirements = tmpdir_path / "requirements.txt"
-            requirements.write_text("django==2.2.0\n")
+        context = ScanContext(
+            project_root=tmp_path,
+            paths=[tmp_path],
+            enabled_domains=[ScanDomain.SCA],
+        )
 
-            context = ScanContext(
-                project_root=tmpdir_path,
-                paths=[tmpdir_path],
-                enabled_domains=[ScanDomain.SCA],
-            )
+        issues = trivy_scanner.scan(context)
 
-            issues = trivy_scanner.scan(context)
+        # Verify severity is one of the expected values
+        severities = {issue.severity for issue in issues}
+        valid_severities = {
+            Severity.CRITICAL,
+            Severity.HIGH,
+            Severity.MEDIUM,
+            Severity.LOW,
+            Severity.INFO,
+        }
+        assert severities.issubset(valid_severities)
 
-            if issues:
-                issue = issues[0]
-                assert "vulnerability_id" in issue.scanner_metadata
-                assert "pkg_name" in issue.scanner_metadata
-                assert "installed_version" in issue.scanner_metadata
+        # Verify scanner_metadata contains raw Trivy data
+        if issues:
+            issue = issues[0]
+            assert "vulnerability_id" in issue.scanner_metadata
+            assert "pkg_name" in issue.scanner_metadata
+            assert "installed_version" in issue.scanner_metadata
+
+    def test_issue_id_is_deterministic(
+        self, trivy_scanner: TrivyScanner, tmp_path: Path
+    ) -> None:
+        """Test that issue IDs are deterministic across scans."""
+        requirements = tmp_path / "requirements.txt"
+        requirements.write_text("django==2.2.0\n")
+
+        context = ScanContext(
+            project_root=tmp_path,
+            paths=[tmp_path],
+            enabled_domains=[ScanDomain.SCA],
+        )
+
+        # Run scan twice
+        issues1 = trivy_scanner.scan(context)
+        issues2 = trivy_scanner.scan(context)
+
+        # Same issues should have same IDs
+        ids1 = {issue.id for issue in issues1}
+        ids2 = {issue.id for issue in issues2}
+        assert ids1 == ids2
 
 
 @trivy_available
@@ -498,32 +475,29 @@ class TestTrivyCLIIntegration:
         assert exit_code == 0
         assert "Total issues:" in output
 
-    def test_cli_fail_on_high(self) -> None:
+    def test_cli_fail_on_high(self, tmp_path: Path) -> None:
         """Test CLI --fail-on flag with high severity threshold."""
         import lucidscan.cli as cli
         import io
         import sys
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
+        # Create requirements with known high/critical vulnerabilities
+        requirements = tmp_path / "requirements.txt"
+        requirements.write_text("django==2.2.0\n")
 
-            # Create requirements with known high/critical vulnerabilities
-            requirements = tmpdir_path / "requirements.txt"
-            requirements.write_text("django==2.2.0\n")
+        old_stdout = sys.stdout
+        sys.stdout = io.StringIO()
 
-            old_stdout = sys.stdout
-            sys.stdout = io.StringIO()
+        try:
+            exit_code = cli.main([
+                "scan",
+                "--sca",
+                "--format", "json",
+                "--fail-on", "high",
+                str(tmp_path),
+            ])
+        finally:
+            sys.stdout = old_stdout
 
-            try:
-                exit_code = cli.main([
-                    "scan",
-                    "--sca",
-                    "--format", "json",
-                    "--fail-on", "high",
-                    str(tmpdir_path),
-                ])
-            finally:
-                sys.stdout = old_stdout
-
-            # django 2.2.0 has high/critical vulnerabilities, should return 1
-            assert exit_code == 1
+        # django 2.2.0 has high/critical vulnerabilities, should return 1
+        assert exit_code == 1

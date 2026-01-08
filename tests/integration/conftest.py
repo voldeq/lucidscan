@@ -118,37 +118,37 @@ def project_root() -> Path:
     return Path(__file__).parent.parent.parent
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def trivy_scanner() -> TrivyScanner:
-    """Return a TrivyScanner instance."""
+    """Return a TrivyScanner instance (session-scoped for performance)."""
     return TrivyScanner()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def opengrep_scanner() -> OpenGrepScanner:
-    """Return an OpenGrepScanner instance."""
+    """Return an OpenGrepScanner instance (session-scoped for performance)."""
     return OpenGrepScanner()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def ensure_trivy_binary(trivy_scanner: TrivyScanner) -> Path:
     """Ensure Trivy binary is downloaded and return its path."""
     return trivy_scanner.ensure_binary()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def ensure_opengrep_binary(opengrep_scanner: OpenGrepScanner) -> Path:
     """Ensure OpenGrep binary is downloaded and return its path."""
     return opengrep_scanner.ensure_binary()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def checkov_scanner() -> CheckovScanner:
-    """Return a CheckovScanner instance."""
+    """Return a CheckovScanner instance (session-scoped for performance)."""
     return CheckovScanner()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def ensure_checkov_binary(checkov_scanner: CheckovScanner) -> Path:
     """Ensure Checkov is installed and return its binary path."""
     return checkov_scanner.ensure_binary()

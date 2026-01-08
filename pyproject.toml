@@ -109,6 +109,11 @@ jest = "lucidscan.plugins.test_runners.jest:JestRunner"
 coverage_py = "lucidscan.plugins.coverage.coverage_py:CoveragePyPlugin"
 istanbul = "lucidscan.plugins.coverage.istanbul:IstanbulPlugin"
 
+# Pytest configuration
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
 # Default scanner plugin versions
 # These are the source of truth for the build process
 [tool.lucidscan.scanners]
