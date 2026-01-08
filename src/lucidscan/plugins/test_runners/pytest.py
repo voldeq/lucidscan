@@ -60,6 +60,7 @@ class PytestRunner(TestRunnerPlugin):
                 [str(binary), "--version"],
                 capture_output=True,
                 text=True,
+                timeout=30,
             )
             # Output is like "pytest 8.0.0"
             if result.returncode == 0:
@@ -138,6 +139,7 @@ class PytestRunner(TestRunnerPlugin):
                 capture_output=True,
                 text=True,
                 cwd=str(project_root),
+                timeout=60,
             )
             # Check if json-report option is available
             help_result = subprocess.run(
@@ -145,6 +147,7 @@ class PytestRunner(TestRunnerPlugin):
                 capture_output=True,
                 text=True,
                 cwd=str(project_root),
+                timeout=30,
             )
             return "--json-report" in help_result.stdout
         except Exception:
@@ -187,7 +190,11 @@ class PytestRunner(TestRunnerPlugin):
                     capture_output=True,
                     text=True,
                     cwd=str(context.project_root),
+                    timeout=600,  # 10 minute timeout for test runs
                 )
+            except subprocess.TimeoutExpired:
+                LOGGER.warning("pytest timed out after 600 seconds")
+                return TestResult()
             except Exception as e:
                 LOGGER.error(f"Failed to run pytest: {e}")
                 return TestResult()
@@ -235,7 +242,11 @@ class PytestRunner(TestRunnerPlugin):
                     capture_output=True,
                     text=True,
                     cwd=str(context.project_root),
+                    timeout=600,  # 10 minute timeout for test runs
                 )
+            except subprocess.TimeoutExpired:
+                LOGGER.warning("pytest timed out after 600 seconds")
+                return TestResult()
             except Exception as e:
                 LOGGER.error(f"Failed to run pytest: {e}")
                 return TestResult()

@@ -178,7 +178,11 @@ class PyrightChecker(TypeCheckerPlugin):
                 capture_output=True,
                 text=True,
                 cwd=str(context.project_root),
+                timeout=180,  # 3 minute timeout
             )
+        except subprocess.TimeoutExpired:
+            LOGGER.warning("pyright timed out after 180 seconds")
+            return []
         except Exception as e:
             LOGGER.error(f"Failed to run pyright: {e}")
             return []

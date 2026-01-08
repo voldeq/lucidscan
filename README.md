@@ -8,85 +8,79 @@
 
 **The trust layer for AI-assisted development.**
 
-LucidScan is a unified code quality pipeline that auto-configures linting, type checking, security scanning, testing, and coverage — then integrates with AI coding tools like Claude Code and Cursor to create an automated feedback loop.
+LucidScan unifies linting, type checking, security scanning, testing, and coverage into a single pipeline that auto-configures for any project and integrates with AI coding tools like Claude Code and Cursor.
 
 ```
-AI writes code → LucidScan checks → LucidScan tells AI what to fix → AI fixes → repeat
+AI writes code → LucidScan checks → AI fixes → repeat
 ```
-
-## Why LucidScan?
-
-AI coding assistants generate code fast, but developers can't blindly trust it. The current workflow is painful:
-
-1. AI writes code
-2. You run ESLint... then Ruff... then mypy... then Trivy...
-3. You copy error messages back to the AI
-4. AI fixes, you re-run everything
-5. Repeat 5-10 times
-
-**LucidScan fixes this** by unifying all quality tools behind one command and feeding results directly back to AI agents.
 
 ## Quick Start
 
+### Installation
+
 ```bash
 pip install lucidscan
+```
 
-# Auto-configure for your project
+### Console Usage
+
+```bash
+# Initialize for your project (auto-detects languages and tools)
 lucidscan init
 
 # Run the full quality pipeline
-lucidscan scan
+lucidscan scan --all
 
-# Auto-fix what's possible
-lucidscan scan --fix
+# Run specific checks
+lucidscan scan --lint              # Linting (Ruff, ESLint, Biome)
+lucidscan scan --type-check        # Type checking (mypy, pyright, tsc)
+lucidscan scan --sast              # Security code analysis (OpenGrep)
+lucidscan scan --sca               # Dependency vulnerabilities (Trivy)
+lucidscan scan --test              # Run tests (pytest, Jest)
+lucidscan scan --coverage          # Coverage analysis
+
+# Auto-fix linting issues
+lucidscan scan --lint --fix
+
+# Check tool status
+lucidscan status
 ```
 
-## What It Does
+### Claude Code Integration
 
-One command runs your entire quality pipeline:
-
-| Domain | Tools | What It Catches |
-|--------|-------|-----------------|
-| **Linting** | Ruff, ESLint, Biome, Checkstyle | Style issues, code smells |
-| **Type Checking** | mypy, pyright, TypeScript | Type errors |
-| **Security** | Trivy, OpenGrep, Checkov | Vulnerabilities, misconfigs |
-| **Testing** | pytest, Jest | Test failures (planned) |
-| **Coverage** | coverage.py, Istanbul | Coverage gaps (planned) |
-
-All results normalized to a common format. One exit code for CI.
-
-## The `init` Command
+The easiest way to set up Claude Code:
 
 ```bash
-lucidscan init
+lucidscan setup --claude-code
 ```
 
-LucidScan analyzes your codebase and asks targeted questions:
+This adds LucidScan to your Claude Code MCP configuration. Restart Claude Code to activate.
 
+**Manual setup** (if preferred):
+
+Add to `~/.claude/mcp_servers.json`:
+
+```json
+{
+  "lucidscan": {
+    "command": "lucidscan",
+    "args": ["serve", "--mcp"]
+  }
+}
 ```
-Detected: Python 3.11, FastAPI, pytest
 
-? Linter: [Ruff (recommended)] / Skip
-? Type checker: [mypy (recommended)] / pyright / Skip
-? Security scanner: [Trivy + OpenGrep (recommended)] / Trivy only / Skip
-? CI platform: [GitHub Actions (detected)] / GitLab / Bitbucket / Skip
-```
+Once configured, Claude Code can:
+- Run quality checks on code it writes
+- Get structured fix instructions with priorities
+- Apply auto-fixes for linting issues
 
-Then generates:
-- `lucidscan.yml` — unified configuration
-- `.github/workflows/lucidscan.yml` — CI pipeline (or GitLab/Bitbucket equivalent)
-
-## AI Integration
-
-LucidScan integrates with AI coding tools to create an automated feedback loop.
-
-### Claude Code / Cursor (MCP Server)
+### Cursor Integration
 
 ```bash
-lucidscan serve --mcp
+lucidscan setup --cursor
 ```
 
-Configure in your AI tool to give it access to quality checks:
+Or manually add to `~/.cursor/mcp.json`:
 
 ```json
 {
@@ -99,35 +93,25 @@ Configure in your AI tool to give it access to quality checks:
 }
 ```
 
-The AI can now:
-- Run quality checks on code it writes
-- Get structured fix instructions
-- Apply fixes automatically
-
-### Output for AI Agents
+### Configure All AI Tools
 
 ```bash
-lucidscan scan --format ai
+lucidscan setup --all
 ```
 
-Returns actionable instructions:
+## What It Checks
 
-```json
-{
-  "instructions": [
-    {
-      "action": "FIX_SECURITY_VULNERABILITY",
-      "file": "src/auth.py",
-      "line": 23,
-      "problem": "Hardcoded password detected",
-      "fix_steps": [
-        "Replace with os.environ.get('DB_PASSWORD')",
-        "Add DB_PASSWORD to .env.example"
-      ]
-    }
-  ]
-}
-```
+| Domain | Tools | What It Catches |
+|--------|-------|-----------------|
+| **Linting** | Ruff, ESLint, Biome, Checkstyle | Style issues, code smells |
+| **Type Checking** | mypy, pyright, TypeScript | Type errors |
+| **Security (SAST)** | OpenGrep | Code vulnerabilities |
+| **Security (SCA)** | Trivy | Dependency vulnerabilities |
+| **Security (IaC)** | Checkov | Infrastructure misconfigurations |
+| **Testing** | pytest, Jest | Test failures |
+| **Coverage** | coverage.py, Istanbul | Coverage gaps |
+
+All results are normalized to a common format. One exit code for CI.
 
 ## CI Integration
 
@@ -144,7 +128,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: pip install lucidscan
-      - run: lucidscan scan --ci
+      - run: lucidscan scan --all
+```
+
+### With SARIF Upload (GitHub Code Scanning)
+
+```yaml
+- run: lucidscan scan --all --format sarif > results.sarif
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: results.sarif
 ```
 
 ### GitLab CI
@@ -154,21 +147,12 @@ lucidscan:
   image: python:3.11
   script:
     - pip install lucidscan
-    - lucidscan scan --ci
-```
-
-### With SARIF Upload (GitHub Code Scanning)
-
-```yaml
-- run: lucidscan scan --format sarif --output results.sarif
-- uses: github/codeql-action/upload-sarif@v3
-  with:
-    sarif_file: results.sarif
+    - lucidscan scan --all
 ```
 
 ## Configuration
 
-`lucidscan.yml`:
+LucidScan auto-detects your project. For custom settings, create `lucidscan.yml`:
 
 ```yaml
 version: 1
@@ -217,11 +201,16 @@ ignore:
 lucidscan init [--ci github|gitlab|bitbucket] [--non-interactive]
 
 # Run quality pipeline
-lucidscan scan [--lint] [--type-check] [--sca] [--sast] [--iac] [--all]
+lucidscan scan [--lint] [--type-check] [--sca] [--sast] [--iac] [--test] [--coverage] [--all]
 lucidscan scan [--fix] [--format table|json|sarif|summary]
+lucidscan scan [--fail-on critical|high|medium|low]
 
-# Start server for AI integration (planned)
-lucidscan serve [--mcp] [--watch]
+# AI tool integration
+lucidscan serve --mcp                    # Run MCP server
+lucidscan serve --watch                  # Watch mode with auto-checking
+lucidscan setup --claude-code            # Configure Claude Code
+lucidscan setup --cursor                 # Configure Cursor
+lucidscan setup --all                    # Configure all AI tools
 
 # Show status
 lucidscan status [--tools]
@@ -249,8 +238,6 @@ pytest tests/
 
 - [Full Specification](docs/main.md)
 - [Roadmap](docs/roadmap.md)
-- [CI Integration Guide](docs/ci-integration.md)
-- [Ignore Patterns](docs/ignore-patterns.md)
 
 ## License
 

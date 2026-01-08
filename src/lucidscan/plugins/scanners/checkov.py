@@ -166,6 +166,7 @@ class CheckovScanner(ScannerPlugin):
                 [str(pip_path), "install", "--upgrade", "pip"],
                 capture_output=True,
                 check=True,
+                timeout=120,  # 2 minute timeout for pip upgrade
             )
 
             # Install specific version of checkov
@@ -177,6 +178,7 @@ class CheckovScanner(ScannerPlugin):
                 capture_output=True,
                 text=True,
                 check=False,
+                timeout=300,  # 5 minute timeout for checkov install
             )
 
             if result.returncode != 0:
@@ -259,6 +261,7 @@ class CheckovScanner(ScannerPlugin):
                 text=True,
                 check=False,
                 env=self._get_scan_env(),
+                timeout=180,  # 3 minute timeout for scan
             )
 
             # Checkov returns non-zero exit code when findings exist
@@ -273,6 +276,9 @@ class CheckovScanner(ScannerPlugin):
 
             return self._parse_checkov_json(result.stdout, context.project_root)
 
+        except subprocess.TimeoutExpired:
+            LOGGER.warning("Checkov scan timed out after 180 seconds")
+            return []
         except Exception as e:
             LOGGER.error(f"Checkov scan failed: {e}")
             return []

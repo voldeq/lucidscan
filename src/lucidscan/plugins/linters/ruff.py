@@ -200,7 +200,11 @@ class RuffLinter(LinterPlugin):
                 capture_output=True,
                 text=True,
                 cwd=str(context.project_root),
+                timeout=120,  # 2 minute timeout
             )
+        except subprocess.TimeoutExpired:
+            LOGGER.warning("Ruff lint timed out after 120 seconds")
+            return []
         except Exception as e:
             LOGGER.error(f"Failed to run Ruff: {e}")
             return []
@@ -248,7 +252,11 @@ class RuffLinter(LinterPlugin):
                 capture_output=True,
                 text=True,
                 cwd=str(context.project_root),
+                timeout=120,  # 2 minute timeout
             )
+        except subprocess.TimeoutExpired:
+            LOGGER.warning("Ruff fix timed out after 120 seconds")
+            return FixResult()
         except Exception as e:
             LOGGER.error(f"Failed to run Ruff fix: {e}")
             return FixResult()

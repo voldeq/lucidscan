@@ -71,6 +71,7 @@ class MypyChecker(TypeCheckerPlugin):
                 [str(binary), "--version"],
                 capture_output=True,
                 text=True,
+                timeout=30,
             )
             # Output is like "mypy 1.8.0 (compiled: yes)"
             if result.returncode == 0:
@@ -166,7 +167,11 @@ class MypyChecker(TypeCheckerPlugin):
                 capture_output=True,
                 text=True,
                 cwd=str(context.project_root),
+                timeout=180,  # 3 minute timeout
             )
+        except subprocess.TimeoutExpired:
+            LOGGER.warning("mypy timed out after 180 seconds")
+            return []
         except Exception as e:
             LOGGER.error(f"Failed to run mypy: {e}")
             return []

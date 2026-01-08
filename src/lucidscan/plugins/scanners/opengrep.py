@@ -216,6 +216,7 @@ class OpenGrepScanner(ScannerPlugin):
                 text=True,
                 check=False,
                 env=self._get_scan_env(),
+                timeout=180,  # 3 minute timeout for scan
             )
 
             # OpenGrep returns non-zero exit code when findings exist
@@ -229,6 +230,9 @@ class OpenGrepScanner(ScannerPlugin):
 
             return self._parse_opengrep_json(result.stdout, context.project_root)
 
+        except subprocess.TimeoutExpired:
+            LOGGER.warning("OpenGrep scan timed out after 180 seconds")
+            return []
         except Exception as e:
             LOGGER.error(f"OpenGrep scan failed: {e}")
             return []

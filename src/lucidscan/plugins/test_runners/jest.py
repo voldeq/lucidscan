@@ -59,6 +59,7 @@ class JestRunner(TestRunnerPlugin):
                 [str(binary), "--version"],
                 capture_output=True,
                 text=True,
+                timeout=30,
             )
             # Output is just the version number like "29.7.0"
             if result.returncode == 0:
@@ -136,7 +137,11 @@ class JestRunner(TestRunnerPlugin):
                     capture_output=True,
                     text=True,
                     cwd=str(context.project_root),
+                    timeout=600,  # 10 minute timeout for test runs
                 )
+            except subprocess.TimeoutExpired:
+                LOGGER.warning("Jest timed out after 600 seconds")
+                return TestResult()
             except Exception as e:
                 LOGGER.error(f"Failed to run Jest: {e}")
                 return TestResult()

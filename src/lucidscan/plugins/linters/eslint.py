@@ -70,6 +70,7 @@ class ESLintLinter(LinterPlugin):
                 [str(binary), "--version"],
                 capture_output=True,
                 text=True,
+                timeout=30,
             )
             # Output is like "v8.56.0"
             if result.returncode == 0:
@@ -155,7 +156,11 @@ class ESLintLinter(LinterPlugin):
                 capture_output=True,
                 text=True,
                 cwd=str(context.project_root),
+                timeout=120,  # 2 minute timeout
             )
+        except subprocess.TimeoutExpired:
+            LOGGER.warning("ESLint lint timed out after 120 seconds")
+            return []
         except Exception as e:
             LOGGER.error(f"Failed to run ESLint: {e}")
             return []
@@ -214,7 +219,11 @@ class ESLintLinter(LinterPlugin):
                 capture_output=True,
                 text=True,
                 cwd=str(context.project_root),
+                timeout=120,  # 2 minute timeout
             )
+        except subprocess.TimeoutExpired:
+            LOGGER.warning("ESLint fix timed out after 120 seconds")
+            return FixResult()
         except Exception as e:
             LOGGER.error(f"Failed to run ESLint fix: {e}")
             return FixResult()

@@ -220,6 +220,7 @@ class TrivyScanner(ScannerPlugin):
                 capture_output=True,
                 text=True,
                 check=False,
+                timeout=180,  # 3 minute timeout for scan
             )
 
             if result.returncode != 0 and result.stderr:
@@ -231,6 +232,9 @@ class TrivyScanner(ScannerPlugin):
 
             return self._parse_trivy_json(result.stdout, ScanDomain.SCA)
 
+        except subprocess.TimeoutExpired:
+            LOGGER.warning("Trivy fs scan timed out after 180 seconds")
+            return []
         except Exception as e:
             LOGGER.error(f"Trivy fs scan failed: {e}")
             return []
@@ -266,6 +270,7 @@ class TrivyScanner(ScannerPlugin):
                 capture_output=True,
                 text=True,
                 check=False,
+                timeout=300,  # 5 minute timeout for image scan
             )
 
             if result.returncode != 0 and result.stderr:
@@ -279,6 +284,9 @@ class TrivyScanner(ScannerPlugin):
                 result.stdout, ScanDomain.CONTAINER, image_ref=image
             )
 
+        except subprocess.TimeoutExpired:
+            LOGGER.warning(f"Trivy image scan timed out after 300 seconds for {image}")
+            return []
         except Exception as e:
             LOGGER.error(f"Trivy image scan failed for {image}: {e}")
             return []
