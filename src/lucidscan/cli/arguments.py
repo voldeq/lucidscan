@@ -113,9 +113,19 @@ def _build_scan_parser(subparsers: argparse._SubParsersAction) -> None:
         help="Run type checking (mypy/pyright for Python, tsc for TypeScript).",
     )
     domain_group.add_argument(
+        "--test",
+        action="store_true",
+        help="Run test suite (pytest for Python, Jest for JS/TS).",
+    )
+    domain_group.add_argument(
+        "--coverage",
+        action="store_true",
+        help="Run coverage analysis (coverage.py for Python, Istanbul for JS/TS).",
+    )
+    domain_group.add_argument(
         "--all",
         action="store_true",
-        help="Enable all scanner types (SCA, SAST, IaC, Container, Lint, Type Check).",
+        help="Enable all scanner types (SCA, SAST, IaC, Container, Lint, Type Check, Test, Coverage).",
     )
 
     # Target options
@@ -150,6 +160,13 @@ def _build_scan_parser(subparsers: argparse._SubParsersAction) -> None:
         choices=["critical", "high", "medium", "low"],
         default=None,
         help="Exit with code 1 if issues at or above this severity are found.",
+    )
+    config_group.add_argument(
+        "--coverage-threshold",
+        type=float,
+        default=None,
+        metavar="PERCENT",
+        help="Coverage percentage threshold (default: 80). Fail if below.",
     )
     config_group.add_argument(
         "--config",

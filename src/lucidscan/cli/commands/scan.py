@@ -140,6 +140,23 @@ class ScanCommand(Command):
             type_check_issues = self._run_type_checking(context)
             all_issues.extend(type_check_issues)
 
+        # Run tests if requested
+        test_enabled = getattr(args, "test", False) or getattr(args, "all", False)
+
+        if test_enabled:
+            test_issues = self._run_tests(context)
+            all_issues.extend(test_issues)
+
+        # Run coverage if requested
+        coverage_enabled = getattr(args, "coverage", False) or getattr(
+            args, "all", False
+        )
+
+        if coverage_enabled:
+            coverage_threshold = getattr(args, "coverage_threshold", None) or 80.0
+            coverage_issues = self._run_coverage(context, coverage_threshold)
+            all_issues.extend(coverage_issues)
+
         # Run security scanning if any domains are enabled
         if enabled_domains:
             # Collect unique scanners needed based on config
@@ -254,6 +271,94 @@ class ScanCommand(Command):
 
             except Exception as e:
                 LOGGER.error(f"Type checker {name} failed: {e}")
+
+        return issues
+
+    def _run_tests(self, context: ScanContext) -> List[UnifiedIssue]:
+        """Run test suite.
+
+        Args:
+            context: Scan context.
+
+        Returns:
+            List of test failure issues.
+        """
+        from lucidscan.plugins.test_runners import discover_test_runner_plugins
+
+        issues: List[UnifiedIssue] = []
+
+        # Discover and run test runner plugins
+        test_runner_plugins = discover_test_runner_plugins()
+
+        if not test_runner_plugins:
+            LOGGER.warning("No test runner plugins found")
+            return issues
+
+        for name, plugin_class in test_runner_plugins.items():
+            try:
+                LOGGER.info(f"Running test runner: {name}")
+                plugin = plugin_class(project_root=context.project_root)
+                result = plugin.run_tests(context)
+
+                LOGGER.info(
+                    f"{name}: {result.passed} passed, {result.failed} failed, "
+                    f"{result.skipped} skipped, {result.errors} errors"
+                )
+
+                issues.extend(result.issues)
+
+            except FileNotFoundError:
+                # Plugin not available for this project (e.g., no pytest in Python project)
+                LOGGER.debug(f"Test runner {name} not available")
+            except Exception as e:
+                LOGGER.error(f"Test runner {name} failed: {e}")
+
+        return issues
+
+    def _run_coverage(
+        self, context: ScanContext, threshold: float = 80.0
+    ) -> List[UnifiedIssue]:
+        """Run coverage analysis.
+
+        Args:
+            context: Scan context.
+            threshold: Coverage percentage threshold.
+
+        Returns:
+            List of coverage issues (if below threshold).
+        """
+        from lucidscan.plugins.coverage import discover_coverage_plugins
+
+        issues: List[UnifiedIssue] = []
+
+        # Discover and run coverage plugins
+        coverage_plugins = discover_coverage_plugins()
+
+        if not coverage_plugins:
+            LOGGER.warning("No coverage plugins found")
+            return issues
+
+        for name, plugin_class in coverage_plugins.items():
+            try:
+                LOGGER.info(f"Running coverage: {name}")
+                plugin = plugin_class(project_root=context.project_root)
+                result = plugin.measure_coverage(
+                    context, threshold=threshold, run_tests=True
+                )
+
+                status = "PASSED" if result.passed else "FAILED"
+                LOGGER.info(
+                    f"{name}: {result.percentage:.1f}% ({result.covered_lines}/{result.total_lines} lines) "
+                    f"- threshold: {threshold}% - {status}"
+                )
+
+                issues.extend(result.issues)
+
+            except FileNotFoundError:
+                # Plugin not available for this project
+                LOGGER.debug(f"Coverage plugin {name} not available")
+            except Exception as e:
+                LOGGER.error(f"Coverage plugin {name} failed: {e}")
 
         return issues
 

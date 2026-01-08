@@ -9,18 +9,18 @@ LucidScan unifies code quality tools (linting, type checking, security, testing,
 ## Roadmap Overview
 
 ```
-         v0.1.x                v0.2 ✅              v0.3 ✅              v0.4                v0.5               v1.0
+         v0.1.x                v0.2 ✅              v0.3 ✅              v0.4 ✅              v0.5               v1.0
            │                    │                   │                   │                   │                   │
     ───────●────────────────────●───────────────────●───────────────────●───────────────────●───────────────────●───────
            │                    │                   │                   │                   │                   │
-        Complete            Complete          Current State        Full Pipeline       AI Integration      Production
+        Complete            Complete            Complete          Current State       AI Integration      Production
                                                                                                                Ready
     ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-    │ Security     │    │ ✅ init cmd  │    │ ✅ ESLint    │    │ Testing      │    │ MCP server   │    │ Docs         │
-    │ scanning     │    │ ✅ Detection │    │ ✅ Biome     │    │ Coverage     │    │ File watcher │    │ Performance  │
-    │ (Trivy,      │    │ ✅ CI gen    │    │ ✅ mypy      │    │ Full pipeline│    │ AI instruct  │    │ Stability    │
-    │ OpenGrep,    │    │ ✅ Ruff      │    │ ✅ pyright   │    │              │    │ format       │    │              │
-    │ Checkov)     │    │ ✅ Plugins   │    │ ✅ tsc       │    │              │    │              │    │              │
+    │ Security     │    │ ✅ init cmd  │    │ ✅ ESLint    │    │ ✅ pytest    │    │ MCP server   │    │ Docs         │
+    │ scanning     │    │ ✅ Detection │    │ ✅ Biome     │    │ ✅ Jest      │    │ File watcher │    │ Performance  │
+    │ (Trivy,      │    │ ✅ CI gen    │    │ ✅ mypy      │    │ ✅ coverage  │    │ AI instruct  │    │ Stability    │
+    │ OpenGrep,    │    │ ✅ Ruff      │    │ ✅ pyright   │    │ ✅ istanbul  │    │ format       │    │              │
+    │ Checkov)     │    │ ✅ Plugins   │    │ ✅ tsc       │    │ ✅ threshold │    │              │    │              │
     └──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
 ```
 

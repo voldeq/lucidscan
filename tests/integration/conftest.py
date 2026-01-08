@@ -18,6 +18,10 @@ from lucidscan.plugins.linters.checkstyle import CheckstyleLinter
 from lucidscan.plugins.type_checkers.mypy import MypyChecker
 from lucidscan.plugins.type_checkers.pyright import PyrightChecker
 from lucidscan.plugins.type_checkers.typescript import TypeScriptChecker
+from lucidscan.plugins.test_runners.pytest import PytestRunner
+from lucidscan.plugins.test_runners.jest import JestRunner
+from lucidscan.plugins.coverage.coverage_py import CoveragePyPlugin
+from lucidscan.plugins.coverage.istanbul import IstanbulPlugin
 from lucidscan.bootstrap.paths import LucidscanPaths
 
 
@@ -351,3 +355,116 @@ def pyright_checker(project_root: Path) -> PyrightChecker:
 def typescript_checker(project_root: Path) -> TypeScriptChecker:
     """Return a TypeScriptChecker instance with project root for node_modules detection."""
     return TypeScriptChecker(project_root=project_root)
+
+
+# =============================================================================
+# Test runner availability checks
+# =============================================================================
+
+
+def _ensure_pytest_available() -> bool:
+    """Try to find pytest via ensure_binary. Returns True if available."""
+    try:
+        project_root = Path(__file__).parent.parent.parent
+        runner = PytestRunner(project_root=project_root)
+        runner.ensure_binary()
+        return True
+    except Exception:
+        return shutil.which("pytest") is not None
+
+
+def _ensure_jest_available() -> bool:
+    """Try to find jest via ensure_binary. Returns True if available."""
+    try:
+        project_root = Path(__file__).parent.parent.parent
+        runner = JestRunner(project_root=project_root)
+        runner.ensure_binary()
+        return True
+    except Exception:
+        return shutil.which("jest") is not None
+
+
+def _ensure_coverage_py_available() -> bool:
+    """Try to find coverage via ensure_binary. Returns True if available."""
+    try:
+        project_root = Path(__file__).parent.parent.parent
+        plugin = CoveragePyPlugin(project_root=project_root)
+        plugin.ensure_binary()
+        return True
+    except Exception:
+        return shutil.which("coverage") is not None
+
+
+def _ensure_nyc_available() -> bool:
+    """Try to find nyc via ensure_binary. Returns True if available."""
+    try:
+        project_root = Path(__file__).parent.parent.parent
+        plugin = IstanbulPlugin(project_root=project_root)
+        plugin.ensure_binary()
+        return True
+    except Exception:
+        return shutil.which("nyc") is not None
+
+
+# Check tool availability at module load time
+_pytest_runner_available = _ensure_pytest_available()
+_jest_runner_available = _ensure_jest_available()
+_coverage_py_available = _ensure_coverage_py_available()
+_nyc_available = _ensure_nyc_available()
+
+
+# Pytest markers for test runners
+pytest_runner_available = pytest.mark.skipif(
+    not _pytest_runner_available,
+    reason="pytest not available"
+)
+
+jest_runner_available = pytest.mark.skipif(
+    not _jest_runner_available,
+    reason="Jest not available"
+)
+
+# Pytest markers for coverage plugins
+coverage_py_available = pytest.mark.skipif(
+    not _coverage_py_available,
+    reason="coverage.py not available"
+)
+
+nyc_available = pytest.mark.skipif(
+    not _nyc_available,
+    reason="NYC (Istanbul) not available"
+)
+
+
+# =============================================================================
+# Test runner fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def py_test_runner(project_root: Path) -> PytestRunner:
+    """Return a PytestRunner instance with project root for venv detection."""
+    return PytestRunner(project_root=project_root)
+
+
+@pytest.fixture
+def jest_runner(project_root: Path) -> JestRunner:
+    """Return a JestRunner instance with project root for node_modules detection."""
+    return JestRunner(project_root=project_root)
+
+
+# =============================================================================
+# Coverage plugin fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def coverage_py_plugin(project_root: Path) -> CoveragePyPlugin:
+    """Return a CoveragePyPlugin instance with project root for venv detection."""
+    return CoveragePyPlugin(project_root=project_root)
+
+
+@pytest.fixture
+def istanbul_plugin(project_root: Path) -> IstanbulPlugin:
+    """Return an IstanbulPlugin instance with project root for node_modules detection."""
+    return IstanbulPlugin(project_root=project_root)
