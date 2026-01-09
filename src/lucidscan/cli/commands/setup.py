@@ -26,17 +26,45 @@ LUCIDSCAN_MCP_ARGS = ["serve", "--mcp"]
 LUCIDSCAN_CLAUDE_MD_INSTRUCTIONS = """
 ## Code Quality with LucidScan
 
-Use the lucidscan MCP tools to maintain code quality:
+### After Code Changes (Fast Scans)
 
-- **After writing or modifying code**: Run `scan` to check for linting, type errors, and security issues
-- **Before committing**: Run `scan` with all domains to ensure code quality
-- **When fixing issues**: Use `get_fix_instructions` to get detailed guidance, then `apply_fix` for auto-fixable issues
+After writing or modifying ANY code file, run a scan with these domains:
+- `linting` - Style and code quality
+- `type_checking` - Type errors
+- `security` - SAST vulnerabilities
+- `sca` - Dependency vulnerabilities
 
-Available scan domains: `linting`, `type_checking`, `security`, `testing`, `coverage`, `all`
+Use: `scan(domains=["linting", "type_checking", "security", "sca"], files=["path/to/file.py"])`
+
+### Before Commit (Full Scan)
+
+Before committing, run a full scan including tests and coverage:
+- Use `scan(domains=["all"])` or `scan(domains=["linting", "type_checking", "security", "sca", "testing", "coverage"])`
+
+### Fixing Issues
+
+1. Use `get_fix_instructions` for detailed guidance
+2. Use `apply_fix` for auto-fixable linting issues
+3. Re-scan after fixes
 """
 
 LUCIDSCAN_CLAUDE_MD_MARKER = "## Code Quality with LucidScan"
 
+# Cursor rules for proactive lucidscan usage
+LUCIDSCAN_CURSOR_RULES = """---
+description: LucidScan code quality rules
+globs: ["**/*.py", "**/*.ts", "**/*.js", "**/*.tsx", "**/*.jsx"]
+alwaysApply: true
+---
+
+# LucidScan Scanning Workflow
+
+## After Code Changes
+Run fast scans: `scan(domains=["linting", "type_checking", "security", "sca"])`
+
+## Before Commit
+Run full scan: `scan(domains=["all"])` including tests and coverage
+"""
 
 class SetupCommand(Command):
     """Configure AI tools to use LucidScan via MCP."""
@@ -161,7 +189,7 @@ class SetupCommand(Command):
             print("  Could not determine Cursor config location.")
             return False
 
-        return self._configure_mcp_tool(
+        mcp_success = self._configure_mcp_tool(
             tool_name="Cursor",
             config_path=config_path,
             config_key="mcpServers",
@@ -169,6 +197,15 @@ class SetupCommand(Command):
             force=force,
             remove=remove,
         )
+
+        # Configure Cursor rules for automatic scanning
+        rules_success = self._configure_cursor_rules(
+            dry_run=dry_run,
+            force=force,
+            remove=remove,
+        )
+
+        return mcp_success and rules_success
 
     def _find_lucidscan_path(self, portable: bool = False) -> Optional[str]:
         """Find the lucidscan executable path.
@@ -428,6 +465,56 @@ class SetupCommand(Command):
             new_lines.append(line)
 
         return "\n".join(new_lines)
+
+    def _configure_cursor_rules(
+        self,
+        dry_run: bool = False,
+        force: bool = False,
+        remove: bool = False,
+    ) -> bool:
+        """Configure Cursor rules for automatic scanning.
+
+        Args:
+            dry_run: If True, only show what would be done.
+            force: If True, overwrite existing rules.
+            remove: If True, remove lucidscan rules.
+
+        Returns:
+            True if successful.
+        """
+        rules_dir = Path.cwd() / ".cursor" / "rules"
+        rules_file = rules_dir / "lucidscan.mdc"
+
+        print("Configuring Cursor rules...")
+
+        if remove:
+            if rules_file.exists():
+                if dry_run:
+                    print(f"  Would remove {rules_file}")
+                else:
+                    rules_file.unlink()
+                    print(f"  Removed {rules_file}")
+            else:
+                print(f"  LucidScan rules not found at {rules_file}")
+            return True
+
+        if rules_file.exists() and not force:
+            print(f"  LucidScan rules already exist at {rules_file}")
+            print("  Use --force to overwrite.")
+            return True
+
+        if dry_run:
+            print(f"  Would create {rules_file}")
+            return True
+
+        rules_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            rules_file.write_text(LUCIDSCAN_CURSOR_RULES.lstrip())
+            print(f"  Created {rules_file}")
+            return True
+        except Exception as e:
+            print(f"  Error writing {rules_file}: {e}")
+            return False
 
     def _get_claude_code_config_path(self) -> Optional[Path]:
         """Get the Claude Code MCP config file path.
