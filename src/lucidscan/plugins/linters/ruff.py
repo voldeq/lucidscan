@@ -315,8 +315,12 @@ class RuffLinter(LinterPlugin):
 
         LOGGER.debug(f"Downloading from {url}")
 
+        # Validate URL scheme and domain for security
+        if not url.startswith("https://github.com/"):
+            raise ValueError(f"Invalid download URL: {url}")
+
         try:
-            urllib.request.urlretrieve(url, archive_path)
+            urllib.request.urlretrieve(url, archive_path)  # nosec B310
         except Exception as e:
             raise RuntimeError(f"Failed to download Ruff: {e}") from e
 

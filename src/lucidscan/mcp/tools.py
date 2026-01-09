@@ -327,7 +327,7 @@ class MCPToolExecutor:
             try:
                 linter = linter_class(project_root=self.project_root)
                 result = linter.lint(context, fix=fix)
-                issues.extend(result.issues)
+                issues.extend(result)
             except Exception as e:
                 LOGGER.debug(f"Linter {name} failed: {e}")
 
@@ -351,7 +351,7 @@ class MCPToolExecutor:
             try:
                 checker = checker_class(project_root=self.project_root)
                 result = checker.check(context)
-                issues.extend(result.issues)
+                issues.extend(result)
             except Exception as e:
                 LOGGER.debug(f"Type checker {name} failed: {e}")
 
@@ -374,10 +374,10 @@ class MCPToolExecutor:
         # Only use scanners that support SAST
         for name, scanner_class in scanners.items():
             try:
-                scanner = scanner_class()
+                scanner = scanner_class(project_root=self.project_root)
                 if ScanDomain.SAST in scanner.domains:
                     result = scanner.scan(context)
-                    issues.extend(result.issues)
+                    issues.extend(result)
             except Exception as e:
                 LOGGER.debug(f"Scanner {name} failed: {e}")
 
@@ -399,10 +399,10 @@ class MCPToolExecutor:
 
         for name, scanner_class in scanners.items():
             try:
-                scanner = scanner_class()
+                scanner = scanner_class(project_root=self.project_root)
                 if ScanDomain.SCA in scanner.domains:
                     result = scanner.scan(context)
-                    issues.extend(result.issues)
+                    issues.extend(result)
             except Exception as e:
                 LOGGER.debug(f"Scanner {name} failed: {e}")
 
@@ -424,10 +424,10 @@ class MCPToolExecutor:
 
         for name, scanner_class in scanners.items():
             try:
-                scanner = scanner_class()
+                scanner = scanner_class(project_root=self.project_root)
                 if ScanDomain.IAC in scanner.domains:
                     result = scanner.scan(context)
-                    issues.extend(result.issues)
+                    issues.extend(result)
             except Exception as e:
                 LOGGER.debug(f"Scanner {name} failed: {e}")
 
@@ -449,10 +449,10 @@ class MCPToolExecutor:
 
         for name, scanner_class in scanners.items():
             try:
-                scanner = scanner_class()
+                scanner = scanner_class(project_root=self.project_root)
                 if ScanDomain.CONTAINER in scanner.domains:
                     result = scanner.scan(context)
-                    issues.extend(result.issues)
+                    issues.extend(result)
             except Exception as e:
                 LOGGER.debug(f"Scanner {name} failed: {e}")
 
@@ -476,7 +476,7 @@ class MCPToolExecutor:
             try:
                 runner = runner_class(project_root=self.project_root)
                 result = runner.run_tests(context)
-                issues.extend(result.issues)
+                issues.extend(result)
             except Exception as e:
                 LOGGER.debug(f"Test runner {name} failed: {e}")
 
@@ -500,7 +500,7 @@ class MCPToolExecutor:
             try:
                 plugin = plugin_class(project_root=self.project_root)
                 result = plugin.measure(context)
-                issues.extend(result.issues)
+                issues.extend(result)
             except Exception as e:
                 LOGGER.debug(f"Coverage plugin {name} failed: {e}")
 

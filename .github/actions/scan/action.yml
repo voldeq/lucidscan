@@ -58,25 +58,32 @@ runs:
 
     - name: Install LucidScan
       shell: bash
+      env:
+        LUCIDSCAN_VERSION: ${{ inputs.version }}
       run: |
-        if [ "${{ inputs.version }}" = "latest" ]; then
+        if [ "$LUCIDSCAN_VERSION" = "latest" ]; then
           pip install lucidscan
         else
-          pip install "lucidscan==${{ inputs.version }}"
+          pip install "lucidscan==$LUCIDSCAN_VERSION"
         fi
 
     - name: Build scan command
       id: build-command
       shell: bash
+      env:
+        INPUT_SCAN_TYPES: ${{ inputs.scan-types }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_IMAGE: ${{ inputs.image }}
+        INPUT_CONFIG: ${{ inputs.config }}
       run: |
         CMD="lucidscan"
 
         # Parse scan types
-        SCAN_TYPES="${{ inputs.scan-types }}"
-        if [ "$SCAN_TYPES" = "all" ]; then
+        if [ "$INPUT_SCAN_TYPES" = "all" ]; then
           CMD="$CMD --all"
         else
-          IFS=',' read -ra TYPES <<< "$SCAN_TYPES"
+          IFS=',' read -ra TYPES <<< "$INPUT_SCAN_TYPES"
           for type in "${TYPES[@]}"; do
             type=$(echo "$type" | xargs)  # trim whitespace
             case "$type" in
@@ -89,20 +96,20 @@ runs:
         fi
 
         # Add optional flags
-        if [ -n "${{ inputs.fail-on }}" ]; then
-          CMD="$CMD --fail-on ${{ inputs.fail-on }}"
+        if [ -n "$INPUT_FAIL_ON" ]; then
+          CMD="$CMD --fail-on $INPUT_FAIL_ON"
         fi
 
-        if [ -n "${{ inputs.format }}" ]; then
-          CMD="$CMD --format ${{ inputs.format }}"
+        if [ -n "$INPUT_FORMAT" ]; then
+          CMD="$CMD --format $INPUT_FORMAT"
         fi
 
-        if [ -n "${{ inputs.image }}" ]; then
-          CMD="$CMD --image ${{ inputs.image }}"
+        if [ -n "$INPUT_IMAGE" ]; then
+          CMD="$CMD --image $INPUT_IMAGE"
         fi
 
-        if [ -n "${{ inputs.config }}" ]; then
-          CMD="$CMD --config ${{ inputs.config }}"
+        if [ -n "$INPUT_CONFIG" ]; then
+          CMD="$CMD --config $INPUT_CONFIG"
         fi
 
         echo "command=$CMD" >> $GITHUB_OUTPUT
@@ -132,10 +139,13 @@ runs:
       if: inputs.sarif-file != ''
       shell: bash
       working-directory: ${{ inputs.working-directory }}
+      env:
+        SCAN_COMMAND: ${{ steps.build-command.outputs.command }}
+        SARIF_FILE: ${{ inputs.sarif-file }}
       run: |
         # Re-run with SARIF format to generate the file
         set +e
-        ${{ steps.build-command.outputs.command }} --format sarif > "${{ inputs.sarif-file }}" 2>/dev/null || true
+        $SCAN_COMMAND --format sarif > "$SARIF_FILE" 2>/dev/null || true
         set -e
 
     - name: Upload SARIF to GitHub Code Scanning

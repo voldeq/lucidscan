@@ -115,16 +115,26 @@ class TrivyScanner(ScannerPlugin):
         # Create destination directory
         dest_dir.mkdir(parents=True, exist_ok=True)
 
+        # Validate URL scheme and domain for security
+        if not url.startswith("https://github.com/"):
+            raise ValueError(f"Invalid download URL: {url}")
+
         # Download and extract
         with tempfile.NamedTemporaryFile(suffix=".tar.gz", delete=False) as tmp_file:
             tmp_path = Path(tmp_file.name)
             try:
-                with urlopen(url) as response:
+                with urlopen(url) as response:  # nosec B310
                     tmp_file.write(response.read())
 
-                # Extract tarball
+                # Extract tarball safely (prevent path traversal)
                 with tarfile.open(tmp_path, "r:gz") as tar:
-                    tar.extractall(path=dest_dir)
+                    for member in tar.getmembers():
+                        # Validate each member path to prevent traversal attacks
+                        member_path = (dest_dir / member.name).resolve()
+                        if not member_path.is_relative_to(dest_dir.resolve()):
+                            raise ValueError(f"Path traversal detected: {member.name}")
+                        # Extract individual member safely
+                        tar.extract(member, path=dest_dir)
 
                 # Make binary executable
                 binary_path = dest_dir / "trivy"

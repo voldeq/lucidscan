@@ -13,7 +13,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from xml.etree import ElementTree
+import defusedxml.ElementTree as ElementTree
 
 from lucidscan.core.logging import get_logger
 from lucidscan.core.models import (

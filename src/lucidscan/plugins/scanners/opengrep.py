@@ -126,9 +126,13 @@ class OpenGrepScanner(ScannerPlugin):
         binary_name = self._get_binary_name()
         binary_path = dest_dir / binary_name
 
+        # Validate URL scheme and domain for security
+        if not url.startswith("https://github.com/"):
+            raise ValueError(f"Invalid download URL: {url}")
+
         # Download binary directly (not an archive)
         try:
-            with urlopen(url) as response:
+            with urlopen(url) as response:  # nosec B310
                 binary_path.write_bytes(response.read())
 
             # Make binary executable (not needed on Windows)
