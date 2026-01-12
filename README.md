@@ -122,7 +122,7 @@ This configures both Claude Code and Cursor with their respective MCP configurat
 | **Security (SAST)** | OpenGrep | Code vulnerabilities |
 | **Security (SCA)** | Trivy | Dependency vulnerabilities |
 | **Security (IaC)** | Checkov | Infrastructure misconfigurations |
-| **Testing** | pytest, Jest | Test failures |
+| **Testing** | pytest, Jest, Karma, Playwright | Test failures |
 | **Coverage** | coverage.py, Istanbul | Coverage gaps |
 
 All results are normalized to a common format. One exit code for CI.

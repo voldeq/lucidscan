@@ -29,6 +29,8 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     # Test runners
     "pytest": ["python"],
     "jest": ["javascript", "typescript"],
+    "karma": ["javascript", "typescript"],
+    "playwright": ["javascript", "typescript"],
     # Coverage
     "coverage_py": ["python"],
     "istanbul": ["javascript", "typescript"],

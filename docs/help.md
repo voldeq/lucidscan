@@ -372,8 +372,10 @@ pipeline:
   testing:
     enabled: true
     tools:
-      - name: pytest
-      - name: jest
+      - name: pytest      # Python unit tests
+      - name: jest        # JavaScript/TypeScript tests
+      - name: karma       # Angular unit tests (Jasmine)
+      - name: playwright  # E2E tests
 
   coverage:
     enabled: true
