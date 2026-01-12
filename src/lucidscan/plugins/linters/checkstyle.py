@@ -256,17 +256,15 @@ class CheckstyleLinter(LinterPlugin):
         if not search_dirs:
             search_dirs = [context.project_root]
 
-        # Get exclude patterns
-        exclude_patterns = set(context.get_exclude_patterns())
-
         for search_dir in search_dirs:
             if not search_dir.exists():
                 continue
 
             for java_file in search_dir.rglob("*.java"):
-                # Check if file should be excluded
-                rel_path = str(java_file.relative_to(context.project_root))
-                if not any(pattern in rel_path for pattern in exclude_patterns):
+                # Check if file should be excluded using proper gitignore matching
+                if context.ignore_patterns is None or not context.ignore_patterns.matches(
+                    java_file, context.project_root
+                ):
                     java_files.append(str(java_file))
 
         return java_files
