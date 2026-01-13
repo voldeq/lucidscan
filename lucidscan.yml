@@ -8,9 +8,11 @@ pipeline:
   linting:
     enabled: true
     tools: [ruff]
+
   type_checking:
     enabled: true
     tools: [mypy]
+
   security:
     enabled: true
     tools:
@@ -18,9 +20,11 @@ pipeline:
         domains: [sca]
       - name: opengrep
         domains: [sast]
+
   testing:
     enabled: true
     tools: [pytest]
+
   coverage:
     enabled: true
     tools: [coverage_py]
@@ -39,4 +43,4 @@ ignore:
   - "**/dist/**"
   - "**/build/**"
   - "**/.git/**"
-  - "**/*.egg-info/**"
+  - "**/lucidscan.egg-info/**"

@@ -462,7 +462,8 @@ class MCPToolExecutor:
                         "After generating the config, tell the user: "
                         "1) Which tools need to be installed (security tools are auto-downloaded), "
                         "2) Run 'lucidscan init --claude-code' or '--cursor' for AI integration, "
-                        "3) Run 'lucidscan scan --all' to verify the configuration works."
+                        "3) Run 'lucidscan scan --all' to verify the configuration works, "
+                        "4) IMPORTANT: Restart Claude Code or Cursor for the configuration to take effect."
                     ),
                 },
             ],
@@ -686,6 +687,7 @@ ignore:
                 "Install required linting/testing tools via package manager (security tools auto-download)",
                 "Run 'lucidscan scan --all' to test the configuration and see initial results",
                 "If many issues appear, consider starting with relaxed thresholds (see gradual_adoption example)",
+                "IMPORTANT: Restart Claude Code or Cursor for the new configuration to take effect",
             ],
         }
 
@@ -693,7 +695,7 @@ ignore:
         """Parse domain strings to domain enums.
 
         When "all" is specified, returns domains based on what's configured
-        in lucidscan.yml, not a hardcoded list.
+        in lucidscan.yml. If no config exists, uses sensible defaults.
 
         Args:
             domains: List of domain names.
@@ -705,9 +707,11 @@ ignore:
             result: List[DomainType] = []
 
             # Include tool domains based on pipeline config
-            if self.config.pipeline.linting and self.config.pipeline.linting.enabled:
+            # If explicitly configured, respect the enabled flag
+            # If not configured (None), enable by default for "all"
+            if self.config.pipeline.linting is None or self.config.pipeline.linting.enabled:
                 result.append(ToolDomain.LINTING)
-            if self.config.pipeline.type_checking and self.config.pipeline.type_checking.enabled:
+            if self.config.pipeline.type_checking is None or self.config.pipeline.type_checking.enabled:
                 result.append(ToolDomain.TYPE_CHECKING)
             if self.config.pipeline.testing and self.config.pipeline.testing.enabled:
                 result.append(ToolDomain.TESTING)
@@ -715,11 +719,17 @@ ignore:
                 result.append(ToolDomain.COVERAGE)
 
             # Include security domains based on config (both legacy and pipeline)
-            for domain_str in self.config.get_enabled_domains():
-                try:
-                    result.append(ScanDomain(domain_str))
-                except ValueError:
-                    LOGGER.warning(f"Unknown security domain in config: {domain_str}")
+            security_domains = self.config.get_enabled_domains()
+            if security_domains:
+                for domain_str in security_domains:
+                    try:
+                        result.append(ScanDomain(domain_str))
+                    except ValueError:
+                        LOGGER.warning(f"Unknown security domain in config: {domain_str}")
+            else:
+                # No security config - use defaults (SCA and SAST)
+                result.append(ScanDomain.SCA)
+                result.append(ScanDomain.SAST)
 
             return result
 
