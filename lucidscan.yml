@@ -23,6 +23,7 @@ pipeline:
     tools: [pytest]
   coverage:
     enabled: true
+    tools: [coverage_py]
     threshold: 80
 
 fail_on:

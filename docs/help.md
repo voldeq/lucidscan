@@ -506,6 +506,7 @@ pipeline:
 
   coverage:
     enabled: true
+    tools: [coverage_py]  # Required: coverage_py for Python, istanbul for JS/TS
     threshold: 80  # Fail if coverage below this
 
 # Failure thresholds (per-domain)
@@ -555,6 +556,7 @@ output:
 | `testing.enabled` | bool | false | Enable test execution |
 | `testing.tools` | array | (auto) | Test frameworks |
 | `coverage.enabled` | bool | false | Enable coverage analysis |
+| `coverage.tools` | array | **required** | Coverage tools (coverage_py, istanbul) |
 | `coverage.threshold` | int | 80 | Coverage percentage threshold |
 
 #### Tool Configuration

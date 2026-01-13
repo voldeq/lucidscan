@@ -583,6 +583,7 @@ pipeline:
     tools: [pytest]
   coverage:
     enabled: true
+    tools: [coverage_py]
     threshold: 80
 
 fail_on:
@@ -624,6 +625,7 @@ pipeline:
     tools: [jest]
   coverage:
     enabled: true
+    tools: [istanbul]
     threshold: 80
 
 fail_on:

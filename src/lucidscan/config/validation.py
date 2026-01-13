@@ -66,6 +66,33 @@ VALID_PIPELINE_KEYS: Set[str] = {
     "coverage",
 }
 
+# Valid keys under pipeline domain sections (linting, type_checking, testing, coverage)
+VALID_PIPELINE_DOMAIN_KEYS: Set[str] = {
+    "enabled",
+    "tools",
+}
+
+# Valid keys under pipeline.coverage section
+VALID_PIPELINE_COVERAGE_KEYS: Set[str] = {
+    "enabled",
+    "tools",
+    "threshold",
+}
+
+# Valid keys under pipeline.security section
+VALID_PIPELINE_SECURITY_KEYS: Set[str] = {
+    "enabled",
+    "tools",
+}
+
+# Pipeline domains that require tools when enabled
+PIPELINE_DOMAINS_REQUIRING_TOOLS: Set[str] = {
+    "linting",
+    "type_checking",
+    "testing",
+    "coverage",
+}
+
 # Valid keys under scanners.<domain> (framework-level, not plugin-specific)
 VALID_SCANNER_DOMAIN_KEYS: Set[str] = {
     "enabled",
@@ -159,12 +186,13 @@ def validate_config(
     """
     warnings: List[ConfigValidationWarning] = []
 
-    if not isinstance(data, dict):
+    # Runtime type check for defensive programming (data may not be dict at runtime)
+    if not isinstance(data, dict):  # type: ignore[unreachable]
         warnings.append(ConfigValidationWarning(
             message=f"Config must be a mapping, got {type(data).__name__}",
             source=source,
         ))
-        return warnings
+        return warnings  # type: ignore[unreachable]
 
     # Check top-level keys
     for key in data.keys():
@@ -346,6 +374,90 @@ def validate_config(
                     source=source,
                     key="pipeline.max_workers",
                 ))
+
+            # Validate pipeline domain sections (linting, type_checking, testing, coverage)
+            for domain in PIPELINE_DOMAINS_REQUIRING_TOOLS:
+                domain_config = pipeline.get(domain)
+                if domain_config is not None and isinstance(domain_config, dict):
+                    # Check if enabled (default True if not specified)
+                    is_enabled = domain_config.get("enabled", True)
+
+                    # Validate keys based on domain type
+                    if domain == "coverage":
+                        valid_keys = VALID_PIPELINE_COVERAGE_KEYS
+                    else:
+                        valid_keys = VALID_PIPELINE_DOMAIN_KEYS
+
+                    for key in domain_config.keys():
+                        if key not in valid_keys:
+                            suggestion = _suggest_key(key, valid_keys)
+                            warning = ConfigValidationWarning(
+                                message=f"Unknown key 'pipeline.{domain}.{key}'",
+                                source=source,
+                                key=f"pipeline.{domain}.{key}",
+                                suggestion=suggestion,
+                            )
+                            warnings.append(warning)
+                            _log_warning(warning)
+
+                    # Check tools is specified when enabled
+                    tools = domain_config.get("tools")
+                    if is_enabled and tools is None:
+                        warnings.append(ConfigValidationWarning(
+                            message=f"'pipeline.{domain}.tools' is required when {domain} is enabled",
+                            source=source,
+                            key=f"pipeline.{domain}.tools",
+                        ))
+                    elif tools is not None and not isinstance(tools, list):
+                        warnings.append(ConfigValidationWarning(
+                            message=f"'pipeline.{domain}.tools' must be a list",
+                            source=source,
+                            key=f"pipeline.{domain}.tools",
+                        ))
+
+                    # Validate threshold for coverage
+                    if domain == "coverage":
+                        threshold = domain_config.get("threshold")
+                        if threshold is not None and not isinstance(threshold, (int, float)):
+                            warnings.append(ConfigValidationWarning(
+                                message="'pipeline.coverage.threshold' must be a number",
+                                source=source,
+                                key="pipeline.coverage.threshold",
+                            ))
+
+            # Validate pipeline.security section
+            security_config = pipeline.get("security")
+            if security_config is not None and isinstance(security_config, dict):
+                for key in security_config.keys():
+                    if key not in VALID_PIPELINE_SECURITY_KEYS:
+                        suggestion = _suggest_key(key, VALID_PIPELINE_SECURITY_KEYS)
+                        warning = ConfigValidationWarning(
+                            message=f"Unknown key 'pipeline.security.{key}'",
+                            source=source,
+                            key=f"pipeline.security.{key}",
+                            suggestion=suggestion,
+                        )
+                        warnings.append(warning)
+                        _log_warning(warning)
+
+                # Validate tools is a list of dicts with name and domains
+                tools = security_config.get("tools")
+                if tools is not None:
+                    if not isinstance(tools, list):
+                        warnings.append(ConfigValidationWarning(
+                            message="'pipeline.security.tools' must be a list",
+                            source=source,
+                            key="pipeline.security.tools",
+                        ))
+                    else:
+                        for i, tool in enumerate(tools):
+                            if isinstance(tool, dict):
+                                if "name" not in tool:
+                                    warnings.append(ConfigValidationWarning(
+                                        message=f"'pipeline.security.tools[{i}]' must have a 'name' field",
+                                        source=source,
+                                        key=f"pipeline.security.tools[{i}].name",
+                                    ))
 
     # Validate ai section
     ai = data.get("ai")
