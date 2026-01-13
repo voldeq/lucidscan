@@ -7,7 +7,7 @@ LucidScan integrates seamlessly with all major CI/CD platforms. This guide cover
 The fastest way to add LucidScan to your project:
 
 ```bash
-lucidscan init --ci github   # or gitlab, bitbucket
+lucidscan autoconfigure --ci github   # or gitlab, bitbucket
 ```
 
 This generates both `lucidscan.yml` (configuration) and the appropriate CI workflow file.

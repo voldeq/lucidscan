@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 
 from lucidscan.config.validation import (
     ConfigValidationWarning,
+    ConfigValidationIssue,
+    ValidationSeverity,
     validate_config,
+    validate_config_file,
     _suggest_key,
 )
 
@@ -164,3 +168,131 @@ class TestConfigValidationWarning:
         )
         assert warning.key == "fail_ob"
         assert warning.suggestion == "fail_on"
+
+
+class TestValidateConfigFile:
+    """Tests for validate_config_file function."""
+
+    def test_valid_config_returns_valid(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "lucidscan.yml"
+        config_file.write_text("fail_on: high\nignore:\n  - tests/**\n")
+
+        is_valid, issues = validate_config_file(config_file)
+
+        assert is_valid is True
+        assert len(issues) == 0
+
+    def test_nonexistent_file_returns_error(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "nonexistent.yml"
+
+        is_valid, issues = validate_config_file(config_file)
+
+        assert is_valid is False
+        assert len(issues) == 1
+        assert issues[0].severity == ValidationSeverity.ERROR
+        assert "not found" in issues[0].message
+
+    def test_yaml_syntax_error_returns_error(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "lucidscan.yml"
+        config_file.write_text("invalid: yaml: content:\n  - bad")
+
+        is_valid, issues = validate_config_file(config_file)
+
+        assert is_valid is False
+        assert len(issues) == 1
+        assert issues[0].severity == ValidationSeverity.ERROR
+        assert "YAML" in issues[0].message
+
+    def test_empty_file_returns_warning(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "lucidscan.yml"
+        config_file.write_text("")
+
+        is_valid, issues = validate_config_file(config_file)
+
+        # Empty file is valid but has a warning
+        assert is_valid is True
+        assert len(issues) == 1
+        assert issues[0].severity == ValidationSeverity.WARNING
+        assert "empty" in issues[0].message
+
+    def test_unknown_key_returns_warning(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "lucidscan.yml"
+        config_file.write_text("unknown_key: value\n")
+
+        is_valid, issues = validate_config_file(config_file)
+
+        # Unknown keys are warnings, not errors
+        assert is_valid is True
+        assert len(issues) == 1
+        assert issues[0].severity == ValidationSeverity.WARNING
+        assert "unknown_key" in issues[0].message
+
+    def test_type_error_returns_error(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "lucidscan.yml"
+        config_file.write_text("fail_on: 123\n")  # Should be string
+
+        is_valid, issues = validate_config_file(config_file)
+
+        assert is_valid is False
+        assert len(issues) == 1
+        assert issues[0].severity == ValidationSeverity.ERROR
+        assert "must be a" in issues[0].message
+
+    def test_invalid_severity_returns_error(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "lucidscan.yml"
+        config_file.write_text("fail_on: super_high\n")  # Invalid severity
+
+        is_valid, issues = validate_config_file(config_file)
+
+        assert is_valid is False
+        assert len(issues) == 1
+        assert issues[0].severity == ValidationSeverity.ERROR
+        assert "Invalid severity" in issues[0].message
+
+    def test_typo_suggestion_included(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "lucidscan.yml"
+        config_file.write_text("fail_ob: high\n")  # Typo: should be fail_on
+
+        is_valid, issues = validate_config_file(config_file)
+
+        assert is_valid is True  # Unknown key is just a warning
+        assert len(issues) == 1
+        assert issues[0].suggestion == "fail_on"
+
+
+class TestValidationSeverity:
+    """Tests for ValidationSeverity enum."""
+
+    def test_error_value(self) -> None:
+        assert ValidationSeverity.ERROR.value == "error"
+
+    def test_warning_value(self) -> None:
+        assert ValidationSeverity.WARNING.value == "warning"
+
+
+class TestConfigValidationIssue:
+    """Tests for ConfigValidationIssue dataclass."""
+
+    def test_basic_issue(self) -> None:
+        issue = ConfigValidationIssue(
+            message="Test message",
+            source="test.yml",
+            severity=ValidationSeverity.ERROR,
+        )
+        assert issue.message == "Test message"
+        assert issue.source == "test.yml"
+        assert issue.severity == ValidationSeverity.ERROR
+        assert issue.key is None
+        assert issue.suggestion is None
+
+    def test_issue_with_all_fields(self) -> None:
+        issue = ConfigValidationIssue(
+            message="Unknown key",
+            source="test.yml",
+            severity=ValidationSeverity.WARNING,
+            key="fail_ob",
+            suggestion="fail_on",
+        )
+        assert issue.key == "fail_ob"
+        assert issue.suggestion == "fail_on"
+        assert issue.severity == ValidationSeverity.WARNING

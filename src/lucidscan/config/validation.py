@@ -8,11 +8,34 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from difflib import get_close_matches
-from typing import Any, Dict, List, Optional, Set
+from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+import yaml
 
 from lucidscan.core.logging import get_logger
 
 LOGGER = get_logger(__name__)
+
+
+class ValidationSeverity(Enum):
+    """Severity level for validation issues."""
+
+    ERROR = "error"  # Config will fail at runtime
+    WARNING = "warning"  # Likely mistake but config usable
+
+
+@dataclass
+class ConfigValidationIssue:
+    """A validation issue for configuration with severity."""
+
+    message: str
+    source: str
+    severity: ValidationSeverity
+    key: Optional[str] = None
+    suggestion: Optional[str] = None
+
 
 # Valid top-level keys (core config)
 VALID_TOP_LEVEL_KEYS: Set[str] = {
@@ -434,3 +457,77 @@ def _log_warning(warning: ConfigValidationWarning) -> None:
     if warning.suggestion:
         msg += f" (did you mean '{warning.suggestion}'?)"
     LOGGER.warning(msg)
+
+
+def validate_config_file(config_path: Path) -> Tuple[bool, List[ConfigValidationIssue]]:
+    """Validate a configuration file from disk.
+
+    Checks file existence, YAML syntax, and configuration semantics.
+
+    Args:
+        config_path: Path to the configuration file.
+
+    Returns:
+        Tuple of (is_valid, issues) where is_valid is False if any errors exist.
+    """
+    issues: List[ConfigValidationIssue] = []
+    source = str(config_path)
+
+    # Check file exists
+    if not config_path.exists():
+        issues.append(ConfigValidationIssue(
+            message=f"Configuration file not found: {config_path}",
+            source=source,
+            severity=ValidationSeverity.ERROR,
+        ))
+        return False, issues
+
+    # Try to parse YAML
+    try:
+        with open(config_path, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        # Extract line number from YAML error if available
+        error_msg = f"Invalid YAML syntax: {e}"
+        issues.append(ConfigValidationIssue(
+            message=error_msg,
+            source=source,
+            severity=ValidationSeverity.ERROR,
+        ))
+        return False, issues
+
+    # Empty file is valid but warn
+    if data is None:
+        issues.append(ConfigValidationIssue(
+            message="Configuration file is empty",
+            source=source,
+            severity=ValidationSeverity.WARNING,
+        ))
+        return True, issues
+
+    # Validate config structure
+    warnings = validate_config(data, source)
+
+    # Convert warnings to issues
+    # Type errors are ERROR severity, unknown keys are WARNING severity
+    for warning in warnings:
+        # Determine severity based on message content
+        # Type mismatches and invalid values are errors
+        is_error = any(phrase in warning.message for phrase in [
+            "must be a",
+            "Invalid severity",
+            "Invalid value",
+            "Config must be",
+        ])
+
+        issues.append(ConfigValidationIssue(
+            message=warning.message,
+            source=warning.source,
+            severity=ValidationSeverity.ERROR if is_error else ValidationSeverity.WARNING,
+            key=warning.key,
+            suggestion=warning.suggestion,
+        ))
+
+    # Valid if no errors
+    has_errors = any(issue.severity == ValidationSeverity.ERROR for issue in issues)
+    return not has_errors, issues

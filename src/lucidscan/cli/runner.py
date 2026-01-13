@@ -51,9 +51,9 @@ class CLIRunner:
         self.status_cmd = StatusCommand(version=self._version)
         self.scan_cmd = ScanCommand(version=self._version)
         self.help_cmd = HelpCommand(version=self._version)
-        # InitCommand will be imported lazily when needed to avoid
-        # import errors until the module is created
+        # InitCommand and AutoconfigureCommand will be imported lazily when needed
         self._init_cmd = None
+        self._autoconfigure_cmd = None
 
     @property
     def init_cmd(self):
@@ -61,10 +61,21 @@ class CLIRunner:
         if self._init_cmd is None:
             try:
                 from lucidscan.cli.commands.init import InitCommand
-                self._init_cmd = InitCommand()
+                self._init_cmd = InitCommand(version=self._version)
             except ImportError:
                 self._init_cmd = None
         return self._init_cmd
+
+    @property
+    def autoconfigure_cmd(self):
+        """Lazy-load AutoconfigureCommand to avoid import errors during development."""
+        if self._autoconfigure_cmd is None:
+            try:
+                from lucidscan.cli.commands.autoconfigure import AutoconfigureCommand
+                self._autoconfigure_cmd = AutoconfigureCommand()
+            except ImportError:
+                self._autoconfigure_cmd = None
+        return self._autoconfigure_cmd
 
     def run(self, argv: Optional[Iterable[str]] = None) -> int:
         """Run the CLI.
@@ -103,23 +114,25 @@ class CLIRunner:
 
         if command == "init":
             return self._handle_init(args)
+        elif command == "autoconfigure":
+            return self._handle_autoconfigure(args)
         elif command == "scan":
             return self._handle_scan(args)
         elif command == "status":
             return self._handle_status(args)
         elif command == "serve":
             return self._handle_serve(args)
-        elif command == "setup":
-            return self._handle_setup(args)
         elif command == "help":
             return self._handle_help(args)
+        elif command == "validate":
+            return self._handle_validate(args)
         else:
             # No command specified - show help
             self.parser.print_help()
             return EXIT_SUCCESS
 
     def _handle_init(self, args) -> int:
-        """Handle the init command.
+        """Handle the init command (configure AI tools).
 
         Args:
             args: Parsed command-line arguments.
@@ -132,6 +145,21 @@ class CLIRunner:
             return EXIT_INVALID_USAGE
 
         return self.init_cmd.execute(args)
+
+    def _handle_autoconfigure(self, args) -> int:
+        """Handle the autoconfigure command (generate lucidscan.yml).
+
+        Args:
+            args: Parsed command-line arguments.
+
+        Returns:
+            Exit code.
+        """
+        if self.autoconfigure_cmd is None:
+            LOGGER.error("Autoconfigure command not available. This feature is in development.")
+            return EXIT_INVALID_USAGE
+
+        return self.autoconfigure_cmd.execute(args)
 
     def _handle_scan(self, args) -> int:
         """Handle the scan command.
@@ -230,23 +258,6 @@ class CLIRunner:
             LOGGER.error(f"Serve command not available: {e}")
             return EXIT_INVALID_USAGE
 
-    def _handle_setup(self, args) -> int:
-        """Handle the setup command.
-
-        Args:
-            args: Parsed command-line arguments.
-
-        Returns:
-            Exit code.
-        """
-        try:
-            from lucidscan.cli.commands.setup import SetupCommand
-            setup_cmd = SetupCommand(version=self._version)
-            return setup_cmd.execute(args)
-        except ImportError as e:
-            LOGGER.error(f"Setup command not available: {e}")
-            return EXIT_INVALID_USAGE
-
     def _handle_help(self, args) -> int:
         """Handle the help command.
 
@@ -257,3 +268,17 @@ class CLIRunner:
             Exit code.
         """
         return self.help_cmd.execute(args)
+
+    def _handle_validate(self, args) -> int:
+        """Handle the validate command.
+
+        Args:
+            args: Parsed command-line arguments.
+
+        Returns:
+            Exit code.
+        """
+        from lucidscan.cli.commands.validate import ValidateCommand
+
+        validate_cmd = ValidateCommand()
+        return validate_cmd.execute(args)

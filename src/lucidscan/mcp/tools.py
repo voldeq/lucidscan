@@ -53,8 +53,39 @@ class MCPToolExecutor:
         self.config = config
         self.instruction_formatter = InstructionFormatter()
         self._issue_cache: Dict[str, UnifiedIssue] = {}
+        self._tools_bootstrapped = False
         # Use DomainRunner with debug logging for MCP (less verbose)
         self._runner = DomainRunner(project_root, config, log_level="debug")
+
+    def _bootstrap_security_tools(self) -> None:
+        """Ensure security tool binaries are available.
+
+        Downloads tools if not already present. Called before first scan
+        to ensure tools are ready before async scan operations begin.
+        """
+        if self._tools_bootstrapped:
+            return
+
+        from lucidscan.plugins.scanners import get_scanner_plugin
+
+        # Get unique scanners needed based on config
+        scanners_to_bootstrap: set[str] = set()
+        for domain in ["sca", "sast", "iac"]:
+            plugin_name = self.config.get_plugin_for_domain(domain)
+            if plugin_name:
+                scanners_to_bootstrap.add(plugin_name)
+
+        for scanner_name in scanners_to_bootstrap:
+            try:
+                LOGGER.info(f"Bootstrapping {scanner_name}...")
+                scanner = get_scanner_plugin(scanner_name, project_root=self.project_root)
+                if scanner:
+                    scanner.ensure_binary()
+                    LOGGER.debug(f"{scanner_name} ready")
+            except Exception as e:
+                LOGGER.error(f"Failed to bootstrap {scanner_name}: {e}")
+
+        self._tools_bootstrapped = True
 
     async def scan(
         self,
@@ -74,6 +105,12 @@ class MCPToolExecutor:
         """
         # Convert domain strings to ToolDomain enums
         enabled_domains = self._parse_domains(domains)
+
+        # Bootstrap security tools if needed (before async operations)
+        security_domains = [d for d in enabled_domains if isinstance(d, ScanDomain)]
+        if security_domains and not self._tools_bootstrapped:
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, self._bootstrap_security_tools)
 
         # Build context
         context = self._build_context(enabled_domains, files)
@@ -223,6 +260,431 @@ class MCPToolExecutor:
         return {
             "documentation": content,
             "format": "markdown",
+        }
+
+    async def validate_config(self, config_path: Optional[str] = None) -> Dict[str, Any]:
+        """Validate a configuration file.
+
+        Args:
+            config_path: Optional path to config file (relative to project root).
+                If not provided, searches for lucidscan.yml in project root.
+
+        Returns:
+            Structured validation result with valid flag, errors, and warnings.
+        """
+        from lucidscan.config.loader import find_project_config
+        from lucidscan.config.validation import validate_config_file, ValidationSeverity
+
+        # Determine config path
+        path: Optional[Path]
+        if config_path:
+            path = self.project_root / config_path
+        else:
+            path = find_project_config(self.project_root)
+
+        if path is None:
+            return {
+                "valid": False,
+                "error": "No configuration file found in project root",
+                "searched_for": [
+                    ".lucidscan.yml",
+                    ".lucidscan.yaml",
+                    "lucidscan.yml",
+                    "lucidscan.yaml",
+                ],
+                "errors": [],
+                "warnings": [],
+            }
+
+        if not path.exists():
+            return {
+                "valid": False,
+                "error": f"Configuration file not found: {path}",
+                "errors": [],
+                "warnings": [],
+            }
+
+        is_valid, issues = validate_config_file(path)
+
+        errors = []
+        warnings = []
+
+        for issue in issues:
+            issue_dict: Dict[str, Any] = {
+                "message": issue.message,
+                "key": issue.key,
+            }
+            if issue.suggestion:
+                issue_dict["suggestion"] = issue.suggestion
+
+            if issue.severity == ValidationSeverity.ERROR:
+                errors.append(issue_dict)
+            else:
+                warnings.append(issue_dict)
+
+        return {
+            "valid": is_valid,
+            "config_path": str(path),
+            "errors": errors,
+            "warnings": warnings,
+        }
+
+    async def autoconfigure(self) -> Dict[str, Any]:
+        """Get instructions for auto-configuring LucidScan.
+
+        Returns guidance for AI to analyze the codebase, ask the user
+        important configuration questions, and generate an appropriate
+        lucidscan.yml configuration file.
+
+        Returns:
+            Instructions and guidance for configuration generation.
+        """
+        return {
+            "instructions": (
+                "Analyze the codebase, ask 1-2 quick questions if needed, "
+                "then generate lucidscan.yml with smart defaults."
+            ),
+            "analysis_steps": [
+                {
+                    "step": 1,
+                    "action": "Detect languages and package managers",
+                    "files_to_check": [
+                        "package.json",
+                        "pyproject.toml",
+                        "setup.py",
+                        "requirements.txt",
+                        "Cargo.toml",
+                        "go.mod",
+                        "pom.xml",
+                        "build.gradle",
+                    ],
+                    "what_to_look_for": (
+                        "Presence of these files indicates the primary language(s). "
+                        "package.json = JavaScript/TypeScript, "
+                        "pyproject.toml/setup.py/requirements.txt = Python, "
+                        "Cargo.toml = Rust, go.mod = Go, pom.xml/build.gradle = Java"
+                    ),
+                },
+                {
+                    "step": 2,
+                    "action": "Detect existing linting/type checking tools",
+                    "files_to_check": [
+                        ".eslintrc",
+                        ".eslintrc.js",
+                        ".eslintrc.json",
+                        "eslint.config.js",
+                        "biome.json",
+                        "ruff.toml",
+                        "pyproject.toml (look for [tool.ruff] section)",
+                        ".flake8",
+                        "tsconfig.json",
+                        "mypy.ini",
+                        "pyproject.toml (look for [tool.mypy] section)",
+                        "pyrightconfig.json",
+                    ],
+                    "what_to_look_for": (
+                        "Existing tool configurations to preserve. "
+                        "If a tool is already configured, use it rather than replacing. "
+                        "For Python: ruff or flake8 for linting, mypy or pyright for types. "
+                        "For JS/TS: eslint or biome for linting, tsconfig.json for TypeScript."
+                    ),
+                },
+                {
+                    "step": 3,
+                    "action": "Detect test frameworks and coverage",
+                    "files_to_check": [
+                        "pytest.ini",
+                        "pyproject.toml (look for [tool.pytest] and [tool.coverage] sections)",
+                        "conftest.py",
+                        ".coveragerc",
+                        "jest.config.js",
+                        "jest.config.ts",
+                        "karma.conf.js",
+                        "playwright.config.ts",
+                        ".nycrc",
+                        ".nycrc.json",
+                    ],
+                    "what_to_look_for": (
+                        "Test framework configurations and existing coverage settings. "
+                        "Check if there's an existing coverage threshold defined. "
+                        "pytest = Python tests, jest = JS/TS tests, "
+                        "karma = Angular tests, playwright = E2E tests"
+                    ),
+                },
+                {
+                    "step": 4,
+                    "action": "Ask user 1-2 quick questions based on detection",
+                    "guidance": (
+                        "If tests detected: ask coverage threshold (suggest 80%). "
+                        "If large legacy codebase: ask strict vs gradual mode. "
+                        "Otherwise, use smart defaults and skip questions."
+                    ),
+                },
+                {
+                    "step": 5,
+                    "action": "Read LucidScan documentation",
+                    "tool_to_call": "get_help()",
+                    "what_to_extract": (
+                        "Read the 'Configuration Reference (lucidscan.yml)' section "
+                        "to understand the full configuration format, available tools, "
+                        "and valid options for each domain."
+                    ),
+                },
+                {
+                    "step": 6,
+                    "action": "Generate lucidscan.yml",
+                    "output_file": "lucidscan.yml",
+                    "template_guidance": (
+                        "Based on detected languages/tools AND user answers, create a configuration "
+                        "that enables appropriate domains. Include: version, project metadata, "
+                        "pipeline configuration with detected tools, fail_on thresholds, "
+                        "coverage threshold, and ignore patterns."
+                    ),
+                },
+                {
+                    "step": 7,
+                    "action": "Validate the generated configuration",
+                    "tool_to_call": "validate_config()",
+                    "what_to_do": (
+                        "After writing lucidscan.yml, call validate_config() to verify "
+                        "the configuration is valid. If there are errors, fix them before "
+                        "proceeding. Warnings can be addressed but are not blocking."
+                    ),
+                    "on_error": (
+                        "If validation returns errors, edit lucidscan.yml to fix the issues "
+                        "and call validate_config() again until it passes."
+                    ),
+                },
+                {
+                    "step": 8,
+                    "action": "Inform user about tool installation and next steps",
+                    "guidance": (
+                        "After generating the config, tell the user: "
+                        "1) Which tools need to be installed (security tools are auto-downloaded), "
+                        "2) Run 'lucidscan init --claude-code' or '--cursor' for AI integration, "
+                        "3) Run 'lucidscan scan --all' to verify the configuration works."
+                    ),
+                },
+            ],
+            "questions_to_ask": {
+                "description": (
+                    "Ask 1-3 quick questions based on codebase. Use smart defaults for the rest."
+                ),
+                "conditional_questions": [
+                    {
+                        "id": "coverage_threshold",
+                        "ask_when": "Tests detected (pytest.ini, jest.config.*, conftest.py, etc.)",
+                        "question": "What coverage threshold? (80% recommended, or lower for legacy code)",
+                        "default": 80,
+                        "skip_if": "No tests detected - disable coverage, inform user they can enable later",
+                    },
+                    {
+                        "id": "strictness",
+                        "ask_when": "Large existing codebase with no lucidscan.yml",
+                        "question": "Strict mode (fail on issues) or gradual adoption (report only)?",
+                        "options": {
+                            "strict": "fail_on errors - recommended for new/clean projects",
+                            "gradual": "report only - recommended for legacy codebases to avoid blocking work",
+                        },
+                        "how_to_detect": (
+                            "If you see many existing linting/type errors when analyzing, "
+                            "suggest gradual mode. Otherwise, default to strict."
+                        ),
+                    },
+                    {
+                        "id": "pre_commit_hook",
+                        "ask_when": "Git repository detected (.git directory exists)",
+                        "question": "Run LucidScan before every commit? (creates pre-commit hook)",
+                        "default": True,
+                        "if_yes": {
+                            "action": "Create .git/hooks/pre-commit script",
+                            "script_content": """#!/bin/sh
+# LucidScan pre-commit hook
+# Runs quality checks before allowing commit
+
+echo "Running LucidScan checks..."
+lucidscan scan --all
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "LucidScan found issues. Fix them before committing."
+    echo "To skip this check, use: git commit --no-verify"
+    exit 1
+fi
+""",
+                            "make_executable": "chmod +x .git/hooks/pre-commit",
+                        },
+                    },
+                ],
+                "always_use_defaults": {
+                    "security": "Always enable security scanning (trivy + opengrep). Fail on 'high' severity.",
+                    "testing": "Enable if tests detected. Always fail on test failures.",
+                    "linting": "Enable with detected tool. Use strictness setting for fail_on.",
+                    "type_checking": "Enable if tool detected. Use strictness setting for fail_on.",
+                },
+            },
+            "common_pitfalls": [
+                "Always add '**/.venv/**' and '**/node_modules/**' to ignore list",
+                "For legacy codebases: start with fail_on: none, fix issues gradually",
+                "Check current coverage with 'pytest --cov' before setting threshold",
+            ],
+            "tool_recommendations": {
+                "python": {
+                    "linter": "ruff (recommended, fast and comprehensive) or flake8",
+                    "type_checker": "mypy (recommended, widely used) or pyright",
+                    "test_runner": "pytest (standard choice)",
+                    "coverage": "coverage.py (via pytest-cov)",
+                },
+                "javascript_typescript": {
+                    "linter": "eslint (most popular) or biome (faster, newer)",
+                    "type_checker": "typescript (tsc) - enabled via tsconfig.json",
+                    "test_runner": "jest (most common), karma (Angular), or playwright (E2E)",
+                    "coverage": "istanbul/nyc (usually included with jest)",
+                },
+                "java": {
+                    "linter": "checkstyle",
+                    "test_runner": "junit (via maven/gradle)",
+                },
+            },
+            "security_tools": {
+                "always_recommended": [
+                    "trivy (for SCA - dependency vulnerability scanning)",
+                    "opengrep (for SAST - code pattern security analysis)",
+                ],
+                "optional": [
+                    "checkov (for IaC scanning - Terraform, Kubernetes, CloudFormation)",
+                ],
+                "note": "Security tools are downloaded automatically - no manual installation needed.",
+            },
+            "example_config": {
+                "description": "Example configurations with common settings",
+                "python_with_coverage": """version: 1
+
+project:
+  name: my-python-project
+  languages: [python]
+
+pipeline:
+  linting:
+    enabled: true
+    tools: [ruff]
+  type_checking:
+    enabled: true
+    tools: [mypy]
+  security:
+    enabled: true
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: opengrep
+        domains: [sast]
+  testing:
+    enabled: true
+    tools: [pytest]
+  coverage:
+    enabled: true
+    threshold: 80
+
+fail_on:
+  linting: error
+  type_checking: error
+  security: high
+  testing: any
+  coverage: any
+
+ignore:
+  - "**/.venv/**"
+  - "**/__pycache__/**"
+  - "**/dist/**"
+  - "**/build/**"
+  - "**/.git/**"
+""",
+                "typescript_with_coverage": """version: 1
+
+project:
+  name: my-typescript-project
+  languages: [typescript]
+
+pipeline:
+  linting:
+    enabled: true
+    tools: [eslint]
+  type_checking:
+    enabled: true
+    tools: [typescript]
+  security:
+    enabled: true
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: opengrep
+        domains: [sast]
+  testing:
+    enabled: true
+    tools: [jest]
+  coverage:
+    enabled: true
+    threshold: 80
+
+fail_on:
+  linting: error
+  type_checking: error
+  security: high
+  testing: any
+  coverage: any
+
+ignore:
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/build/**"
+  - "**/coverage/**"
+  - "**/.git/**"
+""",
+                "gradual_adoption": """# Configuration for gradual adoption (legacy codebase)
+version: 1
+
+project:
+  name: legacy-project
+  languages: [python]
+
+pipeline:
+  linting:
+    enabled: true
+    tools: [ruff]
+  type_checking:
+    enabled: true
+    tools: [mypy]
+  security:
+    enabled: true
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: opengrep
+        domains: [sast]
+  testing:
+    enabled: true
+    tools: [pytest]
+  coverage:
+    enabled: false  # Enable later when tests are added
+
+# Relaxed thresholds for gradual adoption
+fail_on:
+  linting: none        # Report only, don't fail
+  type_checking: none  # Report only, don't fail
+  security: critical   # Only fail on critical issues
+  testing: any
+
+ignore:
+  - "**/.venv/**"
+  - "**/__pycache__/**"
+""",
+            },
+            "post_config_steps": [
+                "Run 'lucidscan init --claude-code' or 'lucidscan init --cursor' to set up AI tool integration",
+                "Install required linting/testing tools via package manager (security tools auto-download)",
+                "Run 'lucidscan scan --all' to test the configuration and see initial results",
+                "If many issues appear, consider starting with relaxed thresholds (see gradual_adoption example)",
+            ],
         }
 
     def _parse_domains(self, domains: List[str]) -> List[DomainType]:

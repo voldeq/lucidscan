@@ -7,32 +7,35 @@ LucidScan is a unified code quality tool that combines linting, type checking, s
 ### Installation
 
 ```bash
-# Using pip
 pip install lucidscan
-
-# Using pipx (recommended for CLI tools)
-pipx install lucidscan
-
-# Using uv
-uv pip install lucidscan
 ```
 
-### Initialize Project
+### Recommended Setup (AI-Assisted)
+
+```bash
+# 1. Set up your AI tools
+lucidscan init --all
+
+# 2. Restart Claude Code or Cursor, then ask:
+#    "Autoconfigure LucidScan for this project"
+```
+
+Your AI assistant will analyze your codebase, ask a few questions, and generate `lucidscan.yml`.
+
+### Alternative: CLI Configuration
 
 ```bash
 # Auto-detect languages and generate lucidscan.yml
-lucidscan init
+lucidscan autoconfigure
 
-# Initialize with CI configuration
-lucidscan init --ci github
-lucidscan init --ci gitlab
-lucidscan init --ci bitbucket
+# With CI configuration
+lucidscan autoconfigure --ci github
 
-# Non-interactive mode (use defaults)
-lucidscan init -y
+# Non-interactive mode
+lucidscan autoconfigure -y
 ```
 
-### Run Your First Scan
+### Run Scans
 
 ```bash
 # Run all quality checks
@@ -54,7 +57,28 @@ lucidscan scan --lint --fix
 
 ### `lucidscan init`
 
-Initialize LucidScan for a project. Auto-detects languages, frameworks, and generates `lucidscan.yml`.
+Configure AI tools (Claude Code, Cursor) to use LucidScan via MCP.
+
+| Option | Description |
+|--------|-------------|
+| `--claude-code` | Configure Claude Code MCP settings |
+| `--cursor` | Configure Cursor MCP settings |
+| `--all` | Configure all supported AI tools |
+| `--dry-run` | Show changes without applying |
+| `--force` | Overwrite existing configuration |
+| `--remove` | Remove LucidScan from tool configuration |
+
+**Examples:**
+```bash
+lucidscan init --claude-code
+lucidscan init --cursor
+lucidscan init --all
+lucidscan init --claude-code --remove
+```
+
+### `lucidscan autoconfigure`
+
+Auto-configure LucidScan for a project. Detects languages, frameworks, and generates `lucidscan.yml`.
 
 | Option | Description |
 |--------|-------------|
@@ -65,9 +89,9 @@ Initialize LucidScan for a project. Auto-detects languages, frameworks, and gene
 
 **Examples:**
 ```bash
-lucidscan init
-lucidscan init --ci github --non-interactive
-lucidscan init /path/to/project -f
+lucidscan autoconfigure
+lucidscan autoconfigure --ci github --non-interactive
+lucidscan autoconfigure /path/to/project -f
 ```
 
 ### `lucidscan scan`
@@ -153,26 +177,6 @@ lucidscan serve --watch
 lucidscan serve --watch --debounce 500
 ```
 
-### `lucidscan setup`
-
-Configure AI tools to use LucidScan.
-
-| Option | Description |
-|--------|-------------|
-| `--claude-code` | Configure Claude Code MCP settings |
-| `--cursor` | Configure Cursor MCP settings |
-| `--all` | Configure all supported AI tools |
-| `--dry-run` | Show changes without applying |
-| `--force` | Overwrite existing configuration |
-| `--remove` | Remove LucidScan from tool configuration |
-
-**Examples:**
-```bash
-lucidscan setup --claude-code
-lucidscan setup --cursor
-lucidscan setup --all
-lucidscan setup --claude-code --remove
-```
 
 ### `lucidscan help`
 
@@ -180,6 +184,25 @@ Display this documentation.
 
 ```bash
 lucidscan help
+```
+
+### `lucidscan validate`
+
+Validate a `lucidscan.yml` configuration file and report errors/warnings.
+
+| Option | Description |
+|--------|-------------|
+| `--config PATH` | Path to config file (default: find in current directory) |
+
+**Exit codes:**
+- 0: Configuration is valid (may have warnings)
+- 1: Configuration has errors
+- 3: Configuration file not found
+
+**Examples:**
+```bash
+lucidscan validate
+lucidscan validate --config custom-config.yml
 ```
 
 ### Exit Codes
@@ -319,6 +342,110 @@ Get this documentation.
   "format": "markdown"
 }
 ```
+
+### `autoconfigure`
+
+Get instructions for auto-configuring LucidScan for the project. Returns guidance on what files to analyze and how to generate `lucidscan.yml`. The AI should then read the codebase, read the help docs via `get_help()`, and create the configuration file.
+
+**Parameters:** None
+
+**Response format:**
+```json
+{
+  "instructions": "To configure LucidScan for this project, follow these steps...",
+  "analysis_steps": [
+    {
+      "step": 1,
+      "action": "Detect languages and package managers",
+      "files_to_check": ["package.json", "pyproject.toml", "Cargo.toml", "go.mod"],
+      "what_to_look_for": "Presence of these files indicates the primary language(s)"
+    },
+    {
+      "step": 2,
+      "action": "Detect existing tools",
+      "files_to_check": [".eslintrc*", "ruff.toml", "tsconfig.json", "mypy.ini"],
+      "what_to_look_for": "Existing tool configurations to preserve"
+    }
+  ],
+  "tool_recommendations": {
+    "python": {
+      "linter": "ruff (recommended)",
+      "type_checker": "mypy (recommended)",
+      "test_runner": "pytest"
+    },
+    "javascript_typescript": {
+      "linter": "eslint or biome",
+      "type_checker": "typescript (tsc)",
+      "test_runner": "jest or playwright"
+    }
+  },
+  "security_tools": {
+    "always_recommended": ["trivy (SCA)", "opengrep (SAST)"]
+  },
+  "example_config": {
+    "minimal_python": "version: 1\nproject:\n  name: my-project..."
+  },
+  "post_config_steps": [
+    "Run 'lucidscan init --claude-code' to set up AI tool integration",
+    "Run 'lucidscan scan --all' to test the configuration"
+  ]
+}
+```
+
+**Usage:**
+```
+autoconfigure()
+```
+
+After calling this tool, the AI should:
+1. Check for files mentioned in `analysis_steps` to detect the project type
+2. Call `get_help()` to read the full configuration documentation
+3. Generate an appropriate `lucidscan.yml` based on detected project characteristics
+4. Write the configuration file to the project root
+5. Call `validate_config()` to verify the configuration is valid
+6. Fix any validation errors before informing the user
+7. Inform the user about any tools that need to be installed
+
+### `validate_config`
+
+Validate a `lucidscan.yml` configuration file. Returns validation results with errors and warnings. Use after generating or modifying configuration to ensure it's valid.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `config_path` | string | No | Path to config file (relative to project root). Default: find `lucidscan.yml` |
+
+**Response format:**
+```json
+{
+  "valid": true,
+  "config_path": "lucidscan.yml",
+  "errors": [],
+  "warnings": [
+    {
+      "message": "Unknown key 'output.formatt'",
+      "key": "output.formatt",
+      "suggestion": "format"
+    }
+  ]
+}
+```
+
+**Examples:**
+```
+validate_config()
+validate_config(config_path="lucidscan.yml")
+validate_config(config_path="configs/custom.yml")
+```
+
+**Validation includes:**
+- YAML syntax errors
+- Unknown configuration keys (with typo suggestions)
+- Type errors (e.g., string where boolean expected)
+- Invalid values (e.g., unknown severity level)
+
+**Best practice:** Always call `validate_config()` after generating or modifying `lucidscan.yml` to catch configuration errors early.
 
 ---
 
@@ -490,7 +617,7 @@ project:
 ### Claude Code
 
 ```bash
-lucidscan setup --claude-code
+lucidscan init --claude-code
 ```
 
 This creates:
@@ -512,7 +639,7 @@ Or manually create `.mcp.json`:
 ### Cursor
 
 ```bash
-lucidscan setup --cursor
+lucidscan init --cursor
 ```
 
 This creates:

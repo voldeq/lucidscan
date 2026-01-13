@@ -1,11 +1,11 @@
 """Argument parser construction for lucidscan CLI.
 
 This module builds the argument parser with subcommands:
-- lucidscan init   - Initialize project configuration
-- lucidscan scan   - Run security/quality scans
-- lucidscan status - Show configuration and tool status
-- lucidscan serve  - Run as MCP server or file watcher
-- lucidscan setup  - Configure AI tools (Claude Code, Cursor)
+- lucidscan init          - Configure AI tools (Claude Code, Cursor)
+- lucidscan autoconfigure - Auto-configure project (generate lucidscan.yml)
+- lucidscan scan          - Run security/quality scans
+- lucidscan status        - Show configuration and tool status
+- lucidscan serve         - Run as MCP server or file watcher
 """
 
 from __future__ import annotations
@@ -39,35 +39,90 @@ def _add_global_options(parser: argparse.ArgumentParser) -> None:
 
 
 def _build_init_parser(subparsers: argparse._SubParsersAction) -> None:
-    """Build the 'init' subcommand parser."""
+    """Build the 'init' subcommand parser.
+
+    This command configures AI tools (Claude Code, Cursor) to use LucidScan.
+    """
     init_parser = subparsers.add_parser(
         "init",
-        help="Initialize LucidScan for the current project.",
+        help="Configure AI tools to use LucidScan.",
+        description=(
+            "Configure Claude Code, Cursor, or other MCP-compatible AI tools "
+            "to use LucidScan for code quality checks."
+        ),
+    )
+
+    # Tool selection
+    tool_group = init_parser.add_argument_group("AI tools")
+    tool_group.add_argument(
+        "--claude-code",
+        action="store_true",
+        help="Configure Claude Code MCP settings.",
+    )
+    tool_group.add_argument(
+        "--cursor",
+        action="store_true",
+        help="Configure Cursor MCP settings.",
+    )
+    tool_group.add_argument(
+        "--all",
+        action="store_true",
+        dest="init_all",
+        help="Configure all supported AI tools.",
+    )
+
+    # Options
+    options_group = init_parser.add_argument_group("options")
+    options_group.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be done without making changes.",
+    )
+    options_group.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite existing LucidScan configuration.",
+    )
+    options_group.add_argument(
+        "--remove",
+        action="store_true",
+        help="Remove LucidScan from the specified tool's configuration.",
+    )
+
+
+def _build_autoconfigure_parser(subparsers: argparse._SubParsersAction) -> None:
+    """Build the 'autoconfigure' subcommand parser.
+
+    This command detects project characteristics and generates lucidscan.yml.
+    """
+    autoconfigure_parser = subparsers.add_parser(
+        "autoconfigure",
+        help="Auto-configure LucidScan for the current project.",
         description=(
             "Analyze your codebase, detect languages and frameworks, "
             "and generate lucidscan.yml configuration."
         ),
     )
-    init_parser.add_argument(
+    autoconfigure_parser.add_argument(
         "--ci",
         choices=["github", "gitlab", "bitbucket"],
         help="Generate CI configuration for the specified platform.",
     )
-    init_parser.add_argument(
+    autoconfigure_parser.add_argument(
         "--non-interactive", "-y",
         action="store_true",
         help="Use defaults without prompting (non-interactive mode).",
     )
-    init_parser.add_argument(
+    autoconfigure_parser.add_argument(
         "--force", "-f",
         action="store_true",
         help="Overwrite existing configuration files.",
     )
-    init_parser.add_argument(
+    autoconfigure_parser.add_argument(
         "path",
         nargs="?",
         default=".",
-        help="Project directory to initialize (default: current directory).",
+        help="Project directory to autoconfigure (default: current directory).",
     )
 
 
@@ -261,55 +316,6 @@ def _build_serve_parser(subparsers: argparse._SubParsersAction) -> None:
     )
 
 
-def _build_setup_parser(subparsers: argparse._SubParsersAction) -> None:
-    """Build the 'setup' subcommand parser."""
-    setup_parser = subparsers.add_parser(
-        "setup",
-        help="Configure AI tools to use LucidScan.",
-        description=(
-            "Configure Claude Code, Cursor, or other MCP-compatible AI tools "
-            "to use LucidScan for code quality checks."
-        ),
-    )
-
-    # Tool selection
-    tool_group = setup_parser.add_argument_group("AI tools")
-    tool_group.add_argument(
-        "--claude-code",
-        action="store_true",
-        help="Configure Claude Code MCP settings.",
-    )
-    tool_group.add_argument(
-        "--cursor",
-        action="store_true",
-        help="Configure Cursor MCP settings.",
-    )
-    tool_group.add_argument(
-        "--all",
-        action="store_true",
-        dest="setup_all",
-        help="Configure all supported AI tools.",
-    )
-
-    # Options
-    options_group = setup_parser.add_argument_group("options")
-    options_group.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Show what would be done without making changes.",
-    )
-    options_group.add_argument(
-        "--force",
-        action="store_true",
-        help="Overwrite existing LucidScan configuration.",
-    )
-    options_group.add_argument(
-        "--remove",
-        action="store_true",
-        help="Remove LucidScan from the specified tool's configuration.",
-    )
-
-
 def _build_help_parser(subparsers: argparse._SubParsersAction) -> None:
     """Build the 'help' subcommand parser."""
     subparsers.add_parser(
@@ -319,6 +325,27 @@ def _build_help_parser(subparsers: argparse._SubParsersAction) -> None:
             "Display comprehensive LucidScan documentation including "
             "CLI commands, MCP tools, and configuration reference."
         ),
+    )
+
+
+def _build_validate_parser(subparsers: argparse._SubParsersAction) -> None:
+    """Build the 'validate' subcommand parser.
+
+    This command validates lucidscan.yml configuration files.
+    """
+    validate_parser = subparsers.add_parser(
+        "validate",
+        help="Validate lucidscan.yml configuration file.",
+        description=(
+            "Check a LucidScan configuration file for errors and warnings. "
+            "Reports issues with suggestions for fixes."
+        ),
+    )
+    validate_parser.add_argument(
+        "--config",
+        metavar="PATH",
+        type=Path,
+        help="Path to config file (default: find lucidscan.yml in current directory).",
     )
 
 
@@ -333,14 +360,15 @@ def build_parser() -> argparse.ArgumentParser:
         description="LucidScan - The trust layer for AI-assisted development.",
         epilog=(
             "Examples:\n"
-            "  lucidscan init                    # Initialize project\n"
-            "  lucidscan init --ci github        # Initialize with GitHub Actions\n"
-            "  lucidscan scan --sca              # Scan dependencies\n"
-            "  lucidscan scan --all              # Run all scans\n"
-            "  lucidscan scan --lint --fix       # Lint and auto-fix\n"
-            "  lucidscan status                  # Show tool status\n"
-            "  lucidscan serve --mcp             # Run MCP server\n"
-            "  lucidscan setup --claude-code     # Configure Claude Code\n"
+            "  lucidscan init --claude-code       # Configure Claude Code\n"
+            "  lucidscan init --cursor            # Configure Cursor\n"
+            "  lucidscan autoconfigure            # Auto-configure project\n"
+            "  lucidscan autoconfigure --ci github # With GitHub Actions\n"
+            "  lucidscan scan --sca               # Scan dependencies\n"
+            "  lucidscan scan --all               # Run all scans\n"
+            "  lucidscan scan --lint --fix        # Lint and auto-fix\n"
+            "  lucidscan status                   # Show tool status\n"
+            "  lucidscan serve --mcp              # Run MCP server\n"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -356,10 +384,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     _build_init_parser(subparsers)
+    _build_autoconfigure_parser(subparsers)
     _build_scan_parser(subparsers)
     _build_status_parser(subparsers)
     _build_serve_parser(subparsers)
-    _build_setup_parser(subparsers)
     _build_help_parser(subparsers)
+    _build_validate_parser(subparsers)
 
     return parser

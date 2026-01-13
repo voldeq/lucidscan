@@ -1,4 +1,4 @@
-"""Tests for setup command."""
+"""Tests for init command (AI tool configuration)."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 
-from lucidscan.cli.commands.setup import (
-    SetupCommand,
+from lucidscan.cli.commands.init import (
+    InitCommand,
     LUCIDSCAN_MCP_ARGS,
     LUCIDSCAN_CLAUDE_MD_MARKER,
     LUCIDSCAN_CLAUDE_MD_INSTRUCTIONS,
@@ -17,21 +17,21 @@ from lucidscan.cli.commands.setup import (
 from lucidscan.cli.exit_codes import EXIT_SUCCESS, EXIT_INVALID_USAGE
 
 
-class TestSetupCommand:
-    """Tests for SetupCommand."""
+class TestInitCommand:
+    """Tests for InitCommand."""
 
     def test_name(self) -> None:
         """Test command name property."""
-        cmd = SetupCommand(version="1.0.0")
-        assert cmd.name == "setup"
+        cmd = InitCommand(version="1.0.0")
+        assert cmd.name == "init"
 
     def test_no_tool_specified_returns_invalid_usage(self, capsys) -> None:
         """Test that no tool specified returns EXIT_INVALID_USAGE."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         args = Namespace(
             claude_code=False,
             cursor=False,
-            setup_all=False,
+            init_all=False,
             dry_run=False,
             force=False,
             remove=False,
@@ -42,13 +42,13 @@ class TestSetupCommand:
         captured = capsys.readouterr()
         assert "No AI tool specified" in captured.out
 
-    def test_setup_all_configures_both_tools(self, tmp_path: Path, capsys) -> None:
+    def test_init_all_configures_both_tools(self, tmp_path: Path, capsys) -> None:
         """Test that --all configures both Claude Code and Cursor."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         args = Namespace(
             claude_code=False,
             cursor=False,
-            setup_all=True,
+            init_all=True,
             dry_run=True,
             force=False,
             remove=False,
@@ -73,13 +73,13 @@ class TestSetupClaudeCode:
 
     def test_creates_new_config_file(self, tmp_path: Path, capsys) -> None:
         """Test creating a new Claude Code config file."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         config_path = tmp_path / ".mcp.json"
 
         args = Namespace(
             claude_code=True,
             cursor=False,
-            setup_all=False,
+            init_all=False,
             dry_run=False,
             force=False,
             remove=False,
@@ -102,7 +102,7 @@ class TestSetupClaudeCode:
 
     def test_preserves_existing_mcp_servers(self, tmp_path: Path) -> None:
         """Test that existing MCP servers are preserved."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         config_path = tmp_path / ".mcp.json"
 
         # Create existing config with another MCP server
@@ -119,7 +119,7 @@ class TestSetupClaudeCode:
         args = Namespace(
             claude_code=True,
             cursor=False,
-            setup_all=False,
+            init_all=False,
             dry_run=False,
             force=False,
             remove=False,
@@ -138,7 +138,7 @@ class TestSetupClaudeCode:
 
     def test_skips_if_already_configured(self, tmp_path: Path, capsys) -> None:
         """Test that setup skips if LucidScan already configured."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         config_path = tmp_path / ".mcp.json"
 
         # Create existing config with lucidscan
@@ -155,7 +155,7 @@ class TestSetupClaudeCode:
         args = Namespace(
             claude_code=True,
             cursor=False,
-            setup_all=False,
+            init_all=False,
             dry_run=False,
             force=False,
             remove=False,
@@ -172,7 +172,7 @@ class TestSetupClaudeCode:
 
     def test_force_overwrites_existing(self, tmp_path: Path) -> None:
         """Test that --force overwrites existing config."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         config_path = tmp_path / ".mcp.json"
 
         # Create existing config with different lucidscan config
@@ -189,7 +189,7 @@ class TestSetupClaudeCode:
         args = Namespace(
             claude_code=True,
             cursor=False,
-            setup_all=False,
+            init_all=False,
             dry_run=False,
             force=True,
             remove=False,
@@ -208,13 +208,13 @@ class TestSetupClaudeCode:
 
     def test_dry_run_does_not_write(self, tmp_path: Path, capsys) -> None:
         """Test that --dry-run does not write config file."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         config_path = tmp_path / ".mcp.json"
 
         args = Namespace(
             claude_code=True,
             cursor=False,
-            setup_all=False,
+            init_all=False,
             dry_run=True,
             force=False,
             remove=False,
@@ -233,7 +233,7 @@ class TestSetupClaudeCode:
 
     def test_remove_deletes_lucidscan(self, tmp_path: Path, capsys) -> None:
         """Test that --remove removes LucidScan from config."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         config_path = tmp_path / ".mcp.json"
 
         # Create existing config with lucidscan and another tool
@@ -251,7 +251,7 @@ class TestSetupClaudeCode:
         args = Namespace(
             claude_code=True,
             cursor=False,
-            setup_all=False,
+            init_all=False,
             dry_run=False,
             force=False,
             remove=True,
@@ -272,7 +272,7 @@ class TestSetupClaudeCode:
 
     def test_remove_not_found(self, tmp_path: Path, capsys) -> None:
         """Test removing when LucidScan not in config."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         config_path = tmp_path / ".mcp.json"
 
         # Create existing config without lucidscan
@@ -286,7 +286,7 @@ class TestSetupClaudeCode:
         args = Namespace(
             claude_code=True,
             cursor=False,
-            setup_all=False,
+            init_all=False,
             dry_run=False,
             force=False,
             remove=True,
@@ -306,13 +306,13 @@ class TestSetupCursor:
 
     def test_creates_cursor_config(self, tmp_path: Path) -> None:
         """Test creating Cursor config file."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         config_path = tmp_path / ".cursor" / "mcp.json"
 
         args = Namespace(
             claude_code=False,
             cursor=True,
-            setup_all=False,
+            init_all=False,
             dry_run=False,
             force=False,
             remove=False,
@@ -336,7 +336,7 @@ class TestConfigureClaudeMd:
 
     def test_creates_new_claude_md(self, tmp_path: Path, capsys) -> None:
         """Test creating a new CLAUDE.md file."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         claude_md_path = tmp_path / ".claude" / "CLAUDE.md"
 
         with patch.object(Path, "cwd", return_value=tmp_path):
@@ -349,7 +349,7 @@ class TestConfigureClaudeMd:
 
     def test_appends_to_existing_claude_md(self, tmp_path: Path) -> None:
         """Test appending to existing CLAUDE.md."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         claude_md_path = tmp_path / ".claude" / "CLAUDE.md"
         claude_md_path.parent.mkdir(parents=True)
         claude_md_path.write_text("# Project Instructions\n\nSome existing content.")
@@ -365,7 +365,7 @@ class TestConfigureClaudeMd:
 
     def test_skips_if_already_configured(self, tmp_path: Path, capsys) -> None:
         """Test that setup skips if lucidscan instructions already exist."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         claude_md_path = tmp_path / ".claude" / "CLAUDE.md"
         claude_md_path.parent.mkdir(parents=True)
         claude_md_path.write_text(f"# Project\n\n{LUCIDSCAN_CLAUDE_MD_INSTRUCTIONS}")
@@ -379,7 +379,7 @@ class TestConfigureClaudeMd:
 
     def test_force_overwrites_existing(self, tmp_path: Path) -> None:
         """Test that --force overwrites existing instructions."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         claude_md_path = tmp_path / ".claude" / "CLAUDE.md"
         claude_md_path.parent.mkdir(parents=True)
         claude_md_path.write_text(f"# Project\n\n{LUCIDSCAN_CLAUDE_MD_MARKER}\n\nOld instructions")
@@ -394,7 +394,7 @@ class TestConfigureClaudeMd:
 
     def test_dry_run_does_not_write(self, tmp_path: Path, capsys) -> None:
         """Test that --dry-run does not write CLAUDE.md."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         claude_md_path = tmp_path / ".claude" / "CLAUDE.md"
 
         with patch.object(Path, "cwd", return_value=tmp_path):
@@ -407,7 +407,7 @@ class TestConfigureClaudeMd:
 
     def test_remove_deletes_instructions(self, tmp_path: Path, capsys) -> None:
         """Test that --remove removes lucidscan instructions."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         claude_md_path = tmp_path / ".claude" / "CLAUDE.md"
         claude_md_path.parent.mkdir(parents=True)
         claude_md_path.write_text(f"# Project\n\n{LUCIDSCAN_CLAUDE_MD_INSTRUCTIONS}\n\n## Other Section\n\nKeep this.")
@@ -423,7 +423,7 @@ class TestConfigureClaudeMd:
 
     def test_remove_not_found(self, tmp_path: Path, capsys) -> None:
         """Test removing when instructions not in CLAUDE.md."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         claude_md_path = tmp_path / ".claude" / "CLAUDE.md"
         claude_md_path.parent.mkdir(parents=True)
         claude_md_path.write_text("# Project\n\nNo lucidscan here.")
@@ -441,14 +441,14 @@ class TestFindLucidscanPath:
 
     def test_finds_in_path(self) -> None:
         """Test finding lucidscan via shutil.which (in PATH)."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         with patch("shutil.which", return_value="/usr/local/bin/lucidscan"):
             path = cmd._find_lucidscan_path()
         assert path == "/usr/local/bin/lucidscan"
 
     def test_finds_in_venv(self, tmp_path: Path) -> None:
         """Test finding lucidscan in venv bin directory."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         # Create a fake lucidscan in the venv
         venv_bin = tmp_path / "venv" / "bin"
         venv_bin.mkdir(parents=True)
@@ -462,7 +462,7 @@ class TestFindLucidscanPath:
 
     def test_returns_none_when_not_found(self, tmp_path: Path) -> None:
         """Test returning None when lucidscan not found."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         with patch("shutil.which", return_value=None):
             with patch("sys.executable", str(tmp_path / "nonexistent" / "python")):
                 path = cmd._find_lucidscan_path()
@@ -470,13 +470,13 @@ class TestFindLucidscanPath:
 
     def test_fallback_uses_bare_command(self, tmp_path: Path, capsys) -> None:
         """Test that fallback uses 'lucidscan' when path not found."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         config_path = tmp_path / ".cursor" / "mcp.json"
 
         args = Namespace(
             claude_code=False,
             cursor=True,
-            setup_all=False,
+            init_all=False,
             dry_run=False,
             force=False,
             remove=False,
@@ -501,14 +501,14 @@ class TestConfigPaths:
 
     def test_claude_code_config_path(self) -> None:
         """Test Claude Code config path returns .mcp.json."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         path = cmd._get_claude_code_config_path()
         assert path is not None
         assert ".mcp.json" in str(path)
 
     def test_cursor_config_path_unix(self) -> None:
         """Test Cursor config path on Unix systems."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         with patch("sys.platform", "darwin"):
             path = cmd._get_cursor_config_path()
             assert path is not None
@@ -521,7 +521,7 @@ class TestJsonConfigOperations:
 
     def test_read_nonexistent_file(self, tmp_path: Path) -> None:
         """Test reading nonexistent config file."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         config_path = tmp_path / "nonexistent.json"
 
         config, error = cmd._read_json_config(config_path)
@@ -531,7 +531,7 @@ class TestJsonConfigOperations:
 
     def test_read_empty_file(self, tmp_path: Path) -> None:
         """Test reading empty config file."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         config_path = tmp_path / "empty.json"
         config_path.write_text("")
 
@@ -541,7 +541,7 @@ class TestJsonConfigOperations:
 
     def test_read_invalid_json(self, tmp_path: Path) -> None:
         """Test reading invalid JSON file."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         config_path = tmp_path / "invalid.json"
         config_path.write_text("{ not valid json }")
 
@@ -552,7 +552,7 @@ class TestJsonConfigOperations:
 
     def test_write_config(self, tmp_path: Path) -> None:
         """Test writing config file."""
-        cmd = SetupCommand(version="1.0.0")
+        cmd = InitCommand(version="1.0.0")
         config_path = tmp_path / "test.json"
 
         config = {"key": "value"}

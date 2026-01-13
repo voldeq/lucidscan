@@ -1,57 +1,140 @@
 """Init command implementation.
 
-Opinionated project initialization that:
-1. Detects project characteristics
-2. Auto-selects recommended tools when none are detected
-3. Installs tools to package manager files
-4. Generates lucidscan.yml configuration
-5. Optionally generates CI configuration
+Configure AI tools (Claude Code, Cursor) to use LucidScan via MCP.
 """
 
 from __future__ import annotations
 
+import json
+import shutil
+import sys
 from argparse import Namespace
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
 if TYPE_CHECKING:
     from lucidscan.config.models import LucidScanConfig
 
-import questionary
-from questionary import Style
-
 from lucidscan.cli.commands import Command
 from lucidscan.cli.exit_codes import EXIT_SUCCESS, EXIT_INVALID_USAGE
 from lucidscan.core.logging import get_logger
-from lucidscan.detection import CodebaseDetector, ProjectContext
-from lucidscan.detection.ci import get_ci_display_name
-from lucidscan.generation import ConfigGenerator, CIGenerator, InitChoices, PackageInstaller
 
 LOGGER = get_logger(__name__)
 
-# Custom questionary style
-STYLE = Style([
-    ("qmark", "fg:cyan bold"),
-    ("question", "bold"),
-    ("answer", "fg:cyan"),
-    ("pointer", "fg:cyan bold"),
-    ("highlighted", "fg:cyan bold"),
-    ("selected", "fg:green"),
-    ("separator", "fg:gray"),
-    ("instruction", "fg:gray"),
-])
+# MCP server arguments for LucidScan
+LUCIDSCAN_MCP_ARGS = ["serve", "--mcp"]
 
-# Opinionated defaults - tools to use when none are detected
-PYTHON_DEFAULT_LINTER = "ruff"
-PYTHON_DEFAULT_TYPE_CHECKER = "mypy"
-PYTHON_DEFAULT_TEST_RUNNER = "pytest"
-JS_DEFAULT_LINTER = "eslint"
-JS_DEFAULT_TYPE_CHECKER = "typescript"
-JS_DEFAULT_TEST_RUNNER = "jest"
+# Instructions to add to CLAUDE.md for proactive lucidscan usage
+LUCIDSCAN_CLAUDE_MD_INSTRUCTIONS = """
+## Code Quality with LucidScan
 
+IMPORTANT: You MUST run LucidScan after completing code changes. This is required, not optional.
+
+### When to Scan
+
+Run a scan after completing a batch of related code changes (not after each individual edit):
+- After finishing a feature or fix (before reporting completion to user)
+- Before creating a commit
+- When the user asks you to check code quality
+
+### Fast Scan (After Code Changes)
+
+After completing code modifications, run:
+```
+scan(domains=["linting", "type_checking", "security", "sca"], files=["path/to/changed/files"])
+```
+
+Or for the whole project:
+```
+scan(domains=["linting", "type_checking", "security", "sca"])
+```
+
+### Full Scan (Before Commit)
+
+Before committing, run a full scan including tests:
+```
+scan(domains=["all"])
+```
+
+### Fixing Issues
+
+1. Run `scan(fix=true)` to auto-fix linting issues
+2. Use `get_fix_instructions(issue_id)` for detailed guidance on specific issues
+3. Re-scan after manual fixes to verify resolution
+
+### Workflow Example
+
+1. Make code changes (multiple edits)
+2. When done with changes, run `scan(domains=["linting", "type_checking"], fix=true)`
+3. Fix any remaining issues that couldn't be auto-fixed
+4. Re-scan to verify all issues resolved
+5. Report completion to user
+"""
+
+LUCIDSCAN_CLAUDE_MD_MARKER = "## Code Quality with LucidScan"
+
+# Cursor rules for proactive lucidscan usage
+LUCIDSCAN_CURSOR_RULES = """---
+description: LucidScan code quality rules
+globs: ["**/*.py", "**/*.ts", "**/*.js", "**/*.tsx", "**/*.jsx"]
+alwaysApply: true
+---
+
+# LucidScan Code Quality
+
+IMPORTANT: You MUST run LucidScan after completing code changes. This is required, not optional.
+
+## When to Scan
+
+Run a scan after completing a batch of related code changes (not after each individual edit):
+- After finishing a feature or fix (before reporting completion to user)
+- Before creating a commit
+- When the user asks you to check code quality
+
+## Fast Scan (After Code Changes)
+
+After completing code modifications, run:
+```
+scan(domains=["linting", "type_checking", "security", "sca"], files=["path/to/changed/files"])
+```
+
+Or for the whole project:
+```
+scan(domains=["linting", "type_checking", "security", "sca"])
+```
+
+## Full Scan (Before Commit)
+
+Before committing, run a full scan including tests:
+```
+scan(domains=["all"])
+```
+
+## Fixing Issues
+
+1. Run `scan(fix=true)` to auto-fix linting issues
+2. Use `get_fix_instructions(issue_id)` for detailed guidance on specific issues
+3. Re-scan after manual fixes to verify resolution
+
+## Workflow Example
+
+1. Make code changes (multiple edits)
+2. When done with changes, run `scan(domains=["linting", "type_checking"], fix=true)`
+3. Fix any remaining issues that couldn't be auto-fixed
+4. Re-scan to verify all issues resolved
+5. Report completion to user
+"""
 
 class InitCommand(Command):
-    """Opinionated project initialization command."""
+    """Configure AI tools to use LucidScan via MCP."""
+
+    def __init__(self, version: str):
+        """Initialize InitCommand.
+
+        Args:
+            version: Current lucidscan version string.
+        """
+        self._version = version
 
     @property
     def name(self) -> str:
@@ -68,332 +151,506 @@ class InitCommand(Command):
         Returns:
             Exit code.
         """
-        project_root = Path(args.path).resolve()
+        # Determine which tools to configure
+        configure_claude = getattr(args, "claude_code", False)
+        configure_cursor = getattr(args, "cursor", False)
+        configure_all = getattr(args, "init_all", False)
 
-        if not project_root.is_dir():
-            print(f"Error: {project_root} is not a directory")
+        if configure_all:
+            configure_claude = True
+            configure_cursor = True
+
+        if not configure_claude and not configure_cursor:
+            print("No AI tool specified. Use --claude-code, --cursor, or --all.")
+            print("\nRun 'lucidscan init --help' for more options.")
             return EXIT_INVALID_USAGE
 
-        # Check for existing config
-        config_path = project_root / "lucidscan.yml"
-        if config_path.exists() and not args.force:
-            if args.non_interactive:
-                print(f"Error: {config_path} already exists. Use --force to overwrite.")
-                return EXIT_INVALID_USAGE
+        dry_run = getattr(args, "dry_run", False)
+        force = getattr(args, "force", False)
+        remove = getattr(args, "remove", False)
 
-            overwrite = questionary.confirm(
-                "lucidscan.yml already exists. Overwrite?",
-                default=False,
-                style=STYLE,
-            ).ask()
+        success = True
 
-            if not overwrite:
-                print("Aborted.")
-                return EXIT_SUCCESS
+        if configure_claude:
+            if not self._setup_claude_code(dry_run, force, remove):
+                success = False
 
-        # Detect project
-        print("\nAnalyzing project...\n")
-        detector = CodebaseDetector()
-        context = detector.detect(project_root)
+        if configure_cursor:
+            if not self._setup_cursor(dry_run, force, remove):
+                success = False
 
-        # Display detection results
-        self._display_detection(context)
+        if success and not dry_run:
+            print("\nRestart your AI tool to apply changes.")
 
-        # Get opinionated choices (auto-select tools)
-        choices = self._get_opinionated_choices(context, args)
+        return EXIT_SUCCESS if success else EXIT_INVALID_USAGE
 
-        # In interactive mode, only ask about CI platform
-        if not args.non_interactive:
-            ci_choice, cancelled = self._prompt_ci_platform(context, args)
-            if cancelled:
-                print("\nAborted.")
-                return EXIT_SUCCESS
-            choices.ci_platform = ci_choice
-
-        # Display what will be configured
-        print("\nConfiguration:")
-        self._display_choices(choices, context)
-
-        # In interactive mode, confirm before proceeding
-        if not args.non_interactive:
-            proceed = questionary.confirm(
-                "Proceed with this configuration?",
-                default=True,
-                style=STYLE,
-            ).ask()
-
-            if not proceed:
-                print("\nAborted.")
-                return EXIT_SUCCESS
-
-        # Install tools to package files
-        tools_to_install = self._get_tools_to_install(choices, context)
-        if tools_to_install:
-            print("\nInstalling tools...")
-            installer = PackageInstaller()
-            installed = installer.install_tools(context, tools_to_install)
-
-            for tool, path in installed.items():
-                rel_path = path.relative_to(project_root)
-                print(f"  Added {tool} to {rel_path}")
-
-            if installed:
-                # Show install command hint
-                if context.has_python:
-                    print("\n  Run: pip install -e '.[dev]' to install tools")
-                if context.has_javascript:
-                    print("\n  Run: npm install to install tools")
-
-        # Generate configuration
-        print("\nGenerating configuration...")
-
-        config_gen = ConfigGenerator()
-        config_path = config_gen.write(context, choices)
-        print(f"  Created {config_path.relative_to(project_root)}")
-
-        # Generate CI config if requested
-        ci_path = None
-        if choices.ci_platform:
-            ci_gen = CIGenerator()
-            if choices.ci_platform == "github":
-                ci_path = ci_gen.write_github_actions(context, choices)
-            elif choices.ci_platform == "gitlab":
-                ci_path = ci_gen.write_gitlab_ci(context, choices)
-            elif choices.ci_platform == "bitbucket":
-                ci_path = ci_gen.write_bitbucket_pipelines(context, choices)
-
-            if ci_path:
-                print(f"  Created {ci_path.relative_to(project_root)}")
-
-        # Summary
-        print("\nDone! Next steps:")
-        print("  1. Review the generated lucidscan.yml")
-        print("  2. Run 'lucidscan scan --all' to test the configuration")
-        if ci_path:
-            print("  3. Commit the CI configuration to enable automated checks")
-
-        return EXIT_SUCCESS
-
-    def _display_detection(self, context: ProjectContext) -> None:
-        """Display detected project characteristics."""
-        print("Detected:")
-
-        # Languages
-        if context.languages:
-            langs = []
-            for lang in context.languages[:3]:  # Show top 3
-                version = f" {lang.version}" if lang.version else ""
-                langs.append(f"{lang.name.title()}{version}")
-            print(f"  Languages:    {', '.join(langs)}")
-        else:
-            print("  Languages:    (none detected)")
-
-        # Frameworks
-        if context.frameworks:
-            print(f"  Frameworks:   {', '.join(context.frameworks[:3])}")
-
-        # Test frameworks
-        if context.test_frameworks:
-            print(f"  Testing:      {', '.join(context.test_frameworks)}")
-
-        # Existing tools
-        if context.existing_tools:
-            tools = list(context.existing_tools.keys())[:5]
-            print(f"  Tools:        {', '.join(tools)}")
-
-        # CI systems
-        if context.ci_systems:
-            ci_names = [get_ci_display_name(ci) for ci in context.ci_systems]
-            print(f"  CI:           {', '.join(ci_names)}")
-
-        print()
-
-    def _get_opinionated_choices(
+    def _setup_claude_code(
         self,
-        context: ProjectContext,
-        args: Namespace,
-    ) -> InitChoices:
-        """Get opinionated default choices.
-
-        This method auto-selects tools based on the detected project.
-        If tools are already detected, use them. Otherwise, pick our
-        recommended defaults.
+        dry_run: bool = False,
+        force: bool = False,
+        remove: bool = False,
+    ) -> bool:
+        """Configure Claude Code MCP settings in project .mcp.json.
 
         Args:
-            context: Detected project context.
-            args: Parsed command-line arguments.
+            dry_run: If True, only show what would be done.
+            force: If True, overwrite existing config.
+            remove: If True, remove LucidScan from config.
 
         Returns:
-            InitChoices with opinionated defaults.
+            True if successful.
         """
-        choices = InitChoices()
+        print("Configuring Claude Code (.mcp.json)...")
 
-        # Linter: use detected or default
-        if context.has_python:
-            if "ruff" in context.existing_tools:
-                choices.linter = "ruff"
-            else:
-                choices.linter = PYTHON_DEFAULT_LINTER
-        elif context.has_javascript:
-            if "eslint" in context.existing_tools:
-                choices.linter = "eslint"
-            elif "biome" in context.existing_tools:
-                choices.linter = "biome"
-            else:
-                choices.linter = JS_DEFAULT_LINTER
+        config_path = self._get_claude_code_config_path()
+        if config_path is None:
+            print("  Could not determine Claude Code config location.")
+            return False
 
-        # Type checker: use detected or default
-        if context.has_python:
-            if "mypy" in context.existing_tools:
-                choices.type_checker = "mypy"
-            elif "pyright" in context.existing_tools:
-                choices.type_checker = "pyright"
-            else:
-                choices.type_checker = PYTHON_DEFAULT_TYPE_CHECKER
-        elif context.has_javascript:
-            if "typescript" in context.existing_tools:
-                choices.type_checker = "typescript"
-            else:
-                choices.type_checker = JS_DEFAULT_TYPE_CHECKER
+        mcp_success = self._configure_mcp_tool(
+            tool_name="Claude Code",
+            config_path=config_path,
+            config_key="mcpServers",
+            dry_run=dry_run,
+            force=force,
+            remove=remove,
+            use_portable_path=True,  # .mcp.json is version controlled
+        )
 
-        # Security always enabled
-        choices.security_enabled = True
-        choices.security_tools = ["trivy", "opengrep"]
+        # Also configure CLAUDE.md with instructions
+        claude_md_success = self._configure_claude_md(
+            dry_run=dry_run,
+            force=force,
+            remove=remove,
+        )
 
-        # Test runner: use detected or default
-        if context.test_frameworks:
-            choices.test_runner = context.test_frameworks[0]
-        elif context.has_python:
-            choices.test_runner = PYTHON_DEFAULT_TEST_RUNNER
-        elif context.has_javascript:
-            choices.test_runner = JS_DEFAULT_TEST_RUNNER
+        return mcp_success and claude_md_success
 
-        # CI from args or detection
-        if args.ci:
-            choices.ci_platform = args.ci
-        elif context.ci_systems:
-            ci_map = {
-                "github_actions": "github",
-                "gitlab_ci": "gitlab",
-                "bitbucket_pipelines": "bitbucket",
-            }
-            for ci in context.ci_systems:
-                if ci in ci_map:
-                    choices.ci_platform = ci_map[ci]
-                    break
-
-        return choices
-
-    def _prompt_ci_platform(
+    def _setup_cursor(
         self,
-        context: ProjectContext,
-        args: Namespace,
-    ) -> Tuple[Optional[str], bool]:
-        """Prompt user for CI platform choice.
-
-        This is the only prompt in interactive mode - everything else
-        is auto-selected.
+        dry_run: bool = False,
+        force: bool = False,
+        remove: bool = False,
+    ) -> bool:
+        """Configure Cursor MCP settings.
 
         Args:
-            context: Detected project context.
-            args: Parsed command-line arguments.
+            dry_run: If True, only show what would be done.
+            force: If True, overwrite existing config.
+            remove: If True, remove LucidScan from config.
 
         Returns:
-            Tuple of (CI platform string or None, cancelled flag).
-            cancelled is True if user pressed Ctrl+C.
+            True if successful.
         """
-        if args.ci:
-            return args.ci, False
+        print("Configuring Cursor...")
 
-        options = []
+        config_path = self._get_cursor_config_path()
+        if config_path is None:
+            print("  Could not determine Cursor config location.")
+            return False
 
-        # Check if CI systems are already detected
-        if "github_actions" in context.ci_systems:
-            options.append(questionary.Choice("GitHub Actions (detected)", value="github"))
-        else:
-            options.append(questionary.Choice("GitHub Actions (recommended)", value="github"))
+        mcp_success = self._configure_mcp_tool(
+            tool_name="Cursor",
+            config_path=config_path,
+            config_key="mcpServers",
+            dry_run=dry_run,
+            force=force,
+            remove=remove,
+        )
 
-        if "gitlab_ci" in context.ci_systems:
-            options.append(questionary.Choice("GitLab CI (detected)", value="gitlab"))
-        else:
-            options.append(questionary.Choice("GitLab CI", value="gitlab"))
+        # Configure Cursor rules for automatic scanning
+        rules_success = self._configure_cursor_rules(
+            dry_run=dry_run,
+            force=force,
+            remove=remove,
+        )
 
-        if "bitbucket_pipelines" in context.ci_systems:
-            options.append(questionary.Choice("Bitbucket Pipelines (detected)", value="bitbucket"))
-        else:
-            options.append(questionary.Choice("Bitbucket Pipelines", value="bitbucket"))
+        return mcp_success and rules_success
 
-        options.append(questionary.Choice("Skip CI configuration", value="skip"))
+    def _find_lucidscan_path(self, portable: bool = False) -> Optional[str]:
+        """Find the lucidscan executable path.
 
-        result = questionary.select(
-            "CI platform:",
-            choices=options,
-            style=STYLE,
-        ).ask()
-
-        # result is None if user pressed Ctrl+C
-        if result is None:
-            return None, True
-
-        # "skip" means user chose to skip CI
-        if result == "skip":
-            return None, False
-
-        return result, False
-
-    def _display_choices(self, choices: InitChoices, context: ProjectContext) -> None:
-        """Display the tools that will be configured."""
-        items = []
-
-        if choices.linter:
-            status = "(detected)" if choices.linter in context.existing_tools else "(will install)"
-            items.append(f"  Linter:       {choices.linter} {status}")
-
-        if choices.type_checker:
-            status = "(detected)" if choices.type_checker in context.existing_tools else "(will install)"
-            items.append(f"  Type checker: {choices.type_checker} {status}")
-
-        if choices.security_enabled:
-            items.append(f"  Security:     {', '.join(choices.security_tools)}")
-
-        if choices.test_runner:
-            status = "(detected)" if choices.test_runner in context.test_frameworks else "(will install)"
-            items.append(f"  Test runner:  {choices.test_runner} {status}")
-
-        if choices.ci_platform:
-            items.append(f"  CI platform:  {choices.ci_platform}")
-
-        for item in items:
-            print(item)
-
-    def _get_tools_to_install(
-        self,
-        choices: InitChoices,
-        context: ProjectContext,
-    ) -> List[str]:
-        """Get list of tools that need to be installed.
-
-        Only returns tools that are not already detected in the project.
+        Searches in order:
+        1. PATH via shutil.which
+        2. Same directory as current Python interpreter (for venv installs)
+        3. Scripts directory on Windows
 
         Args:
-            choices: Selected tool choices.
-            context: Detected project context.
+            portable: If True, return a relative path suitable for version control.
 
         Returns:
-            List of tool names to install.
+            Path to lucidscan executable, or None if not found.
         """
-        tools = []
+        # First try PATH (only if not looking for portable path)
+        if not portable:
+            lucidscan_path = shutil.which("lucidscan")
+            if lucidscan_path:
+                return lucidscan_path
 
-        # Linter
-        if choices.linter and choices.linter not in context.existing_tools:
-            tools.append(choices.linter)
+        # Try to find in the same directory as the Python interpreter
+        # This handles venv installations where lucidscan isn't in global PATH
+        python_dir = Path(sys.executable).parent
+        cwd = Path.cwd()
 
-        # Type checker
-        if choices.type_checker and choices.type_checker not in context.existing_tools:
-            tools.append(choices.type_checker)
+        if sys.platform == "win32":
+            # On Windows, check both Scripts and the python directory
+            candidates = [
+                python_dir / "lucidscan.exe",
+                python_dir / "Scripts" / "lucidscan.exe",
+            ]
+        else:
+            # On Unix-like systems
+            candidates = [
+                python_dir / "lucidscan",
+            ]
 
-        # Test runner
-        if choices.test_runner and choices.test_runner not in context.test_frameworks:
-            tools.append(choices.test_runner)
+        for candidate in candidates:
+            if candidate.exists():
+                if portable:
+                    # Try to make it relative to cwd for version control
+                    try:
+                        relative = candidate.relative_to(cwd)
+                        return str(relative)
+                    except ValueError:
+                        # Not relative to cwd, can't use portable path
+                        pass
+                else:
+                    return str(candidate)
 
-        return tools
+        # For portable, fall back to just "lucidscan"
+        if portable:
+            return None
+
+        return None
+
+    def _build_mcp_config(self, lucidscan_path: Optional[str]) -> dict:
+        """Build MCP server configuration.
+
+        Args:
+            lucidscan_path: Full path to lucidscan executable, or None.
+
+        Returns:
+            MCP server configuration dict.
+        """
+        command = lucidscan_path if lucidscan_path else "lucidscan"
+        return {
+            "command": command,
+            "args": LUCIDSCAN_MCP_ARGS.copy(),
+        }
+
+    def _configure_mcp_tool(
+        self,
+        tool_name: str,
+        config_path: Path,
+        config_key: str,
+        dry_run: bool = False,
+        force: bool = False,
+        remove: bool = False,
+        use_portable_path: bool = False,
+    ) -> bool:
+        """Configure an MCP-compatible tool.
+
+        Args:
+            tool_name: Name of the tool for display.
+            config_path: Path to the config file.
+            config_key: Key in the config for MCP servers.
+            dry_run: If True, only show what would be done.
+            force: If True, overwrite existing config.
+            remove: If True, remove LucidScan from config.
+            use_portable_path: If True, use relative path for version control.
+
+        Returns:
+            True if successful.
+        """
+        # Find lucidscan executable
+        lucidscan_path = self._find_lucidscan_path(portable=use_portable_path)
+        if lucidscan_path:
+            print(f"  Using lucidscan command: {lucidscan_path}")
+        elif not dry_run:
+            print("  Warning: 'lucidscan' command not found in PATH or venv.")
+            print("  Using 'lucidscan' as command (must be in PATH at runtime).")
+
+        # Read existing config
+        config, error = self._read_json_config(config_path)
+        if error and not remove:
+            # For new config, start fresh
+            config = {}
+
+        # Get or create the MCP servers section
+        mcp_servers = config.get(config_key, {})
+
+        if remove:
+            # Remove LucidScan from config
+            if "lucidscan" in mcp_servers:
+                if dry_run:
+                    print(f"  Would remove lucidscan from {config_path}")
+                else:
+                    del mcp_servers["lucidscan"]
+                    config[config_key] = mcp_servers
+                    if not mcp_servers:
+                        del config[config_key]
+                    self._write_json_config(config_path, config)
+                    print(f"  Removed lucidscan from {config_path}")
+            else:
+                print(f"  lucidscan not found in {config_path}")
+            return True
+
+        # Check if LucidScan is already configured
+        if "lucidscan" in mcp_servers and not force:
+            print(f"  LucidScan already configured in {config_path}")
+            print("  Use --force to overwrite.")
+            return True
+
+        # Add LucidScan config with found path
+        mcp_config = self._build_mcp_config(lucidscan_path)
+        mcp_servers["lucidscan"] = mcp_config
+        config[config_key] = mcp_servers
+
+        if dry_run:
+            print(f"  Would write to {config_path}:")
+            print(f"    {json.dumps(config, indent=2)}")
+            return True
+
+        # Ensure parent directory exists
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Write config
+        success = self._write_json_config(config_path, config)
+        if success:
+            print(f"  Added lucidscan to {config_path}")
+            self._print_available_tools()
+        return success
+
+    def _configure_claude_md(
+        self,
+        dry_run: bool = False,
+        force: bool = False,
+        remove: bool = False,
+    ) -> bool:
+        """Configure CLAUDE.md with lucidscan instructions.
+
+        Args:
+            dry_run: If True, only show what would be done.
+            force: If True, overwrite existing instructions.
+            remove: If True, remove lucidscan instructions.
+
+        Returns:
+            True if successful.
+        """
+        claude_md_path = Path.cwd() / ".claude" / "CLAUDE.md"
+
+        print("Configuring CLAUDE.md...")
+
+        # Read existing content
+        existing_content = ""
+        if claude_md_path.exists():
+            try:
+                existing_content = claude_md_path.read_text()
+            except Exception as e:
+                print(f"  Error reading {claude_md_path}: {e}")
+                return False
+
+        has_lucidscan_section = LUCIDSCAN_CLAUDE_MD_MARKER in existing_content
+
+        if remove:
+            if has_lucidscan_section:
+                if dry_run:
+                    print(f"  Would remove lucidscan instructions from {claude_md_path}")
+                else:
+                    # Remove the lucidscan section
+                    new_content = self._remove_lucidscan_section(existing_content)
+                    try:
+                        claude_md_path.write_text(new_content)
+                        print(f"  Removed lucidscan instructions from {claude_md_path}")
+                    except Exception as e:
+                        print(f"  Error writing {claude_md_path}: {e}")
+                        return False
+            else:
+                print(f"  Lucidscan instructions not found in {claude_md_path}")
+            return True
+
+        if has_lucidscan_section and not force:
+            print(f"  Lucidscan instructions already in {claude_md_path}")
+            print("  Use --force to overwrite.")
+            return True
+
+        # Build new content
+        if has_lucidscan_section:
+            # Replace existing section
+            new_content = self._remove_lucidscan_section(existing_content)
+            new_content = new_content.rstrip() + LUCIDSCAN_CLAUDE_MD_INSTRUCTIONS
+        else:
+            # Append to existing content
+            new_content = existing_content.rstrip() + LUCIDSCAN_CLAUDE_MD_INSTRUCTIONS
+
+        if dry_run:
+            print(f"  Would add lucidscan instructions to {claude_md_path}")
+            return True
+
+        # Ensure directory exists
+        claude_md_path.parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            claude_md_path.write_text(new_content)
+            print(f"  Added lucidscan instructions to {claude_md_path}")
+            return True
+        except Exception as e:
+            print(f"  Error writing {claude_md_path}: {e}")
+            return False
+
+    def _remove_lucidscan_section(self, content: str) -> str:
+        """Remove the lucidscan section from CLAUDE.md content.
+
+        Args:
+            content: The current CLAUDE.md content.
+
+        Returns:
+            Content with lucidscan section removed.
+        """
+        lines = content.split("\n")
+        new_lines = []
+        in_lucidscan_section = False
+
+        for line in lines:
+            if line.strip() == LUCIDSCAN_CLAUDE_MD_MARKER.strip():
+                in_lucidscan_section = True
+                continue
+            if in_lucidscan_section:
+                # Check if we've hit another section (line starting with ##)
+                if line.startswith("## ") and LUCIDSCAN_CLAUDE_MD_MARKER.strip() not in line:
+                    in_lucidscan_section = False
+                    new_lines.append(line)
+                # Skip lines in the lucidscan section
+                continue
+            new_lines.append(line)
+
+        return "\n".join(new_lines)
+
+    def _configure_cursor_rules(
+        self,
+        dry_run: bool = False,
+        force: bool = False,
+        remove: bool = False,
+    ) -> bool:
+        """Configure Cursor rules for automatic scanning.
+
+        Args:
+            dry_run: If True, only show what would be done.
+            force: If True, overwrite existing rules.
+            remove: If True, remove lucidscan rules.
+
+        Returns:
+            True if successful.
+        """
+        rules_dir = Path.cwd() / ".cursor" / "rules"
+        rules_file = rules_dir / "lucidscan.mdc"
+
+        print("Configuring Cursor rules...")
+
+        if remove:
+            if rules_file.exists():
+                if dry_run:
+                    print(f"  Would remove {rules_file}")
+                else:
+                    rules_file.unlink()
+                    print(f"  Removed {rules_file}")
+            else:
+                print(f"  LucidScan rules not found at {rules_file}")
+            return True
+
+        if rules_file.exists() and not force:
+            print(f"  LucidScan rules already exist at {rules_file}")
+            print("  Use --force to overwrite.")
+            return True
+
+        if dry_run:
+            print(f"  Would create {rules_file}")
+            return True
+
+        rules_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            rules_file.write_text(LUCIDSCAN_CURSOR_RULES.lstrip())
+            print(f"  Created {rules_file}")
+            return True
+        except Exception as e:
+            print(f"  Error writing {rules_file}: {e}")
+            return False
+
+    def _get_claude_code_config_path(self) -> Optional[Path]:
+        """Get the Claude Code MCP config file path.
+
+        Returns:
+            Path to .mcp.json at project root.
+        """
+        # Claude Code project-scoped MCP servers in .mcp.json
+        return Path.cwd() / ".mcp.json"
+
+    def _get_cursor_config_path(self) -> Optional[Path]:
+        """Get the Cursor MCP config file path.
+
+        Returns:
+            Path to config file or None if not determinable.
+        """
+        home = Path.home()
+
+        if sys.platform == "win32":
+            # Windows: %USERPROFILE%\.cursor\mcp.json
+            return home / ".cursor" / "mcp.json"
+        elif sys.platform == "darwin":
+            # macOS: ~/.cursor/mcp.json
+            return home / ".cursor" / "mcp.json"
+        else:
+            # Linux: ~/.cursor/mcp.json
+            return home / ".cursor" / "mcp.json"
+
+    def _read_json_config(self, path: Path) -> Tuple[Dict[str, Any], Optional[str]]:
+        """Read a JSON config file.
+
+        Args:
+            path: Path to the config file.
+
+        Returns:
+            Tuple of (config dict, error message or None).
+        """
+        if not path.exists():
+            return {}, f"Config file does not exist: {path}"
+
+        try:
+            with open(path, "r") as f:
+                content = f.read().strip()
+                if not content:
+                    return {}, None
+                return json.loads(content), None
+        except json.JSONDecodeError as e:
+            return {}, f"Invalid JSON in {path}: {e}"
+        except Exception as e:
+            return {}, f"Error reading {path}: {e}"
+
+    def _write_json_config(self, path: Path, config: Dict[str, Any]) -> bool:
+        """Write a JSON config file.
+
+        Args:
+            path: Path to the config file.
+            config: Configuration dictionary.
+
+        Returns:
+            True if successful.
+        """
+        try:
+            with open(path, "w") as f:
+                json.dump(config, f, indent=2)
+                f.write("\n")
+            return True
+        except Exception as e:
+            print(f"  Error writing {path}: {e}")
+            return False
+
+    def _print_available_tools(self) -> None:
+        """Print available MCP tools."""
+        print("\n  Available MCP tools:")
+        print("    - scan: Run quality checks on the codebase")
+        print("    - check_file: Check a specific file")
+        print("    - get_fix_instructions: Get detailed fix guidance")
+        print("    - apply_fix: Auto-fix linting issues")
+        print("    - get_status: Show LucidScan configuration")
+        print("    - autoconfigure: Get instructions for generating lucidscan.yml")

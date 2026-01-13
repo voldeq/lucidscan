@@ -16,18 +16,30 @@ AI writes code → LucidScan checks → AI fixes → repeat
 
 ## Quick Start
 
-### Installation
-
 ```bash
+# 1. Install LucidScan
 pip install lucidscan
+
+# 2. Set up your AI tools (Claude Code and/or Cursor)
+lucidscan init --all
+
+# 3. Restart your AI tool, then ask it:
+#    "Autoconfigure LucidScan for this project"
 ```
 
-### Console Usage
+That's it! Your AI assistant will analyze your codebase, ask you a few questions, and generate the `lucidscan.yml` configuration.
+
+### Alternative: CLI Configuration
+
+If you prefer to configure without AI:
 
 ```bash
-# Initialize for your project (auto-detects languages and tools)
-lucidscan init
+lucidscan autoconfigure
+```
 
+### Running Scans
+
+```bash
 # Run the full quality pipeline
 lucidscan scan --all
 
@@ -41,77 +53,39 @@ lucidscan scan --coverage          # Coverage analysis
 
 # Auto-fix linting issues
 lucidscan scan --lint --fix
-
-# Check tool status
-lucidscan status
 ```
 
-### Claude Code Integration
+### AI Tool Setup
 
-The easiest way to set up Claude Code:
+#### Claude Code
 
 ```bash
-lucidscan setup --claude-code
+lucidscan init --claude-code
 ```
 
-This command:
+This:
 - Adds LucidScan to your Claude Code MCP configuration (`.mcp.json`)
-- Creates `.claude/CLAUDE.md` with instructions for Claude on when and how to run scans (tiered workflow: fast scans after code changes, full scans before commits)
+- Creates `.claude/CLAUDE.md` with scan workflow instructions
 
 Restart Claude Code to activate.
 
-**Manual setup** (if preferred):
-
-Create `.mcp.json` in your project root:
-
-```json
-{
-  "mcpServers": {
-    "lucidscan": {
-      "command": ".venv/bin/lucidscan",
-      "args": ["serve", "--mcp"]
-    }
-  }
-}
-```
-
-This project-scoped configuration uses a relative path to your venv, making it portable and suitable for version control. Adjust the path based on your virtual environment location.
-
-Once configured, Claude Code can:
-- Run quality checks on code it writes
-- Get structured fix instructions with priorities
-- Apply auto-fixes for linting issues
-
-### Cursor Integration
+#### Cursor
 
 ```bash
-lucidscan setup --cursor
+lucidscan init --cursor
 ```
 
-This command:
+This:
 - Adds LucidScan to Cursor's MCP configuration (`~/.cursor/mcp.json`)
-- Creates `.cursor/rules/lucidscan.mdc` with rules that instruct Cursor to run scans automatically after code changes
+- Creates `.cursor/rules/lucidscan.mdc` with auto-scan rules
 
-Or manually add to `~/.cursor/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "lucidscan": {
-      "command": "lucidscan",
-      "args": ["serve", "--mcp"]
-    }
-  }
-}
-```
-
-### Configure All AI Tools
+#### All AI Tools
 
 ```bash
-lucidscan setup --all
+lucidscan init --all
 ```
 
-This configures both Claude Code and Cursor with their respective MCP configurations and instruction files.
+Configures both Claude Code and Cursor.
 
 ## What It Checks
 
@@ -211,20 +185,22 @@ ignore:
 ## CLI Reference
 
 ```bash
-# Initialize project
-lucidscan init [--ci github|gitlab|bitbucket] [--non-interactive]
+# Configure AI tools (Claude Code, Cursor)
+lucidscan init --claude-code             # Configure Claude Code
+lucidscan init --cursor                  # Configure Cursor
+lucidscan init --all                     # Configure all AI tools
+
+# Auto-configure project (detect languages, generate lucidscan.yml)
+lucidscan autoconfigure [--ci github|gitlab|bitbucket] [--non-interactive]
 
 # Run quality pipeline
 lucidscan scan [--lint] [--type-check] [--sca] [--sast] [--iac] [--test] [--coverage] [--all]
 lucidscan scan [--fix] [--format table|json|sarif|summary]
 lucidscan scan [--fail-on critical|high|medium|low]
 
-# AI tool integration
+# Server mode
 lucidscan serve --mcp                    # Run MCP server
 lucidscan serve --watch                  # Watch mode with auto-checking
-lucidscan setup --claude-code            # Configure Claude Code
-lucidscan setup --cursor                 # Configure Cursor
-lucidscan setup --all                    # Configure all AI tools
 
 # Show status
 lucidscan status [--tools]

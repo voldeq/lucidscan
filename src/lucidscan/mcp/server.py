@@ -147,6 +147,39 @@ class LucidScanMCPServer:
                         "properties": {},
                     },
                 ),
+                Tool(
+                    name="autoconfigure",
+                    description=(
+                        "Get instructions for auto-configuring LucidScan for this project. "
+                        "Returns guidance on what files to analyze and how to generate lucidscan.yml. "
+                        "AI should then read the codebase, read the help docs via get_help(), "
+                        "and create the configuration file."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                    },
+                ),
+                Tool(
+                    name="validate_config",
+                    description=(
+                        "Validate a lucidscan.yml configuration file. "
+                        "Returns validation results with errors and warnings. "
+                        "Use after generating or modifying configuration to ensure it's valid."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "config_path": {
+                                "type": "string",
+                                "description": (
+                                    "Path to configuration file (relative to project root). "
+                                    "If not provided, finds lucidscan.yml in project root."
+                                ),
+                            },
+                        },
+                    },
+                ),
             ]
 
         @self.server.call_tool()
@@ -177,6 +210,12 @@ class LucidScanMCPServer:
                     result = await self.executor.get_status()
                 elif name == "get_help":
                     result = await self.executor.get_help()
+                elif name == "autoconfigure":
+                    result = await self.executor.autoconfigure()
+                elif name == "validate_config":
+                    result = await self.executor.validate_config(
+                        config_path=arguments.get("config_path"),
+                    )
                 else:
                     result = {"error": f"Unknown tool: {name}"}
 
