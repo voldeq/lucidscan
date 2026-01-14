@@ -262,7 +262,7 @@ class TestFileWatcherAsync:
 
         # Mock the executor scan
         from unittest.mock import AsyncMock
-        watcher.executor.scan = AsyncMock(return_value={
+        watcher.executor.scan = AsyncMock(return_value={  # type: ignore[method-assign]
             "total_issues": 0,
             "blocking": False,
             "summary": "No issues",
@@ -295,7 +295,7 @@ class TestFileWatcherAsync:
 
         # Mock the executor scan
         from unittest.mock import AsyncMock
-        watcher.executor.scan = AsyncMock(return_value={
+        watcher.executor.scan = AsyncMock(return_value={  # type: ignore[method-assign]
             "total_issues": 0,
             "blocking": False,
             "summary": "No issues",
@@ -325,7 +325,7 @@ class TestFileWatcherAsync:
 
         # Mock the executor scan to raise
         from unittest.mock import AsyncMock
-        watcher.executor.scan = AsyncMock(side_effect=Exception("Scan failed"))
+        watcher.executor.scan = AsyncMock(side_effect=Exception("Scan failed"))  # type: ignore[method-assign]
 
         # Should not raise
         await watcher._process_pending()
@@ -347,7 +347,7 @@ class TestFileWatcherAsync:
         watcher._pending_files.add(outside_file)
 
         from unittest.mock import AsyncMock
-        watcher.executor.scan = AsyncMock(return_value={
+        watcher.executor.scan = AsyncMock(return_value={  # type: ignore[method-assign]
             "total_issues": 0,
             "blocking": False,
             "summary": "No issues",

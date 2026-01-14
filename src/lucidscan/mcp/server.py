@@ -187,12 +187,27 @@ class LucidScanMCPServer:
             """Handle tool calls."""
             import json
 
+            # Create progress callback that streams via MCP notifications
+            async def send_progress(event: Dict[str, Any]) -> None:
+                """Send progress event as MCP log message."""
+                try:
+                    session = self.server.request_context.session
+                    message = f"[{event.get('tool', 'lucidscan')}] {event.get('content', '')}"
+                    await session.send_log_message(
+                        level="info",
+                        data=message,
+                        logger="lucidscan",
+                    )
+                except Exception as e:
+                    LOGGER.debug(f"Failed to send progress notification: {e}")
+
             try:
                 if name == "scan":
                     result = await self.executor.scan(
                         domains=arguments.get("domains", ["all"]),
                         files=arguments.get("files"),
                         fix=arguments.get("fix", False),
+                        on_progress=send_progress,
                     )
                 elif name == "check_file":
                     result = await self.executor.check_file(

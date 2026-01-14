@@ -229,7 +229,7 @@ class TestInstructionFormatter:
         self, formatter: InstructionFormatter
     ) -> None:
         """Test generic step generation for each domain."""
-        domains_and_expected = [
+        domains_and_expected: list[tuple[ScanDomain | ToolDomain, str]] = [
             (ScanDomain.SAST, "security"),
             (ScanDomain.SCA, "vulnerable dependency"),
             (ScanDomain.IAC, "infrastructure"),

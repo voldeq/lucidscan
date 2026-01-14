@@ -83,6 +83,7 @@ class TestPipelineExecutor:
             executor = PipelineExecutor(config, lucidscan_version="1.0.0")
             result = executor.execute([], context)
 
+            assert result.metadata is not None
             assert result.metadata.lucidscan_version == "1.0.0"
             assert result.metadata.project_root == str(context.project_root)
             assert result.metadata.duration_ms >= 0
@@ -108,6 +109,7 @@ class TestPipelineExecutor:
             executor = PipelineExecutor(config)
             result = executor.execute([], context)
 
+            assert result.summary is not None
             assert result.summary.total == 1
             assert result.summary.by_severity.get("high", 0) == 1
 
@@ -218,6 +220,7 @@ class TestPipelineExecutor:
             executor = PipelineExecutor(config)
             result = executor.execute(["test"], context)
 
+            assert result.metadata is not None
             assert len(result.metadata.scanners_used) == 1
             assert result.metadata.scanners_used[0]["name"] == "test"
             assert result.metadata.scanners_used[0]["version"] == "1.0.0"

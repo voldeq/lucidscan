@@ -101,7 +101,7 @@ class TestCLIRunner:
         # Mock the InitCommand
         mock_init_cmd = MagicMock()
         mock_init_cmd.execute.return_value = EXIT_SUCCESS
-        runner._init_cmd = mock_init_cmd
+        runner._init_cmd = mock_init_cmd  # type: ignore[assignment]
 
         # init configures AI tools, requires a tool flag
         result = runner.run(["init", "--claude-code"])
@@ -178,7 +178,7 @@ class TestCLIRunner:
             mock_load.return_value = mock_config
 
             # Mock scan_cmd to raise FileNotFoundError
-            runner.scan_cmd.execute = MagicMock(
+            runner.scan_cmd.execute = MagicMock(  # type: ignore[method-assign]
                 side_effect=FileNotFoundError("File not found")
             )
 
@@ -195,7 +195,7 @@ class TestCLIRunner:
             mock_load.return_value = mock_config
 
             # Mock scan_cmd to raise generic exception
-            runner.scan_cmd.execute = MagicMock(
+            runner.scan_cmd.execute = MagicMock(  # type: ignore[method-assign]
                 side_effect=RuntimeError("Scan failed")
             )
 
@@ -212,7 +212,7 @@ class TestCLIRunner:
             mock_load.return_value = mock_config
 
             # Mock scan_cmd to raise generic exception
-            runner.scan_cmd.execute = MagicMock(
+            runner.scan_cmd.execute = MagicMock(  # type: ignore[method-assign]
                 side_effect=RuntimeError("Scan failed")
             )
 

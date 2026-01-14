@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 import sys
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Coroutine, Dict, List, Optional
 
 from lucidscan.config import LucidScanConfig
 from lucidscan.core.domain_runner import (
@@ -18,7 +18,12 @@ from lucidscan.core.domain_runner import (
 )
 from lucidscan.core.logging import get_logger
 from lucidscan.core.models import DomainType, ScanContext, ScanDomain, ToolDomain, UnifiedIssue
-from lucidscan.core.streaming import CLIStreamHandler, CallbackStreamHandler, StreamEvent, StreamHandler
+from lucidscan.core.streaming import (
+    CLIStreamHandler,
+    MCPStreamHandler,
+    StreamEvent,
+    StreamHandler,
+)
 from lucidscan.mcp.formatter import InstructionFormatter
 
 LOGGER = get_logger(__name__)
@@ -97,7 +102,7 @@ class MCPToolExecutor:
         domains: List[str],
         files: Optional[List[str]] = None,
         fix: bool = False,
-        on_progress: Optional[Callable[[Dict[str, Any]], None]] = None,
+        on_progress: Optional[Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]] = None,
     ) -> Dict[str, Any]:
         """Execute scan and return AI-formatted results.
 
@@ -105,7 +110,7 @@ class MCPToolExecutor:
             domains: List of domain names to scan (e.g., ["linting", "security"]).
             files: Optional list of specific files to scan.
             fix: Whether to apply auto-fixes (linting only).
-            on_progress: Optional callback for progress events.
+            on_progress: Optional async callback for progress events (MCP notifications).
 
         Returns:
             Structured scan result with AI instructions.
@@ -120,23 +125,19 @@ class MCPToolExecutor:
             await loop.run_in_executor(None, self._bootstrap_security_tools, security_domains)
 
         # Create stream handler for progress output
-        # Writes to stderr so user sees live output during MCP scans
         stream_handler: Optional[StreamHandler] = None
-        progress_events: List[Dict[str, Any]] = []
 
         if on_progress:
-            # Use callback handler if provided
-            def on_event(event: StreamEvent) -> None:
+            # Use MCP stream handler for async notifications
+            async def on_event(event: StreamEvent) -> None:
                 event_dict = {
                     "tool": event.tool_name,
                     "type": event.stream_type.value,
                     "content": event.content,
                 }
-                progress_events.append(event_dict)
-                if on_progress:
-                    on_progress(event_dict)
+                await on_progress(event_dict)
 
-            stream_handler = CallbackStreamHandler(on_event=on_event)
+            stream_handler = MCPStreamHandler(on_event=on_event)
         else:
             # Default: write progress to stderr
             stream_handler = CLIStreamHandler(

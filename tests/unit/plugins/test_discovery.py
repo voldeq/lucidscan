@@ -17,7 +17,7 @@ class TestDiscoverPlugins:
 
     def test_discovers_scanner_plugins(self) -> None:
         """Test discovering plugins from scanner entry point group."""
-        plugins = discover_plugins(SCANNER_ENTRY_POINT_GROUP)
+        plugins: dict = discover_plugins(SCANNER_ENTRY_POINT_GROUP)
         assert "trivy" in plugins
 
     def test_validates_base_class(self) -> None:
@@ -28,7 +28,7 @@ class TestDiscoverPlugins:
 
     def test_returns_empty_dict_for_unknown_group(self) -> None:
         """Test that unknown group returns empty dict."""
-        plugins = discover_plugins("lucidscan.nonexistent")
+        plugins: dict = discover_plugins("lucidscan.nonexistent")
         assert plugins == {}
 
 

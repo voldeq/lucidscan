@@ -373,7 +373,7 @@ class TestCheckovScannerCheckConversion:
         assert issue.iac_resource == "aws_s3_bucket.example"
         assert issue.line_start == 1
         assert issue.line_end == 10
-        assert "https://docs.bridgecrew.io" in issue.recommendation
+        assert issue.recommendation and "https://docs.bridgecrew.io" in issue.recommendation
 
     def test_check_to_unified_issue_preserves_metadata(self) -> None:
         """Test that scanner metadata is preserved."""

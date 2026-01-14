@@ -8,12 +8,13 @@ Provides a unified interface for streaming tool output to different targets:
 
 from __future__ import annotations
 
+import asyncio
 import sys
 import threading
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Optional, TextIO
+from typing import Callable, Coroutine, Optional, TextIO, Any
 
 
 class StreamType(str, Enum):
@@ -114,7 +115,7 @@ class CLIStreamHandler(StreamHandler):
 
         if use_rich:
             try:
-                from rich.console import Console
+                from rich.console import Console  # type: ignore[import-not-found]
 
                 self._console = Console(file=output, force_terminal=True)
             except ImportError:
@@ -257,3 +258,83 @@ class CallbackStreamHandler(StreamHandler):
                     content=status,
                 )
             )
+
+
+# Type alias for async callbacks
+AsyncEventCallback = Callable[[StreamEvent], Coroutine[Any, Any, None]]
+
+
+class MCPStreamHandler(StreamHandler):
+    """Handler that streams events via async MCP notifications.
+
+    This handler bridges synchronous tool execution (running in thread pool)
+    with async MCP notification delivery. It captures the event loop at
+    construction time and uses run_coroutine_threadsafe to schedule
+    async callbacks from synchronous contexts.
+    """
+
+    def __init__(
+        self,
+        on_event: AsyncEventCallback,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+    ):
+        """Initialize MCPStreamHandler.
+
+        Args:
+            on_event: Async callback for stream events.
+            loop: Event loop to use. If None, uses the running loop.
+        """
+        self._on_event = on_event
+        self._loop = loop or asyncio.get_running_loop()
+        self._lock = threading.Lock()
+
+    def _schedule_async(self, coro: Coroutine[Any, Any, None]) -> None:
+        """Schedule an async coroutine from a sync context.
+
+        Args:
+            coro: Coroutine to schedule.
+        """
+        try:
+            asyncio.run_coroutine_threadsafe(coro, self._loop)
+        except RuntimeError:
+            # Loop might be closed, ignore
+            pass
+
+    def emit(self, event: StreamEvent) -> None:
+        """Emit a stream event via async MCP callback.
+
+        Args:
+            event: The stream event to emit.
+        """
+        with self._lock:
+            self._schedule_async(self._on_event(event))
+
+    def start_tool(self, tool_name: str) -> None:
+        """Signal that a tool has started.
+
+        Args:
+            tool_name: Name of the tool that started.
+        """
+        self.emit(
+            StreamEvent(
+                tool_name=tool_name,
+                stream_type=StreamType.STATUS,
+                content="started",
+            )
+        )
+
+    def end_tool(self, tool_name: str, success: bool) -> None:
+        """Signal that a tool has finished.
+
+        Args:
+            tool_name: Name of the tool that finished.
+            success: Whether the tool completed successfully.
+        """
+        status = "completed" if success else "failed"
+        self.emit(
+            StreamEvent(
+                tool_name=tool_name,
+                stream_type=StreamType.STATUS,
+                content=status,
+            )
+        )

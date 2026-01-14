@@ -303,7 +303,7 @@ resource "aws_security_group" "allow_all" {
         ]
         if s3_issues:
             issue = s3_issues[0]
-            assert "aws_s3_bucket.my_bucket" in issue.iac_resource
+            assert issue.iac_resource and "aws_s3_bucket.my_bucket" in issue.iac_resource
 
     def test_issue_id_is_deterministic(
         self, checkov_scanner: CheckovScanner, tmp_path: Path

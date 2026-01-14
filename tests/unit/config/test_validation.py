@@ -141,7 +141,7 @@ class TestValidateConfig:
         assert len(warnings) == 0
 
     def test_returns_warning_for_non_dict_data(self) -> None:
-        warnings = validate_config("not a dict", source="test.yml")
+        warnings = validate_config("not a dict", source="test.yml")  # type: ignore[arg-type]
         assert len(warnings) == 1
         assert "must be a mapping" in warnings[0].message
 

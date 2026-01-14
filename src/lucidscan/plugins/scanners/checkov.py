@@ -258,7 +258,7 @@ class CheckovScanner(ScannerPlugin):
         # Checkov doesn't support custom env in run_with_streaming, so set env vars first
         import os
         env = self._get_scan_env()
-        old_env = {}
+        old_env: Dict[str, Optional[str]] = {}
         for key, value in env.items():
             if key not in os.environ or os.environ[key] != value:
                 old_env[key] = os.environ.get(key)
@@ -293,7 +293,7 @@ class CheckovScanner(ScannerPlugin):
             return []
         finally:
             # Restore original environment
-            for key, value in old_env.items():
+            for key, value in old_env.items():  # type: ignore[assignment]
                 if value is None:
                     os.environ.pop(key, None)
                 else:
