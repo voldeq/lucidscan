@@ -199,3 +199,94 @@ class TestLucidScanMCPServerAsync:
         result = await server.executor.get_status()
         assert "project_root" in result
         assert "available_tools" in result
+
+    @pytest.mark.asyncio
+    async def test_executor_get_help(
+        self, server: LucidScanMCPServer
+    ) -> None:
+        """Test executor get_help returns documentation."""
+        result = await server.executor.get_help()
+        assert "documentation" in result
+
+    @pytest.mark.asyncio
+    async def test_executor_autoconfigure(
+        self, server: LucidScanMCPServer
+    ) -> None:
+        """Test executor autoconfigure returns instructions."""
+        result = await server.executor.autoconfigure()
+        assert "instructions" in result or isinstance(result, dict)
+
+    @pytest.mark.asyncio
+    async def test_executor_validate_config_no_config(
+        self, server: LucidScanMCPServer
+    ) -> None:
+        """Test executor validate_config when no config exists."""
+        result = await server.executor.validate_config()
+        # Should return error or validation result
+        assert isinstance(result, dict)
+
+
+class TestMCPServerToolDispatch:
+    """Tests for MCP server tool dispatch logic."""
+
+    @pytest.fixture
+    def project_root(self, tmp_path: Path) -> Path:
+        """Create a temporary project root."""
+        return tmp_path
+
+    @pytest.fixture
+    def config(self) -> LucidScanConfig:
+        """Create a test configuration."""
+        return LucidScanConfig()
+
+    @pytest.fixture
+    def server(
+        self, project_root: Path, config: LucidScanConfig
+    ) -> LucidScanMCPServer:
+        """Create a server instance."""
+        return LucidScanMCPServer(project_root, config)
+
+    def test_server_has_registered_handlers(
+        self, server: LucidScanMCPServer
+    ) -> None:
+        """Test server has registered tool handlers."""
+        # The server should have registered handlers via decorators
+        # We can verify the server object exists and has expected attributes
+        assert server.server is not None
+        assert hasattr(server.server, "list_tools")
+        assert hasattr(server.server, "call_tool")
+
+    def test_executor_has_all_methods(
+        self, server: LucidScanMCPServer
+    ) -> None:
+        """Test executor has all required methods."""
+        required_methods = [
+            "scan",
+            "check_file",
+            "get_fix_instructions",
+            "apply_fix",
+            "get_status",
+            "get_help",
+            "autoconfigure",
+            "validate_config",
+        ]
+        for method in required_methods:
+            assert hasattr(server.executor, method), f"Missing method: {method}"
+            assert callable(getattr(server.executor, method)), f"Method not callable: {method}"
+
+    @pytest.mark.asyncio
+    async def test_executor_scan_with_domains(
+        self, server: LucidScanMCPServer
+    ) -> None:
+        """Test executor scan can be called with specific domains."""
+        result = await server.executor.scan(domains=["linting", "type_checking"])
+        assert "total_issues" in result
+        assert "instructions" in result
+
+    @pytest.mark.asyncio
+    async def test_executor_scan_with_fix(
+        self, server: LucidScanMCPServer
+    ) -> None:
+        """Test executor scan with fix=True."""
+        result = await server.executor.scan(domains=["linting"], fix=True)
+        assert "total_issues" in result

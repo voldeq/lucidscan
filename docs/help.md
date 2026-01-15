@@ -748,6 +748,8 @@ Or manually add to `~/.cursor/mcp.json`:
 |------|-----------|
 | pytest | Python |
 | Jest | JavaScript, TypeScript |
+| Karma | JavaScript, TypeScript (Angular) |
+| Playwright | JavaScript, TypeScript (E2E) |
 
 ### Coverage
 

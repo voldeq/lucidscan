@@ -101,18 +101,19 @@ All results normalized to a common schema. One exit code for automation.
 
 ### 2.3 AI Agent Integration
 
-LucidScan bridges deterministic tools and AI agents:
+LucidScan bridges deterministic tools and AI agents via MCP (Model Context Protocol):
 
-```yaml
-# lucidscan.yml
-ai_integration:
-  claude_code: true
-  cursor: true
-  mode: realtime  # or: on_save, on_commit
+```bash
+# Configure AI tools (creates MCP config and instructions)
+lucidscan init --claude-code  # Configure Claude Code
+lucidscan init --cursor       # Configure Cursor
+lucidscan init --all          # Configure all AI tools
+
+# Then restart your AI tool for changes to take effect
 ```
 
-When enabled:
-- LucidScan runs as an MCP server or hooks into AI tool configurations
+When configured:
+- LucidScan runs as an MCP server that AI tools connect to
 - Issues are formatted as structured instructions for the AI
 - The AI receives: "Fix issue X in file Y by doing Z"
 - Automatic feedback loop until code passes
@@ -456,23 +457,23 @@ pipeline:
   coverage:
     enabled: boolean
     threshold: number
-    tool: string
+    tools: [string]  # coverage_py for Python, istanbul for JS/TS
 
 fail_on:
-  linting: error | warning | none
-  type_checking: error | warning | none
-  security: critical | high | medium | low | none
+  linting: error | none
+  type_checking: error | none
+  security: critical | high | medium | low | info | none
   testing: any | none
-  coverage: below_threshold | none
+  coverage: any | none
 
 ignore:
   - string  # Glob patterns
 
-ai_integration:
-  claude_code: boolean
-  cursor: boolean
-  mode: realtime | on_save | on_commit
+output:
+  format: json | table | sarif | summary
 ```
+
+> **Note**: AI tool integration is configured via `lucidscan init --claude-code` or `lucidscan init --cursor`, not through lucidscan.yml.
 
 #### 5.4.2 Ignore File
 
@@ -833,20 +834,18 @@ The AI integration creates an automated feedback loop:
 
 ```
 1. AI writes/modifies code
-2. LucidScan automatically runs relevant checks
+2. LucidScan automatically runs relevant checks (via MCP)
 3. Issues are formatted as instructions
 4. AI receives instructions and applies fixes
 5. LucidScan re-checks
-6. Repeat until clean (or max iterations reached)
+6. Repeat until clean
 ```
 
-Configuration:
-```yaml
-ai_integration:
-  max_fix_iterations: 3
-  auto_fix_domains: [linting, type_checking]  # Security requires human review
-  require_human_approval: [security]
-```
+The feedback loop is driven by instructions provided to the AI tool via `lucidscan init`, which creates:
+- `.claude/CLAUDE.md` for Claude Code with scan workflow instructions
+- `.cursor/rules/lucidscan.mdc` for Cursor with auto-scan rules
+
+These instruct the AI to run scans after completing code changes and before commits.
 
 ---
 
@@ -980,29 +979,26 @@ Examples:
 
 | Tool | Languages | Install Method |
 |------|-----------|----------------|
-| Ruff | Python | pip |
+| Ruff | Python | pip / binary |
 | ESLint | JavaScript, TypeScript | npm |
 | Biome | JavaScript, TypeScript, JSON | npm / binary |
-| golangci-lint | Go | binary |
-| Clippy | Rust | rustup |
+| Checkstyle | Java | binary (jar) |
 
 ### 9.2 Type Checking
 
 | Tool | Languages | Install Method |
 |------|-----------|----------------|
 | mypy | Python | pip |
-| Pyright | Python | pip / npm |
-| TypeScript | TypeScript | npm |
-| Go vet | Go | bundled |
+| Pyright | Python | pip / npm / binary |
+| TypeScript (tsc) | TypeScript | npm |
 
 ### 9.3 Security
 
 | Tool | Domains | Install Method |
 |------|---------|----------------|
-| Trivy | SCA, Container, IaC | binary |
+| Trivy | SCA, Container | binary |
 | OpenGrep | SAST | binary |
 | Checkov | IaC | pip / binary |
-| Gitleaks | Secrets | binary |
 
 ### 9.4 Testing
 
@@ -1010,8 +1006,8 @@ Examples:
 |------|-----------|----------------|
 | pytest | Python | pip |
 | Jest | JavaScript, TypeScript | npm |
-| Go test | Go | bundled |
-| Cargo test | Rust | bundled |
+| Karma | JavaScript, TypeScript (Angular) | npm |
+| Playwright | JavaScript, TypeScript (E2E) | npm |
 
 ### 9.5 Coverage
 
@@ -1019,55 +1015,58 @@ Examples:
 |------|-----------|----------------|
 | coverage.py | Python | pip |
 | Istanbul/nyc | JavaScript, TypeScript | npm |
-| Go cover | Go | bundled |
-| Tarpaulin | Rust | cargo |
 
 ---
 
 ## 10. Development Phases
 
-### Phase 1: Foundation
+### Phase 1: Foundation ✅ COMPLETE
 
 **Goal**: Core pipeline with `init` and `scan` commands
 
-- [ ] Codebase detector (languages, frameworks, existing tools)
-- [ ] Configuration generator (`lucidscan init`)
-- [ ] Pipeline orchestrator
-- [ ] Initial tool plugins:
-  - [ ] Ruff (Python linting)
-  - [ ] ESLint (JS/TS linting)
-  - [ ] mypy (Python type checking)
-  - [ ] Trivy (SCA, container security)
-  - [ ] OpenGrep (SAST)
-  - [ ] pytest (Python testing)
-- [ ] Reporters: Table, JSON, SARIF
+- [x] Codebase detector (languages, frameworks, existing tools)
+- [x] Configuration generator (`lucidscan init`)
+- [x] Pipeline orchestrator
+- [x] Initial tool plugins:
+  - [x] Ruff (Python linting)
+  - [x] ESLint (JS/TS linting)
+  - [x] mypy (Python type checking)
+  - [x] Trivy (SCA, container security)
+  - [x] OpenGrep (SAST)
+  - [x] pytest (Python testing)
+- [x] Reporters: Table, JSON, SARIF
 
 **Milestone**: `lucidscan init && lucidscan scan` works end-to-end
 
-### Phase 2: Expanded Coverage
+### Phase 2: Expanded Coverage ✅ COMPLETE
 
 **Goal**: More tools
 
-- [ ] Additional tool plugins:
-  - [ ] Biome (JS/TS)
-  - [ ] Checkov (IaC)
-  - [ ] golangci-lint (Go)
-  - [ ] Jest (JS/TS testing)
-  - [ ] coverage.py (Python coverage)
-- [ ] Auto-fix mode (`--fix`)
+- [x] Additional tool plugins:
+  - [x] Biome (JS/TS)
+  - [x] Checkov (IaC)
+  - [x] Checkstyle (Java)
+  - [x] Jest (JS/TS testing)
+  - [x] Karma (Angular testing)
+  - [x] Playwright (E2E testing)
+  - [x] coverage.py (Python coverage)
+  - [x] Istanbul (JS/TS coverage)
+  - [x] pyright (Python type checking)
+  - [x] TypeScript (tsc)
+- [x] Auto-fix mode (`--fix`)
 
-**Milestone**: Support for Python, JavaScript/TypeScript, Go projects
+**Milestone**: Support for Python, JavaScript/TypeScript, Java projects
 
-### Phase 3: AI Integration
+### Phase 3: AI Integration ✅ COMPLETE
 
 **Goal**: MCP server and AI feedback loop
 
-- [ ] MCP server implementation (`lucidscan serve --mcp`)
-- [ ] AI instruction formatter
-- [ ] File watcher mode
-- [ ] Claude Code integration guide
-- [ ] Cursor integration guide
-- [ ] Feedback loop configuration
+- [x] MCP server implementation (`lucidscan serve --mcp`)
+- [x] AI instruction formatter
+- [x] File watcher mode
+- [x] Claude Code integration guide
+- [x] Cursor integration guide
+- [x] Feedback loop configuration
 
 **Milestone**: AI agents can invoke LucidScan and receive fix instructions
 
