@@ -221,7 +221,8 @@ class TestInstructionFormatter:
         assert result["priority"] == 1
         assert result["action"] == "FIX_SECURITY_VULNERABILITY"
         assert "handler.py" in result["summary"]
-        assert result["file"] == "src/handler.py"
+        # Use Path for cross-platform comparison
+        assert Path(result["file"]) == Path("src/handler.py")
         assert result["line"] == 100
         assert len(result["fix_steps"]) > 0
 

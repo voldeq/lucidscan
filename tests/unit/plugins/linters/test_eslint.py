@@ -564,7 +564,8 @@ class TestMessageToIssue:
         issue = linter._message_to_issue(message, "src/file.js", Path("/project"))
 
         assert issue is not None
-        assert str(issue.file_path) == "/project/src/file.js"
+        # Use Path for cross-platform comparison
+        assert issue.file_path == Path("/project/src/file.js")
 
     def test_message_absolute_path(self) -> None:
         """Test message with absolute path."""
@@ -580,7 +581,8 @@ class TestMessageToIssue:
         issue = linter._message_to_issue(message, "/absolute/path/file.js", Path("/project"))
 
         assert issue is not None
-        assert str(issue.file_path) == "/absolute/path/file.js"
+        # Use Path for cross-platform comparison
+        assert issue.file_path == Path("/absolute/path/file.js")
 
     def test_message_with_end_line(self) -> None:
         """Test message with end line."""

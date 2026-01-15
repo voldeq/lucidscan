@@ -5,8 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
+import sys
 import tarfile
 import tempfile
+import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.request import urlopen
@@ -72,7 +74,8 @@ class TrivyScanner(ScannerPlugin):
     def ensure_binary(self) -> Path:
         """Ensure the Trivy binary is available, downloading if needed."""
         binary_dir = self._paths.plugin_bin_dir(self.name, self._version)
-        binary_path = binary_dir / "trivy"
+        binary_name = "trivy.exe" if sys.platform == "win32" else "trivy"
+        binary_path = binary_dir / binary_name
 
         if binary_path.exists():
             LOGGER.debug(f"Trivy binary found at {binary_path}")
@@ -89,6 +92,7 @@ class TrivyScanner(ScannerPlugin):
     def _download_binary(self, dest_dir: Path) -> None:
         """Download and extract Trivy binary for current platform."""
         platform_info = get_platform_info()
+        is_windows = platform_info.os == "windows"
 
         # Map platform to Trivy release naming
         os_name = {
@@ -108,8 +112,10 @@ class TrivyScanner(ScannerPlugin):
             )
 
         # Construct download URL
-        # Example: trivy_0.68.1_Linux-64bit.tar.gz
-        filename = f"trivy_{self._version}_{os_name}-{arch_name}.tar.gz"
+        # Windows uses .zip, others use .tar.gz
+        # Example: trivy_0.68.1_Linux-64bit.tar.gz or trivy_0.68.1_Windows-64bit.zip
+        extension = ".zip" if is_windows else ".tar.gz"
+        filename = f"trivy_{self._version}_{os_name}-{arch_name}{extension}"
         url = f"https://github.com/aquasecurity/trivy/releases/download/v{self._version}/{filename}"
 
         LOGGER.debug(f"Downloading from {url}")
@@ -122,30 +128,47 @@ class TrivyScanner(ScannerPlugin):
             raise ValueError(f"Invalid download URL: {url}")
 
         # Download and extract
-        with tempfile.NamedTemporaryFile(suffix=".tar.gz", delete=False) as tmp_file:
-            tmp_path = Path(tmp_file.name)
-            try:
-                with urlopen(url) as response:  # nosec B310 nosemgrep
-                    tmp_file.write(response.read())
+        # Use delete=False and manually clean up to avoid Windows file locking issues
+        tmp_file = tempfile.NamedTemporaryFile(suffix=extension, delete=False)
+        tmp_path = Path(tmp_file.name)
+        try:
+            with urlopen(url) as response:  # nosec B310 nosemgrep
+                tmp_file.write(response.read())
+            # Close the file before extracting (required on Windows)
+            tmp_file.close()
 
+            if is_windows:
+                # Extract zip file safely (prevent path traversal)
+                with zipfile.ZipFile(tmp_path, "r") as zf:
+                    for zip_member in zf.namelist():
+                        # Validate each member path to prevent traversal attacks
+                        member_path = (dest_dir / zip_member).resolve()
+                        if not member_path.is_relative_to(dest_dir.resolve()):
+                            raise ValueError(f"Path traversal detected: {zip_member}")
+                    zf.extractall(dest_dir)
+            else:
                 # Extract tarball safely (prevent path traversal)
                 with tarfile.open(tmp_path, "r:gz") as tar:
-                    for member in tar.getmembers():
+                    for tar_member in tar.getmembers():
                         # Validate each member path to prevent traversal attacks
-                        member_path = (dest_dir / member.name).resolve()
+                        member_path = (dest_dir / tar_member.name).resolve()
                         if not member_path.is_relative_to(dest_dir.resolve()):
-                            raise ValueError(f"Path traversal detected: {member.name}")
+                            raise ValueError(f"Path traversal detected: {tar_member.name}")
                         # Extract individual member safely
-                        tar.extract(member, path=dest_dir)
+                        tar.extract(tar_member, path=dest_dir)
 
-                # Make binary executable
-                binary_path = dest_dir / "trivy"
-                if binary_path.exists():
-                    binary_path.chmod(0o755)
-                    LOGGER.info(f"Trivy v{self._version} installed to {binary_path}")
+            # Make binary executable (on Unix)
+            binary_name = "trivy.exe" if is_windows else "trivy"
+            binary_path = dest_dir / binary_name
+            if binary_path.exists() and not is_windows:
+                binary_path.chmod(0o755)
+            LOGGER.info(f"Trivy v{self._version} installed to {binary_path}")
 
-            finally:
-                tmp_path.unlink(missing_ok=True)
+        finally:
+            # Ensure file is closed before attempting to delete
+            if not tmp_file.closed:
+                tmp_file.close()
+            tmp_path.unlink(missing_ok=True)
 
     def scan(self, context: ScanContext) -> List[UnifiedIssue]:
         """Execute Trivy scan and return normalized issues.

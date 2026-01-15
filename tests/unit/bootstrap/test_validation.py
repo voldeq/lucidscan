@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import stat
+import sys
 from pathlib import Path
 
+import pytest
 
 from lucidscan.bootstrap.validation import (
     validate_binary,
@@ -108,6 +110,10 @@ class TestValidateBinary:
         status = validate_binary(path)
         assert status == ToolStatus.PRESENT
 
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="Windows determines executability by extension, not permissions"
+    )
     def test_present_not_executable(self, tmp_path: Path) -> None:
         path = tmp_path / "tool"
         path.write_text("#!/bin/bash\necho hello")

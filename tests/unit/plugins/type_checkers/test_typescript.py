@@ -263,7 +263,8 @@ More random stuff"""
         issues = checker._parse_output(output, Path("/project"))
 
         assert len(issues) == 1
-        assert str(issues[0].file_path) == "/project/src/test.ts"
+        # Use Path for cross-platform comparison
+        assert issues[0].file_path == Path("/project/src/test.ts")
 
     def test_parse_absolute_path(self) -> None:
         """Test that absolute paths are preserved."""
@@ -272,7 +273,8 @@ More random stuff"""
         issues = checker._parse_output(output, Path("/project"))
 
         assert len(issues) == 1
-        assert str(issues[0].file_path) == "/absolute/path/test.ts"
+        # Use Path for cross-platform comparison
+        assert issues[0].file_path == Path("/absolute/path/test.ts")
 
 
 class TestTscErrorPattern:

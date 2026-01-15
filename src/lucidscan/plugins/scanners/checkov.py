@@ -163,11 +163,13 @@ class CheckovScanner(ScannerPlugin):
         pip_path = self._get_pip_path(venv_dir)
 
         try:
-            # Upgrade pip first to avoid issues
+            # Upgrade pip first to avoid issues (best effort, don't fail if it doesn't work)
+            # On Windows, pip upgrade can fail with exit code 1 due to file locking
+            # when trying to upgrade itself while running
             subprocess.run(
                 [str(pip_path), "install", "--upgrade", "pip"],
                 capture_output=True,
-                check=True,
+                check=False,  # Don't fail if pip upgrade fails
                 timeout=120,  # 2 minute timeout for pip upgrade
             )
 
