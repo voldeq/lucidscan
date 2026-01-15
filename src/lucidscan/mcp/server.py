@@ -46,7 +46,9 @@ class LucidScanMCPServer:
                     name="scan",
                     description=(
                         "Run quality checks on the codebase or specific files. "
-                        "Returns structured issues with fix instructions."
+                        "Returns structured issues with fix instructions. "
+                        "IMPORTANT: After receiving scan results, always provide a brief summary "
+                        "including: total issues found, breakdown by domain/severity, and key issues to address first."
                     ),
                     inputSchema={
                         "type": "object",

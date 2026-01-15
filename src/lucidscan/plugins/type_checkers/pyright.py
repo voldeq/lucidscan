@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from lucidscan.bootstrap.paths import LucidscanPaths
+from lucidscan.bootstrap.versions import get_tool_version
 from lucidscan.core.logging import get_logger
 from lucidscan.core.models import (
     ScanContext,
@@ -26,8 +27,8 @@ from lucidscan.plugins.type_checkers.base import TypeCheckerPlugin
 
 LOGGER = get_logger(__name__)
 
-# Default pyright version
-DEFAULT_VERSION = "1.1.391"
+# Default version from pyproject.toml [tool.lucidscan.tools]
+DEFAULT_VERSION = get_tool_version("pyright")
 
 # pyright severity mapping
 SEVERITY_MAP = {

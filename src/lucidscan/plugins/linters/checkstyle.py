@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from lucidscan.bootstrap.paths import LucidscanPaths
+from lucidscan.bootstrap.versions import get_tool_version
 from lucidscan.core.logging import get_logger
 from lucidscan.core.models import (
     ScanContext,
@@ -27,8 +28,8 @@ from lucidscan.plugins.linters.base import LinterPlugin
 
 LOGGER = get_logger(__name__)
 
-# Default Checkstyle version
-DEFAULT_VERSION = "10.21.2"
+# Default version from pyproject.toml [tool.lucidscan.tools]
+DEFAULT_VERSION = get_tool_version("checkstyle")
 
 # Checkstyle severity mapping
 SEVERITY_MAP = {
@@ -142,7 +143,7 @@ class CheckstyleLinter(LinterPlugin):
             raise ValueError(f"Invalid download URL: {url}")
 
         try:
-            urllib.request.urlretrieve(url, target_path)  # nosec B310
+            urllib.request.urlretrieve(url, target_path)  # nosec B310 nosemgrep
         except Exception as e:
             raise RuntimeError(f"Failed to download Checkstyle: {e}") from e
 

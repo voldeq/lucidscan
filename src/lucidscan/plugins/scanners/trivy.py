@@ -15,13 +15,14 @@ from lucidscan.plugins.scanners.base import ScannerPlugin
 from lucidscan.core.models import ScanContext, ScanDomain, Severity, UnifiedIssue
 from lucidscan.bootstrap.paths import LucidscanPaths
 from lucidscan.bootstrap.platform import get_platform_info
+from lucidscan.bootstrap.versions import get_tool_version
 from lucidscan.core.logging import get_logger
 from lucidscan.core.subprocess_runner import run_with_streaming
 
 LOGGER = get_logger(__name__)
 
-# Default version from pyproject.toml [tool.lucidscan.scanners]
-DEFAULT_VERSION = "0.68.1"
+# Default version from pyproject.toml [tool.lucidscan.tools]
+DEFAULT_VERSION = get_tool_version("trivy")
 
 # Trivy severity mapping to unified severity
 TRIVY_SEVERITY_MAP: Dict[str, Severity] = {
@@ -124,7 +125,7 @@ class TrivyScanner(ScannerPlugin):
         with tempfile.NamedTemporaryFile(suffix=".tar.gz", delete=False) as tmp_file:
             tmp_path = Path(tmp_file.name)
             try:
-                with urlopen(url) as response:  # nosec B310
+                with urlopen(url) as response:  # nosec B310 nosemgrep
                     tmp_file.write(response.read())
 
                 # Extract tarball safely (prevent path traversal)

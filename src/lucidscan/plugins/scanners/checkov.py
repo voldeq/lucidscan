@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 from lucidscan.plugins.scanners.base import ScannerPlugin
 from lucidscan.core.models import ScanContext, ScanDomain, Severity, UnifiedIssue
 from lucidscan.bootstrap.paths import LucidscanPaths
+from lucidscan.bootstrap.versions import get_tool_version
 from lucidscan.core.logging import get_logger
 from lucidscan.core.subprocess_runner import run_with_streaming
 
@@ -60,8 +61,8 @@ def _glob_to_regex(pattern: str) -> str:
 
     return result
 
-# Default version from pyproject.toml [tool.lucidscan.scanners]
-DEFAULT_VERSION = "3.2.495"
+# Default version from pyproject.toml [tool.lucidscan.tools]
+DEFAULT_VERSION = get_tool_version("checkov")
 
 # Checkov severity mapping to unified severity
 CHECKOV_SEVERITY_MAP: Dict[str, Severity] = {

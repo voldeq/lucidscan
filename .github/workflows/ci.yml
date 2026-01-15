@@ -5,6 +5,8 @@ on:
     branches: [main, master]
   pull_request:
 
+permissions: read-all
+
 env:
   PYTHON_VERSION: "3.11"
 
@@ -69,12 +71,12 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Read scanner versions
+      - name: Read tool versions
         id: versions
         run: |
-          echo "trivy=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['lucidscan']['scanners']['trivy'])")" >> $GITHUB_OUTPUT
-          echo "opengrep=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['lucidscan']['scanners']['opengrep'])")" >> $GITHUB_OUTPUT
-          echo "checkov=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['lucidscan']['scanners']['checkov'])")" >> $GITHUB_OUTPUT
+          echo "trivy=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['lucidscan']['tools']['trivy'])")" >> $GITHUB_OUTPUT
+          echo "opengrep=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['lucidscan']['tools']['opengrep'])")" >> $GITHUB_OUTPUT
+          echo "checkov=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['lucidscan']['tools']['checkov'])")" >> $GITHUB_OUTPUT
 
       - name: Verify version parsing
         run: |

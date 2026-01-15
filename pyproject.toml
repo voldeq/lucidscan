@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lucidscan"
-version = "0.5.8"
+version = "0.5.9"
 description = "LucidScan - The trust layer for AI-assisted development"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -60,6 +60,7 @@ dependencies = [
   "mcp>=1.0.0",
   "watchdog>=4.0.0",
   "defusedxml>=0.7.1",
+  "tomli>=2.0.0; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]
@@ -110,9 +111,16 @@ istanbul = "lucidscan.plugins.coverage.istanbul:IstanbulPlugin"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
-# Default scanner plugin versions
-# These are the source of truth for the build process
-[tool.lucidscan.scanners]
-trivy = "0.68.1"
-opengrep = "1.12.1"
-checkov = "3.2.495"
+# Tool versions - single source of truth for all lucidscan-managed tools
+# These versions are used when lucidscan downloads/installs the tools
+[tool.lucidscan.tools]
+# Security scanners
+trivy = "0.68.2"
+opengrep = "1.15.0"
+checkov = "3.2.497"
+# Linters
+ruff = "0.14.11"
+biome = "2.3.11"
+checkstyle = "13.0.0"
+# Type checkers
+pyright = "1.1.408"

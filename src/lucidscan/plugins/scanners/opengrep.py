@@ -14,13 +14,14 @@ from lucidscan.plugins.scanners.base import ScannerPlugin
 from lucidscan.core.models import ScanContext, ScanDomain, Severity, UnifiedIssue
 from lucidscan.bootstrap.paths import LucidscanPaths
 from lucidscan.bootstrap.platform import get_platform_info
+from lucidscan.bootstrap.versions import get_tool_version
 from lucidscan.core.logging import get_logger
 from lucidscan.core.subprocess_runner import run_with_streaming
 
 LOGGER = get_logger(__name__)
 
-# Default version from pyproject.toml [tool.lucidscan.scanners]
-DEFAULT_VERSION = "1.12.1"
+# Default version from pyproject.toml [tool.lucidscan.tools]
+DEFAULT_VERSION = get_tool_version("opengrep")
 
 # OpenGrep severity mapping to unified severity
 # OpenGrep/Semgrep uses: ERROR, WARNING, INFO
@@ -133,7 +134,7 @@ class OpenGrepScanner(ScannerPlugin):
 
         # Download binary directly (not an archive)
         try:
-            with urlopen(url) as response:  # nosec B310
+            with urlopen(url) as response:  # nosec B310 nosemgrep
                 binary_path.write_bytes(response.read())
 
             # Make binary executable (not needed on Windows)

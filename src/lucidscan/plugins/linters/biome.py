@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from lucidscan.bootstrap.paths import LucidscanPaths
+from lucidscan.bootstrap.versions import get_tool_version
 from lucidscan.core.logging import get_logger
 from lucidscan.core.models import (
     ScanContext,
@@ -27,8 +28,8 @@ from lucidscan.plugins.linters.base import FixResult, LinterPlugin
 
 LOGGER = get_logger(__name__)
 
-# Default Biome version
-DEFAULT_VERSION = "1.9.4"
+# Default version from pyproject.toml [tool.lucidscan.tools]
+DEFAULT_VERSION = get_tool_version("biome")
 
 # Biome severity mapping
 SEVERITY_MAP = {
@@ -278,7 +279,14 @@ class BiomeLinter(LinterPlugin):
         if system == "windows":
             binary_name += ".exe"
 
-        url = f"https://github.com/biomejs/biome/releases/download/cli/v{self._version}/{binary_name}"
+        # Biome 2.x changed the release URL format
+        # 1.x: https://github.com/biomejs/biome/releases/download/cli/v{version}/...
+        # 2.x: https://github.com/biomejs/biome/releases/download/@biomejs/biome@{version}/...
+        major_version = int(self._version.split(".")[0])
+        if major_version >= 2:
+            url = f"https://github.com/biomejs/biome/releases/download/@biomejs/biome@{self._version}/{binary_name}"
+        else:
+            url = f"https://github.com/biomejs/biome/releases/download/cli/v{self._version}/{binary_name}"
 
         archive_path = target_dir / binary_name
 
@@ -289,7 +297,7 @@ class BiomeLinter(LinterPlugin):
             raise ValueError(f"Invalid download URL: {url}")
 
         try:
-            urllib.request.urlretrieve(url, archive_path)  # nosec B310
+            urllib.request.urlretrieve(url, archive_path)  # nosec B310 nosemgrep
         except Exception as e:
             raise RuntimeError(f"Failed to download Biome: {e}") from e
 

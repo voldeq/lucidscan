@@ -137,8 +137,17 @@ class CoveragePyPlugin(CoveragePlugin):
                 LOGGER.warning("Failed to run tests with coverage")
                 return CoverageResult(threshold=threshold)
 
-        # Generate JSON report
-        return self._generate_and_parse_report(binary, context, threshold)
+        # Try to generate JSON report
+        result = self._generate_and_parse_report(binary, context, threshold)
+
+        # If report generation failed (e.g., stale coverage data) and we can run tests,
+        # re-run tests with coverage and try again
+        if result.total_lines == 0 and run_tests and coverage_file.exists():
+            LOGGER.info("Coverage data appears stale, re-running tests with coverage...")
+            if self._run_tests_with_coverage(binary, context):
+                result = self._generate_and_parse_report(binary, context, threshold)
+
+        return result
 
     def _run_tests_with_coverage(
         self,

@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from lucidscan.bootstrap.paths import LucidscanPaths
+from lucidscan.bootstrap.versions import get_tool_version
 from lucidscan.core.logging import get_logger
 from lucidscan.core.models import (
     ScanContext,
@@ -28,8 +29,8 @@ from lucidscan.plugins.linters.base import LinterPlugin, FixResult
 
 LOGGER = get_logger(__name__)
 
-# Default Ruff version
-DEFAULT_VERSION = "0.8.6"
+# Default version from pyproject.toml [tool.lucidscan.tools]
+DEFAULT_VERSION = get_tool_version("ruff")
 
 # Ruff severity mapping
 # Ruff outputs: E=error, W=warning, F=flake8, I=isort, etc.
@@ -321,7 +322,7 @@ class RuffLinter(LinterPlugin):
             raise ValueError(f"Invalid download URL: {url}")
 
         try:
-            urllib.request.urlretrieve(url, archive_path)  # nosec B310
+            urllib.request.urlretrieve(url, archive_path)  # nosec B310 nosemgrep
         except Exception as e:
             raise RuntimeError(f"Failed to download Ruff: {e}") from e
 
