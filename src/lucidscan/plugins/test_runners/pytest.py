@@ -61,6 +61,8 @@ class PytestRunner(TestRunnerPlugin):
                 [str(binary), "--version"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=30,
             )
             # Output is like "pytest 8.0.0"
@@ -139,6 +141,8 @@ class PytestRunner(TestRunnerPlugin):
                 [str(binary), "--co", "-q"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 cwd=str(project_root),
                 timeout=60,
             )
@@ -147,6 +151,8 @@ class PytestRunner(TestRunnerPlugin):
                 [str(binary), "--help"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 cwd=str(project_root),
                 timeout=30,
             )

@@ -58,6 +58,8 @@ class PlaywrightRunner(TestRunnerPlugin):
                 [str(binary), "--version"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=30,
             )
             if result.returncode == 0:
@@ -133,6 +135,8 @@ class PlaywrightRunner(TestRunnerPlugin):
                 cmd,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 cwd=str(context.project_root),
                 timeout=900,  # 15 minute timeout for E2E tests
             )

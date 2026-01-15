@@ -59,6 +59,8 @@ class JestRunner(TestRunnerPlugin):
                 [str(binary), "--version"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=30,
             )
             # Output is just the version number like "29.7.0"
@@ -136,6 +138,8 @@ class JestRunner(TestRunnerPlugin):
                     cmd,
                     capture_output=True,
                     text=True,
+                    encoding="utf-8",
+                    errors="replace",
                     cwd=str(context.project_root),
                     timeout=600,  # 10 minute timeout for test runs
                 )

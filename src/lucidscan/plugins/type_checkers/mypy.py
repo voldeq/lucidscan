@@ -128,6 +128,8 @@ class MypyChecker(TypeCheckerPlugin):
                 [str(binary), "--version"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=30,
             )
             # Output is like "mypy 1.8.0 (compiled: yes)"

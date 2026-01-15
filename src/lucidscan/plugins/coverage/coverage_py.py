@@ -66,6 +66,8 @@ class CoveragePyPlugin(CoveragePlugin):
                 [str(binary), "--version"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
             )
             # Output is like "Coverage.py, version 7.4.0 ..."
             if result.returncode == 0:

@@ -68,6 +68,8 @@ class TypeScriptChecker(TypeCheckerPlugin):
                 [str(binary), "--version"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=30,
             )
             # Output is like "Version 5.3.3"
@@ -147,6 +149,8 @@ class TypeScriptChecker(TypeCheckerPlugin):
                 cmd,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 cwd=str(context.project_root),
                 timeout=180,  # 3 minute timeout
             )

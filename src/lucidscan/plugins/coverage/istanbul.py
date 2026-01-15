@@ -63,6 +63,8 @@ class IstanbulPlugin(CoveragePlugin):
                 [str(binary), "--version"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
             )
             # Output is just the version number like "15.1.0"
             if result.returncode == 0:
@@ -191,6 +193,8 @@ class IstanbulPlugin(CoveragePlugin):
                 cmd,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 cwd=str(context.project_root),
             )
             return True
@@ -231,6 +235,8 @@ class IstanbulPlugin(CoveragePlugin):
                     cmd,
                     capture_output=True,
                     text=True,
+                    encoding="utf-8",
+                    errors="replace",
                     cwd=str(context.project_root),
                 )
 

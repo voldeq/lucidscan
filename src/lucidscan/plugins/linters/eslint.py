@@ -71,6 +71,8 @@ class ESLintLinter(LinterPlugin):
                 [str(binary), "--version"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=30,
             )
             # Output is like "v8.56.0"

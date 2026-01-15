@@ -176,6 +176,8 @@ class PyrightChecker(TypeCheckerPlugin):
                 cmd,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 cwd=str(context.project_root),
                 timeout=180,  # 3 minute timeout
             )

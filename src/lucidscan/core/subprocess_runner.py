@@ -59,6 +59,8 @@ def run_with_streaming(
             cmd,
             capture_output=capture_output,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             cwd=cwd_str,
             timeout=timeout,
         )
@@ -75,6 +77,8 @@ def run_with_streaming(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             cwd=cwd_str,
         ) as proc:
             # Use a queue to collect output from both streams
