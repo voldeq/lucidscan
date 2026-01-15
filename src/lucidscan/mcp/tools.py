@@ -183,7 +183,33 @@ class MCPToolExecutor:
             self._issue_cache[issue.id] = issue
 
         # Format as AI instructions
-        return self.instruction_formatter.format_scan_result(all_issues)
+        formatted_result = self.instruction_formatter.format_scan_result(all_issues)
+
+        # Add coverage summary if coverage was run
+        if context.coverage_result is not None:
+            cov = context.coverage_result
+            coverage_summary: Dict[str, Any] = {
+                "coverage_percentage": round(cov.percentage, 2),
+                "threshold": cov.threshold,
+                "total_lines": cov.total_lines,
+                "covered_lines": cov.covered_lines,
+                "missing_lines": cov.missing_lines,
+                "passed": cov.passed,
+            }
+            # Add test statistics if available
+            if cov.test_stats is not None:
+                ts = cov.test_stats
+                coverage_summary["tests"] = {
+                    "total": ts.total,
+                    "passed": ts.passed,
+                    "failed": ts.failed,
+                    "skipped": ts.skipped,
+                    "errors": ts.errors,
+                    "success": ts.success,
+                }
+            formatted_result["coverage_summary"] = coverage_summary
+
+        return formatted_result
 
     async def check_file(self, file_path: str) -> Dict[str, Any]:
         """Check a single file.
@@ -870,9 +896,11 @@ ignore:
             List of coverage issues.
         """
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(
+        issues = await loop.run_in_executor(
             None, self._runner.run_coverage, context
         )
+        # Coverage result is stored in context.coverage_result by DomainRunner
+        return issues
 
     async def _run_security(
         self,

@@ -89,6 +89,8 @@ class ScanContext:
     config: "LucidScanConfig" = None  # type: ignore[assignment]
     ignore_patterns: Optional["IgnorePatterns"] = None
     stream_handler: Optional["StreamHandler"] = None
+    # Coverage result populated after coverage analysis (for MCP/CLI access)
+    coverage_result: Any = None
 
     def get_scanner_options(self, domain: str) -> Dict[str, Any]:
         """Get plugin-specific options for a domain.
@@ -139,6 +141,24 @@ class ScanSummary:
 
 
 @dataclass
+class CoverageSummary:
+    """Summary of coverage analysis results."""
+
+    coverage_percentage: float = 0.0
+    threshold: float = 80.0
+    total_lines: int = 0
+    covered_lines: int = 0
+    missing_lines: int = 0
+    passed: bool = True
+    # Test statistics
+    tests_total: int = 0
+    tests_passed: int = 0
+    tests_failed: int = 0
+    tests_skipped: int = 0
+    tests_errors: int = 0
+
+
+@dataclass
 class ScanResult:
     """Aggregated result for a scan over one project or path set."""
 
@@ -146,6 +166,7 @@ class ScanResult:
     schema_version: str = "1.0"
     metadata: Optional[ScanMetadata] = None
     summary: Optional[ScanSummary] = None
+    coverage_summary: Optional[CoverageSummary] = None
 
     def compute_summary(self) -> ScanSummary:
         """Compute summary statistics from issues."""

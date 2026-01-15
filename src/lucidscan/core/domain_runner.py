@@ -360,12 +360,25 @@ class DomainRunner:
                 )
 
                 status = "PASSED" if result.passed else "FAILED"
-                self._log(
-                    "info",
-                    f"{name}: {result.percentage:.1f}% "
-                    f"({result.covered_lines}/{result.total_lines} lines) "
-                    f"- threshold: {threshold}% - {status}"
-                )
+
+                # Build log message with test stats if available
+                log_parts = [
+                    f"{name}: {result.percentage:.1f}%",
+                    f"({result.covered_lines}/{result.total_lines} lines)",
+                    f"- threshold: {threshold}%",
+                    f"- {status}",
+                ]
+                if result.test_stats:
+                    ts = result.test_stats
+                    log_parts.append(
+                        f"| Tests: {ts.total} total, {ts.passed} passed, "
+                        f"{ts.failed} failed, {ts.skipped} skipped"
+                    )
+
+                self._log("info", " ".join(log_parts))
+
+                # Store the coverage result in context for MCP to access
+                context.coverage_result = result
 
                 issues.extend(result.issues)
 

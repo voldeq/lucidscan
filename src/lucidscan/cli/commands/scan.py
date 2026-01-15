@@ -18,7 +18,7 @@ from lucidscan.config.ignore import load_ignore_patterns
 from lucidscan.config.models import LucidScanConfig
 from lucidscan.core.domain_runner import DomainRunner, check_severity_threshold
 from lucidscan.core.logging import get_logger
-from lucidscan.core.models import ScanContext, ScanResult, UnifiedIssue
+from lucidscan.core.models import CoverageSummary, ScanContext, ScanResult, UnifiedIssue
 from lucidscan.core.streaming import CLIStreamHandler, StreamHandler
 from lucidscan.pipeline import PipelineConfig, PipelineExecutor
 from lucidscan.plugins.reporters import get_reporter_plugin
@@ -170,9 +170,30 @@ class ScanCommand(Command):
             args, "all", False
         )
 
+        coverage_summary: Optional[CoverageSummary] = None
         if coverage_enabled:
             coverage_threshold = getattr(args, "coverage_threshold", None) or 80.0
             all_issues.extend(runner.run_coverage(context, coverage_threshold))
+
+            # Build coverage summary from context.coverage_result
+            if context.coverage_result is not None:
+                cov = context.coverage_result
+                coverage_summary = CoverageSummary(
+                    coverage_percentage=round(cov.percentage, 2),
+                    threshold=cov.threshold,
+                    total_lines=cov.total_lines,
+                    covered_lines=cov.covered_lines,
+                    missing_lines=cov.missing_lines,
+                    passed=cov.passed,
+                )
+                # Add test stats if available
+                if cov.test_stats is not None:
+                    ts = cov.test_stats
+                    coverage_summary.tests_total = ts.total
+                    coverage_summary.tests_passed = ts.passed
+                    coverage_summary.tests_failed = ts.failed
+                    coverage_summary.tests_skipped = ts.skipped
+                    coverage_summary.tests_errors = ts.errors
 
         # Run security scanning if any domains are enabled
         if enabled_domains:
@@ -208,6 +229,7 @@ class ScanCommand(Command):
         # Build final result
         result = ScanResult(issues=all_issues)
         result.summary = result.compute_summary()
+        result.coverage_summary = coverage_summary
 
         # Preserve metadata from pipeline execution
         if pipeline_result and pipeline_result.metadata:

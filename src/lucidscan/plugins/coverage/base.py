@@ -10,6 +10,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 
+# Re-export TestStatistics for plugins
+__all__ = ["CoveragePlugin", "CoverageResult", "FileCoverage", "TestStatistics"]
+
 from lucidscan.core.models import ScanContext, UnifiedIssue, ToolDomain
 
 
@@ -32,6 +35,22 @@ class FileCoverage:
 
 
 @dataclass
+class TestStatistics:
+    """Test execution statistics."""
+
+    total: int = 0
+    passed: int = 0
+    failed: int = 0
+    skipped: int = 0
+    errors: int = 0
+
+    @property
+    def success(self) -> bool:
+        """Whether all tests passed (no failures or errors)."""
+        return self.failed == 0 and self.errors == 0
+
+
+@dataclass
 class CoverageResult:
     """Result statistics from coverage analysis."""
 
@@ -42,6 +61,8 @@ class CoverageResult:
     threshold: float = 0.0
     files: Dict[str, FileCoverage] = field(default_factory=dict)
     issues: List[UnifiedIssue] = field(default_factory=list)
+    # Test statistics (populated when tests are run for coverage)
+    test_stats: Optional[TestStatistics] = None
 
     @property
     def percentage(self) -> float:

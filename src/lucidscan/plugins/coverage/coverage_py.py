@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from lucidscan.core.logging import get_logger
 from lucidscan.core.models import (
@@ -26,6 +27,7 @@ from lucidscan.plugins.coverage.base import (
     CoveragePlugin,
     CoverageResult,
     FileCoverage,
+    TestStatistics,
 )
 
 LOGGER = get_logger(__name__)
@@ -130,22 +132,27 @@ class CoveragePyPlugin(CoveragePlugin):
 
         # Check for existing coverage data
         coverage_file = context.project_root / ".coverage"
+        test_stats: Optional[TestStatistics] = None
 
         if not coverage_file.exists() and run_tests:
             LOGGER.info("No coverage data found, running tests with coverage...")
-            if not self._run_tests_with_coverage(binary, context):
+            success, test_stats = self._run_tests_with_coverage(binary, context)
+            if not success:
                 LOGGER.warning("Failed to run tests with coverage")
                 return CoverageResult(threshold=threshold)
 
         # Try to generate JSON report
         result = self._generate_and_parse_report(binary, context, threshold)
+        result.test_stats = test_stats
 
         # If report generation failed (e.g., stale coverage data) and we can run tests,
         # re-run tests with coverage and try again
         if result.total_lines == 0 and run_tests and coverage_file.exists():
             LOGGER.info("Coverage data appears stale, re-running tests with coverage...")
-            if self._run_tests_with_coverage(binary, context):
+            success, test_stats = self._run_tests_with_coverage(binary, context)
+            if success:
                 result = self._generate_and_parse_report(binary, context, threshold)
+                result.test_stats = test_stats
 
         return result
 
@@ -153,7 +160,7 @@ class CoveragePyPlugin(CoveragePlugin):
         self,
         binary: Path,
         context: ScanContext,
-    ) -> bool:
+    ) -> Tuple[bool, Optional[TestStatistics]]:
         """Run pytest with coverage measurement.
 
         Args:
@@ -161,7 +168,8 @@ class CoveragePyPlugin(CoveragePlugin):
             context: Scan context.
 
         Returns:
-            True if tests ran successfully.
+            Tuple of (success, test_stats). Success is True if tests ran.
+            Test stats contain passed/failed/skipped/error counts.
         """
         # Check for pytest
         pytest_path = None
@@ -177,7 +185,7 @@ class CoveragePyPlugin(CoveragePlugin):
 
         if not pytest_path:
             LOGGER.warning("pytest not found, cannot run tests for coverage")
-            return False
+            return False, None
 
         # Build command to run coverage with pytest
         cmd = [
@@ -196,19 +204,68 @@ class CoveragePyPlugin(CoveragePlugin):
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
         try:
-            run_with_streaming(
+            result = run_with_streaming(
                 cmd=cmd,
                 cwd=context.project_root,
                 tool_name="coverage-run",
                 stream_handler=context.stream_handler,
                 timeout=600,
             )
+            # Parse test statistics from pytest output
+            test_stats = self._parse_pytest_output(result.stdout + "\n" + result.stderr)
             # Coverage run returns the pytest exit code
             # We consider it successful even if some tests fail
-            return True
+            return True, test_stats
         except Exception as e:
             LOGGER.error(f"Failed to run tests with coverage: {e}")
-            return False
+            return False, None
+
+    def _parse_pytest_output(self, output: str) -> TestStatistics:
+        """Parse pytest output to extract test statistics.
+
+        Parses pytest summary lines like:
+        - "9 passed in 0.12s"
+        - "1 failed, 2 passed in 0.15s"
+        - "3 passed, 1 skipped, 1 warning in 0.10s"
+
+        Args:
+            output: Combined stdout/stderr from pytest run.
+
+        Returns:
+            TestStatistics with parsed counts.
+        """
+        stats = TestStatistics()
+
+        # Look for the summary line pattern
+        # Example patterns:
+        # "===== 1 failed, 2 passed in 0.15s ====="
+        # "9 passed in 0.12s"
+        # "1 passed, 1 skipped in 0.10s"
+        summary_pattern = r"(?:=+\s*)?(\d+\s+\w+(?:,\s*\d+\s+\w+)*)\s+in\s+[\d.]+s\s*(?:=+)?"
+
+        for line in output.split("\n"):
+            match = re.search(summary_pattern, line)
+            if match:
+                summary = match.group(1)
+                # Parse individual counts
+                passed_match = re.search(r"(\d+)\s+passed", summary)
+                failed_match = re.search(r"(\d+)\s+failed", summary)
+                skipped_match = re.search(r"(\d+)\s+skipped", summary)
+                error_match = re.search(r"(\d+)\s+error", summary)
+
+                if passed_match:
+                    stats.passed = int(passed_match.group(1))
+                if failed_match:
+                    stats.failed = int(failed_match.group(1))
+                if skipped_match:
+                    stats.skipped = int(skipped_match.group(1))
+                if error_match:
+                    stats.errors = int(error_match.group(1))
+
+                stats.total = stats.passed + stats.failed + stats.skipped + stats.errors
+                break
+
+        return stats
 
     def _generate_and_parse_report(
         self,

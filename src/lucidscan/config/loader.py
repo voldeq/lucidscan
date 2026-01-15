@@ -319,9 +319,20 @@ def _parse_coverage_pipeline_config(
     if coverage_data is None:
         return None
 
+    # Parse tools the same way as _parse_domain_pipeline_config
+    tools_data = coverage_data.get("tools", [])
+    tools = []
+    for tool_data in tools_data:
+        if isinstance(tool_data, dict):
+            tools.append(_parse_tool_config(tool_data))
+        elif isinstance(tool_data, str):
+            # Simple string format: just the tool name
+            tools.append(ToolConfig(name=tool_data))
+
     return CoveragePipelineConfig(
         enabled=coverage_data.get("enabled", False),
         threshold=coverage_data.get("threshold", 80),
+        tools=tools,
     )
 
 
