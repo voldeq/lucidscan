@@ -26,7 +26,9 @@ from lucidscan.plugins.coverage.istanbul import IstanbulPlugin
 
 def _ensure_trivy_downloaded() -> bool:
     """Ensure Trivy binary is downloaded. Returns True if available."""
-    scanner = TrivyScanner()
+    # Use explicit project_root for consistent path resolution across platforms
+    root = Path(__file__).parent.parent.parent
+    scanner = TrivyScanner(project_root=root)
     try:
         scanner.ensure_binary()
         return True
@@ -36,7 +38,9 @@ def _ensure_trivy_downloaded() -> bool:
 
 def _ensure_opengrep_downloaded() -> bool:
     """Ensure OpenGrep binary is downloaded. Returns True if available."""
-    scanner = OpenGrepScanner()
+    # Use explicit project_root for consistent path resolution across platforms
+    root = Path(__file__).parent.parent.parent
+    scanner = OpenGrepScanner(project_root=root)
     try:
         scanner.ensure_binary()
         return True
@@ -56,7 +60,9 @@ def _is_opengrep_in_path() -> bool:
 
 def _ensure_checkov_installed() -> bool:
     """Ensure Checkov is installed. Returns True if available."""
-    scanner = CheckovScanner()
+    # Use explicit project_root for consistent path resolution across platforms
+    root = Path(__file__).parent.parent.parent
+    scanner = CheckovScanner(project_root=root)
     try:
         scanner.ensure_binary()
         return True
@@ -120,13 +126,17 @@ def project_root() -> Path:
 @pytest.fixture(scope="session")
 def trivy_scanner() -> TrivyScanner:
     """Return a TrivyScanner instance (session-scoped for performance)."""
-    return TrivyScanner()
+    # Use explicit project_root for consistent path resolution across platforms
+    root = Path(__file__).parent.parent.parent
+    return TrivyScanner(project_root=root)
 
 
 @pytest.fixture(scope="session")
 def opengrep_scanner() -> OpenGrepScanner:
     """Return an OpenGrepScanner instance (session-scoped for performance)."""
-    return OpenGrepScanner()
+    # Use explicit project_root for consistent path resolution across platforms
+    root = Path(__file__).parent.parent.parent
+    return OpenGrepScanner(project_root=root)
 
 
 @pytest.fixture(scope="session")
@@ -144,7 +154,9 @@ def ensure_opengrep_binary(opengrep_scanner: OpenGrepScanner) -> Path:
 @pytest.fixture(scope="session")
 def checkov_scanner() -> CheckovScanner:
     """Return a CheckovScanner instance (session-scoped for performance)."""
-    return CheckovScanner()
+    # Use explicit project_root for consistent path resolution across platforms
+    root = Path(__file__).parent.parent.parent
+    return CheckovScanner(project_root=root)
 
 
 @pytest.fixture(scope="session")
@@ -160,8 +172,10 @@ def ensure_checkov_binary(checkov_scanner: CheckovScanner) -> Path:
 
 def _ensure_ruff_downloaded() -> bool:
     """Ensure Ruff binary is downloaded. Returns True if available."""
+    # Use explicit project_root for consistent path resolution across platforms
+    root = Path(__file__).parent.parent.parent
     try:
-        linter = RuffLinter()
+        linter = RuffLinter(project_root=root)
         linter.ensure_binary()
         return True
     except Exception:
@@ -170,8 +184,10 @@ def _ensure_ruff_downloaded() -> bool:
 
 def _ensure_biome_downloaded() -> bool:
     """Ensure Biome binary is downloaded. Returns True if available."""
+    # Use explicit project_root for consistent path resolution across platforms
+    root = Path(__file__).parent.parent.parent
     try:
-        linter = BiomeLinter()
+        linter = BiomeLinter(project_root=root)
         linter.ensure_binary()
         return True
     except Exception:
@@ -298,15 +314,15 @@ tsc_available = pytest.mark.skipif(
 
 
 @pytest.fixture
-def ruff_linter() -> RuffLinter:
+def ruff_linter(project_root: Path) -> RuffLinter:
     """Return a RuffLinter instance."""
-    return RuffLinter()
+    return RuffLinter(project_root=project_root)
 
 
 @pytest.fixture
-def biome_linter() -> BiomeLinter:
+def biome_linter(project_root: Path) -> BiomeLinter:
     """Return a BiomeLinter instance."""
-    return BiomeLinter()
+    return BiomeLinter(project_root=project_root)
 
 
 @pytest.fixture
@@ -316,9 +332,9 @@ def eslint_linter(project_root: Path) -> ESLintLinter:
 
 
 @pytest.fixture
-def checkstyle_linter() -> CheckstyleLinter:
+def checkstyle_linter(project_root: Path) -> CheckstyleLinter:
     """Return a CheckstyleLinter instance."""
-    return CheckstyleLinter()
+    return CheckstyleLinter(project_root=project_root)
 
 
 @pytest.fixture
