@@ -183,7 +183,7 @@ def test_nothing():
             # Should generate an issue due to low coverage
             if len(result.issues) > 0:
                 issue = result.issues[0]
-                metadata = issue.scanner_metadata
+                metadata = issue.metadata
 
                 assert "coverage_percentage" in metadata
                 assert "threshold" in metadata

@@ -127,7 +127,7 @@ class TestIstanbulJsonParsing:
             issue = result.issues[0]
             assert "70.0%" in issue.title
             assert "80.0%" in issue.title
-            assert issue.scanner == ToolDomain.COVERAGE
+            assert issue.domain == ToolDomain.COVERAGE
             assert issue.source_tool == "istanbul"
 
     def test_parse_json_report_above_threshold(self) -> None:

@@ -440,17 +440,20 @@ class CheckovScanner(ScannerPlugin):
 
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ScanDomain.IAC,
+                domain=ScanDomain.IAC,
                 source_tool="checkov",
                 severity=severity,
+                rule_id=check_id,
                 title=title,
                 description=description,
+                documentation_url=guideline,
                 file_path=file_path,
                 line_start=line_start,
                 line_end=line_end,
                 iac_resource=iac_resource,
                 recommendation=recommendation,
-                scanner_metadata=scanner_metadata,
+                fixable=False,  # Checkov doesn't auto-fix
+                metadata=scanner_metadata,
             )
 
         except Exception as e:

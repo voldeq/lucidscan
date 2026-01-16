@@ -309,15 +309,17 @@ class JestRunner(TestRunnerPlugin):
 
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ToolDomain.TESTING,
+                domain=ToolDomain.TESTING,
                 source_tool="jest",
                 severity=Severity.HIGH,
+                rule_id="failed",
                 title=title,
                 description=message,
                 file_path=file_path,
                 line_start=line_number,
                 line_end=line_number,
-                scanner_metadata={
+                fixable=False,
+                metadata={
                     "full_name": full_name,
                     "test_name": test_name,
                     "ancestor_titles": title_parts,

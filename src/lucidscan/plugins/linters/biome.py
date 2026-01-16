@@ -397,20 +397,26 @@ class BiomeLinter(LinterPlugin):
             # Build title
             title = f"[{category}] {message}" if category else message
 
+            # Get column end
+            column_end = location.get("columnEnd")
+
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ToolDomain.LINTING,
+                domain=ToolDomain.LINTING,
                 source_tool="biome",
                 severity=severity,
+                rule_id=category or "unknown",
                 title=title,
                 description=message,
+                documentation_url=f"https://biomejs.dev/linter/rules/{category.lower().replace('/', '-')}" if category else None,
                 file_path=file_path,
                 line_start=line_start,
                 line_end=line_end,
-                scanner_metadata={
-                    "category": category,
-                    "severity": severity_str,
-                    "column": column_start,
+                column_start=column_start,
+                column_end=column_end,
+                fixable=diagnostic.get("fixable", False),
+                metadata={
+                    "severity_raw": severity_str,
                 },
             )
         except Exception as e:

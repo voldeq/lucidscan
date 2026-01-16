@@ -123,12 +123,12 @@ class InstructionFormatter:
             summary=self._generate_summary_line(issue),
             file=file_path,
             line=issue.line_start or 0,
-            column=None,
+            column=issue.column_start,
             problem=issue.description or "",
             fix_steps=self._generate_fix_steps(issue, detailed),
             suggested_fix=self._generate_suggested_fix(issue),
             current_code=issue.code_snippet,
-            documentation_url=issue.scanner_metadata.get("documentation_url"),
+            documentation_url=issue.documentation_url,
             related_issues=[],
             issue_id=issue.id,
         )
@@ -142,13 +142,13 @@ class InstructionFormatter:
         Returns:
             Action string like FIX_SECURITY_VULNERABILITY.
         """
-        prefix = self.DOMAIN_ACTION_PREFIX.get(issue.scanner, "FIX_")
+        prefix = self.DOMAIN_ACTION_PREFIX.get(issue.domain, "FIX_")
         title_lower = issue.title.lower() if issue.title else ""
-        scanner = issue.scanner
+        domain = issue.domain
 
         # Specific action types based on issue characteristics
         # Handle both ScanDomain and ToolDomain
-        if scanner in (ScanDomain.SAST, ToolDomain.SECURITY):
+        if domain in (ScanDomain.SAST, ToolDomain.SECURITY):
             if "hardcoded" in title_lower or "secret" in title_lower:
                 return f"{prefix}HARDCODED_SECRET"
             elif "injection" in title_lower:
@@ -157,27 +157,27 @@ class InstructionFormatter:
                 return f"{prefix}XSS"
             return f"{prefix}VULNERABILITY"
 
-        if scanner == ScanDomain.SCA:
+        if domain == ScanDomain.SCA:
             return f"{prefix}VULNERABILITY"
 
-        if scanner == ScanDomain.IAC:
+        if domain == ScanDomain.IAC:
             if "exposed" in title_lower or "public" in title_lower:
                 return f"{prefix}EXPOSURE"
             return f"{prefix}MISCONFIGURATION"
 
-        if scanner == ScanDomain.CONTAINER:
+        if domain == ScanDomain.CONTAINER:
             return f"{prefix}VULNERABILITY"
 
-        if scanner == ToolDomain.LINTING:
+        if domain == ToolDomain.LINTING:
             return f"{prefix}ERROR"
 
-        if scanner == ToolDomain.TYPE_CHECKING:
+        if domain == ToolDomain.TYPE_CHECKING:
             return f"{prefix}ERROR"
 
-        if scanner == ToolDomain.TESTING:
+        if domain == ToolDomain.TESTING:
             return f"{prefix}FAILURE"
 
-        if scanner == ToolDomain.COVERAGE:
+        if domain == ToolDomain.COVERAGE:
             return f"{prefix}GAP"
 
         return "FIX_ISSUE"
@@ -247,7 +247,7 @@ class InstructionFormatter:
             steps.append(issue.recommendation)
 
         # Add AI explanation if enriched
-        ai_explanation = issue.scanner_metadata.get("ai_explanation")
+        ai_explanation = issue.metadata.get("ai_explanation")
         if ai_explanation:
             steps.extend(self._parse_ai_explanation(ai_explanation))
 
@@ -299,10 +299,10 @@ class InstructionFormatter:
             List of generic fix steps.
         """
         file_ref = f"{issue.file_path}:{issue.line_start}" if issue.file_path and issue.line_start else str(issue.file_path or "the file")
-        scanner = issue.scanner
+        domain = issue.domain
 
         # Handle both ScanDomain and ToolDomain
-        if scanner in (ScanDomain.SAST, ToolDomain.SECURITY):
+        if domain in (ScanDomain.SAST, ToolDomain.SECURITY):
             return [
                 f"Review the security issue at {file_ref}",
                 "Apply the recommended fix from the scanner",
@@ -310,48 +310,48 @@ class InstructionFormatter:
                 "Consider adding tests to prevent regression",
             ]
 
-        if scanner == ScanDomain.SCA:
+        if domain == ScanDomain.SCA:
             return [
                 f"Update the vulnerable dependency mentioned in {issue.title}",
                 "Run tests to ensure compatibility with new version",
                 "Check for breaking changes in the changelog",
             ]
 
-        if scanner == ScanDomain.IAC:
+        if domain == ScanDomain.IAC:
             return [
                 f"Review the infrastructure issue at {file_ref}",
                 "Apply security best practices for the resource",
                 "Test the changes in a non-production environment",
             ]
 
-        if scanner == ScanDomain.CONTAINER:
+        if domain == ScanDomain.CONTAINER:
             return [
                 f"Review the container vulnerability at {file_ref}",
                 "Update the base image or vulnerable packages",
                 "Rebuild and test the container",
             ]
 
-        if scanner == ToolDomain.LINTING:
+        if domain == ToolDomain.LINTING:
             return [
                 f"Fix the linting issue at {file_ref}",
-                "Consider running 'lucidscan scan --lint --fix' for auto-fix",
+                "Consider running 'lucidscan scan --linting --fix' for auto-fix",
             ]
 
-        if scanner == ToolDomain.TYPE_CHECKING:
+        if domain == ToolDomain.TYPE_CHECKING:
             return [
                 f"Fix the type error at {file_ref}",
                 "Ensure type annotations are correct and complete",
                 "Check for None values that need handling",
             ]
 
-        if scanner == ToolDomain.TESTING:
+        if domain == ToolDomain.TESTING:
             return [
                 f"Review the failing test at {file_ref}",
                 "Determine if the test or the code needs to be fixed",
                 "Run the test in isolation to verify the fix",
             ]
 
-        if scanner == ToolDomain.COVERAGE:
+        if domain == ToolDomain.COVERAGE:
             return [
                 f"Add tests to cover the uncovered code at {file_ref}",
                 "Focus on critical paths and edge cases",
@@ -369,14 +369,13 @@ class InstructionFormatter:
         Returns:
             Suggested fix code or None.
         """
-        # Check scanner metadata for suggested fix
-        suggested = issue.scanner_metadata.get("suggested_fix")
-        if suggested:
-            return suggested
+        # Use the issue's suggested_fix field directly
+        if issue.suggested_fix:
+            return issue.suggested_fix
 
-        # For linting issues, the fix might be auto-applicable
-        if issue.scanner == ToolDomain.LINTING:
-            auto_fix = issue.scanner_metadata.get("auto_fix")
+        # For linting issues, check metadata for auto_fix
+        if issue.domain == ToolDomain.LINTING:
+            auto_fix = issue.metadata.get("auto_fix")
             if auto_fix:
                 return auto_fix
 

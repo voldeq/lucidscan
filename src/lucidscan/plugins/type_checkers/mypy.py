@@ -310,18 +310,20 @@ class MypyChecker(TypeCheckerPlugin):
 
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ToolDomain.TYPE_CHECKING,
+                domain=ToolDomain.TYPE_CHECKING,
                 source_tool="mypy",
                 severity=severity,
+                rule_id=code or "unknown",
                 title=title,
                 description=message,
+                documentation_url=f"https://mypy.readthedocs.io/en/stable/error_code_list.html#{code}" if code else None,
                 file_path=file_path,
                 line_start=line,
                 line_end=line,
-                scanner_metadata={
-                    "code": code,
-                    "severity": severity_str,
-                    "column": column,
+                column_start=column,
+                fixable=False,
+                metadata={
+                    "severity_raw": severity_str,
                 },
             )
         except Exception as e:

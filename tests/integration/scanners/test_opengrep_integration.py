@@ -250,9 +250,9 @@ def dangerous_exec(code):
         # Verify scanner_metadata contains raw OpenGrep data
         if issues:
             issue = issues[0]
-            assert "rule_id" in issue.scanner_metadata
-            assert "line_start" in issue.scanner_metadata
-            assert "line_end" in issue.scanner_metadata
+            assert "rule_id" in issue.metadata
+            assert "line_start" in issue.metadata
+            assert "line_end" in issue.metadata
 
             # Check for code snippet
             if issue.code_snippet:

@@ -268,18 +268,20 @@ class PyrightChecker(TypeCheckerPlugin):
 
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ToolDomain.TYPE_CHECKING,
+                domain=ToolDomain.TYPE_CHECKING,
                 source_tool="pyright",
                 severity=severity,
+                rule_id=rule or "unknown",
                 title=title,
                 description=message,
+                documentation_url="https://github.com/microsoft/pyright/blob/main/docs/configuration.md",
                 file_path=file_path,
                 line_start=line_start,
                 line_end=line_end,
-                scanner_metadata={
-                    "rule": rule,
-                    "severity": severity_str,
-                    "column": column,
+                column_start=column,
+                fixable=False,
+                metadata={
+                    "severity_raw": severity_str,
                 },
             )
         except Exception as e:

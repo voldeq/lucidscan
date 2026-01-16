@@ -235,18 +235,20 @@ class TypeScriptChecker(TypeCheckerPlugin):
 
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ToolDomain.TYPE_CHECKING,
+                domain=ToolDomain.TYPE_CHECKING,
                 source_tool="typescript",
                 severity=severity,
+                rule_id=code,
                 title=f"[{code}] {message}",
                 description=message,
+                documentation_url=f"https://typescript.tv/errors/#{code}",
                 file_path=file_path,
                 line_start=line,
                 line_end=line,
-                scanner_metadata={
-                    "code": code,
-                    "severity": severity_str,
-                    "column": column,
+                column_start=column,
+                fixable=False,
+                metadata={
+                    "severity_raw": severity_str,
                 },
             )
         except Exception as e:

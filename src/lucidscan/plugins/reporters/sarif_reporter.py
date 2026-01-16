@@ -152,8 +152,10 @@ class SARIFReporter(ReporterPlugin):
                 "text": issue.description,
             }
 
-        # Add help URI from recommendation if available
-        if issue.recommendation:
+        # Add help URI from documentation_url or recommendation
+        if issue.documentation_url:
+            rule["helpUri"] = issue.documentation_url
+        elif issue.recommendation:
             # Check if recommendation contains a URL
             if issue.recommendation.startswith("http"):
                 rule["helpUri"] = issue.recommendation
@@ -163,18 +165,18 @@ class SARIFReporter(ReporterPlugin):
                 if url.startswith("http"):
                     rule["helpUri"] = url
 
-        # Add CWE/OWASP tags from scanner metadata if available
-        metadata = issue.scanner_metadata.get("metadata", {})
-        if metadata:
+        # Add CWE/OWASP tags from metadata if available
+        tool_metadata = issue.metadata
+        if tool_metadata:
             tags = []
-            if "cwe" in metadata:
-                cwe_ids = metadata["cwe"]
+            if "cwe" in tool_metadata:
+                cwe_ids = tool_metadata["cwe"]
                 if isinstance(cwe_ids, list):
                     tags.extend(cwe_ids)
                 elif cwe_ids:
                     tags.append(cwe_ids)
-            if "owasp" in metadata:
-                owasp_ids = metadata["owasp"]
+            if "owasp" in tool_metadata:
+                owasp_ids = tool_metadata["owasp"]
                 if isinstance(owasp_ids, list):
                     tags.extend(owasp_ids)
                 elif owasp_ids:
@@ -257,10 +259,8 @@ class SARIFReporter(ReporterPlugin):
     def _get_rule_id(self, issue: UnifiedIssue) -> str:
         """Extract or generate a rule ID for an issue.
 
-        Uses scanner-specific identifiers when available:
-        - Trivy: vulnerability_id (CVE-xxxx)
-        - OpenGrep: rule_id
-        - Checkov: check_id (CKV_xxx)
+        Uses the issue's rule_id field, falling back to scanner-specific
+        identifiers in metadata if needed.
 
         Args:
             issue: The issue to get a rule ID from.
@@ -268,9 +268,14 @@ class SARIFReporter(ReporterPlugin):
         Returns:
             Rule identifier string.
         """
-        metadata = issue.scanner_metadata
+        # Use the new rule_id field if available
+        if issue.rule_id:
+            return issue.rule_id
 
-        # Try scanner-specific IDs first
+        # Fallback to metadata for older scanner output formats
+        metadata = issue.metadata
+
+        # Try scanner-specific IDs from metadata
         if "vulnerability_id" in metadata:
             return metadata["vulnerability_id"]
         if "rule_id" in metadata:

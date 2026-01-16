@@ -50,9 +50,10 @@ class MockScanner:
         return [
             UnifiedIssue(
                 id=f"{self._name}-{i}",
-                scanner=ScanDomain.SCA,
+                domain=ScanDomain.SCA,
                 source_tool=self._name,
                 severity=Severity.MEDIUM,
+                rule_id=f"CVE-{i}",
                 title=f"Issue {i}",
                 description="Test issue",
             )

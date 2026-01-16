@@ -425,19 +425,22 @@ class CoveragePyPlugin(CoveragePlugin):
 
         return UnifiedIssue(
             id=issue_id,
-            scanner=ToolDomain.COVERAGE,
+            domain=ToolDomain.COVERAGE,
             source_tool="coverage.py",
             severity=severity,
+            rule_id="coverage_below_threshold",
             title=f"Coverage {percentage:.1f}% is below threshold {threshold}%",
             description=(
                 f"Project coverage is {percentage:.1f}%, which is {gap:.1f}% below "
                 f"the required threshold of {threshold}%. "
                 f"{missing_lines} lines are not covered."
             ),
+            recommendation=f"Add tests to cover at least {gap:.1f}% more of the codebase.",
             file_path=None,  # Project-level issue
             line_start=None,
             line_end=None,
-            scanner_metadata={
+            fixable=False,
+            metadata={
                 "coverage_percentage": round(percentage, 2),
                 "threshold": threshold,
                 "total_lines": total_lines,

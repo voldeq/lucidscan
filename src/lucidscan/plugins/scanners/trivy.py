@@ -444,17 +444,25 @@ class TrivyScanner(ScannerPlugin):
             if image_ref:
                 scanner_metadata["image_ref"] = image_ref
 
+            # Get primary reference URL if available
+            references = vuln.get("References", [])
+            documentation_url = references[0] if references else None
+
             return UnifiedIssue(
                 id=issue_id,
-                scanner=domain,
+                domain=domain,
                 source_tool="trivy",
                 severity=severity,
+                rule_id=vuln_id,
                 title=f"{vuln_id}: {title}",
                 description=description,
+                documentation_url=documentation_url,
                 file_path=file_path,
                 dependency=dependency,
                 recommendation=recommendation,
-                scanner_metadata=scanner_metadata,
+                fixable=bool(fixed_version),
+                suggested_fix=f"Upgrade to version {fixed_version}" if fixed_version else None,
+                metadata=scanner_metadata,
             )
 
         except Exception as e:

@@ -27,15 +27,16 @@ def sample_issues() -> list[UnifiedIssue]:
     return [
         UnifiedIssue(
             id="trivy-abc123",
-            scanner=ScanDomain.SCA,
+            domain=ScanDomain.SCA,
             source_tool="trivy",
             severity=Severity.CRITICAL,
+            rule_id="CVE-2021-1234",
             title="CVE-2021-1234: Critical vulnerability in lodash",
             description="A critical vulnerability exists in lodash.",
             file_path=Path("package.json"),
             dependency="lodash@4.17.15 (npm)",
             recommendation="Upgrade lodash to version 4.17.21",
-            scanner_metadata={
+            metadata={
                 "vulnerability_id": "CVE-2021-1234",
                 "pkg_name": "lodash",
                 "installed_version": "4.17.15",
@@ -44,15 +45,16 @@ def sample_issues() -> list[UnifiedIssue]:
         ),
         UnifiedIssue(
             id="trivy-def456",
-            scanner=ScanDomain.SCA,
+            domain=ScanDomain.SCA,
             source_tool="trivy",
             severity=Severity.HIGH,
+            rule_id="CVE-2021-5678",
             title="CVE-2021-5678: High severity issue",
             description="A high severity vulnerability.",
             file_path=Path("package.json"),
             dependency="express@4.17.0 (npm)",
             recommendation="Upgrade express to version 4.18.0",
-            scanner_metadata={
+            metadata={
                 "vulnerability_id": "CVE-2021-5678",
                 "pkg_name": "express",
                 "installed_version": "4.17.0",
@@ -61,15 +63,16 @@ def sample_issues() -> list[UnifiedIssue]:
         ),
         UnifiedIssue(
             id="trivy-ghi789",
-            scanner=ScanDomain.SCA,
+            domain=ScanDomain.SCA,
             source_tool="trivy",
             severity=Severity.MEDIUM,
+            rule_id="CVE-2021-9999",
             title="CVE-2021-9999: Medium severity issue",
             description="A medium severity vulnerability.",
             file_path=Path("requirements.txt"),
             dependency="django@2.2.0 (pip)",
             recommendation="Upgrade django to version 3.0.0",
-            scanner_metadata={
+            metadata={
                 "vulnerability_id": "CVE-2021-9999",
                 "pkg_name": "django",
                 "installed_version": "2.2.0",
@@ -143,12 +146,13 @@ class TestJSONReporter:
         issue = data["issues"][0]
 
         assert "id" in issue
-        assert "scanner" in issue
+        assert "domain" in issue
         assert "source_tool" in issue
         assert "severity" in issue
+        assert "rule_id" in issue
         assert "title" in issue
         assert "description" in issue
-        assert "scanner_metadata" in issue
+        assert "metadata" in issue
 
 
 class TestTableReporter:
@@ -206,12 +210,13 @@ class TestTableReporter:
         long_title = "A" * 100  # 100 character title
         issue = UnifiedIssue(
             id="test-1",
-            scanner=ScanDomain.SCA,
+            domain=ScanDomain.SCA,
             source_tool="trivy",
             severity=Severity.HIGH,
+            rule_id="test-rule",
             title=long_title,
             description="Test",
-            scanner_metadata={},
+            metadata={},
         )
         result = ScanResult(issues=[issue])
         result.summary = result.compute_summary()
@@ -417,12 +422,13 @@ class TestSARIFReporter:
     def test_severity_mapping_critical(self) -> None:
         issue = UnifiedIssue(
             id="test-1",
-            scanner=ScanDomain.SCA,
+            domain=ScanDomain.SCA,
             source_tool="trivy",
             severity=Severity.CRITICAL,
+            rule_id="CVE-TEST-001",
             title="Critical Issue",
             description="A critical issue",
-            scanner_metadata={"vulnerability_id": "CVE-TEST-001"},
+            metadata={"vulnerability_id": "CVE-TEST-001"},
         )
         result = ScanResult(issues=[issue])
         result.summary = result.compute_summary()
@@ -441,12 +447,13 @@ class TestSARIFReporter:
     def test_severity_mapping_info(self) -> None:
         issue = UnifiedIssue(
             id="test-2",
-            scanner=ScanDomain.SCA,
+            domain=ScanDomain.SCA,
             source_tool="trivy",
             severity=Severity.INFO,
+            rule_id="CVE-TEST-002",
             title="Info Issue",
             description="An informational issue",
-            scanner_metadata={"vulnerability_id": "CVE-TEST-002"},
+            metadata={"vulnerability_id": "CVE-TEST-002"},
         )
         result = ScanResult(issues=[issue])
         result.summary = result.compute_summary()
@@ -466,12 +473,13 @@ class TestSARIFReporter:
         """Test that vulnerability_id is used as rule ID for Trivy issues."""
         issue = UnifiedIssue(
             id="trivy-123",
-            scanner=ScanDomain.SCA,
+            domain=ScanDomain.SCA,
             source_tool="trivy",
             severity=Severity.HIGH,
+            rule_id="CVE-2021-1234",
             title="CVE-2021-1234: Vulnerability",
             description="Test vulnerability",
-            scanner_metadata={"vulnerability_id": "CVE-2021-1234"},
+            metadata={"vulnerability_id": "CVE-2021-1234"},
         )
         result = ScanResult(issues=[issue])
         result.summary = result.compute_summary()
@@ -488,12 +496,13 @@ class TestSARIFReporter:
         """Test that check_id is used as rule ID for Checkov issues."""
         issue = UnifiedIssue(
             id="checkov-123",
-            scanner=ScanDomain.IAC,
+            domain=ScanDomain.IAC,
             source_tool="checkov",
             severity=Severity.MEDIUM,
+            rule_id="CKV_AWS_123",
             title="CKV_AWS_123: S3 bucket encryption",
             description="S3 bucket should have encryption enabled",
-            scanner_metadata={"check_id": "CKV_AWS_123"},
+            metadata={"check_id": "CKV_AWS_123"},
         )
         result = ScanResult(issues=[issue])
         result.summary = result.compute_summary()
@@ -509,12 +518,13 @@ class TestSARIFReporter:
         """Test that rule_id is used as rule ID for OpenGrep issues."""
         issue = UnifiedIssue(
             id="opengrep-123",
-            scanner=ScanDomain.SAST,
+            domain=ScanDomain.SAST,
             source_tool="opengrep",
             severity=Severity.HIGH,
+            rule_id="python.security.sql-injection",
             title="python.security.sql-injection",
             description="SQL injection detected",
-            scanner_metadata={"rule_id": "python.security.sql-injection"},
+            metadata={"rule_id": "python.security.sql-injection"},
         )
         result = ScanResult(issues=[issue])
         result.summary = result.compute_summary()
@@ -531,23 +541,25 @@ class TestSARIFReporter:
         issues = [
             UnifiedIssue(
                 id="trivy-1",
-                scanner=ScanDomain.SCA,
+                domain=ScanDomain.SCA,
                 source_tool="trivy",
                 severity=Severity.HIGH,
+                rule_id="CVE-2021-1234",
                 title="CVE-2021-1234 in package A",
                 description="Vulnerability in package A",
                 file_path=Path("package.json"),
-                scanner_metadata={"vulnerability_id": "CVE-2021-1234"},
+                metadata={"vulnerability_id": "CVE-2021-1234"},
             ),
             UnifiedIssue(
                 id="trivy-2",
-                scanner=ScanDomain.SCA,
+                domain=ScanDomain.SCA,
                 source_tool="trivy",
                 severity=Severity.HIGH,
+                rule_id="CVE-2021-1234",
                 title="CVE-2021-1234 in package B",
                 description="Same CVE in package B",
                 file_path=Path("requirements.txt"),
-                scanner_metadata={"vulnerability_id": "CVE-2021-1234"},
+                metadata={"vulnerability_id": "CVE-2021-1234"},
             ),
         ]
         result = ScanResult(issues=issues)
@@ -569,13 +581,14 @@ class TestSARIFReporter:
         """Test that issues without file_path don't have locations."""
         issue = UnifiedIssue(
             id="test-1",
-            scanner=ScanDomain.CONTAINER,
+            domain=ScanDomain.CONTAINER,
             source_tool="trivy",
             severity=Severity.HIGH,
+            rule_id="CVE-TEST-001",
             title="Container vulnerability",
             description="Vulnerability in container image",
             file_path=None,
-            scanner_metadata={"vulnerability_id": "CVE-TEST-001"},
+            metadata={"vulnerability_id": "CVE-TEST-001"},
         )
         result = ScanResult(issues=[issue])
         result.summary = result.compute_summary()
@@ -594,15 +607,16 @@ class TestSARIFReporter:
         """Test that line numbers are included in region."""
         issue = UnifiedIssue(
             id="opengrep-1",
-            scanner=ScanDomain.SAST,
+            domain=ScanDomain.SAST,
             source_tool="opengrep",
             severity=Severity.HIGH,
+            rule_id="python.security.sql-injection",
             title="SQL Injection",
             description="Possible SQL injection",
             file_path=Path("src/db.py"),
             line_start=42,
             line_end=45,
-            scanner_metadata={"rule_id": "python.security.sql-injection"},
+            metadata={"rule_id": "python.security.sql-injection"},
         )
         result = ScanResult(issues=[issue])
         result.summary = result.compute_summary()

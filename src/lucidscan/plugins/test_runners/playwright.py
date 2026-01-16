@@ -343,15 +343,17 @@ class PlaywrightRunner(TestRunnerPlugin):
 
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ToolDomain.TESTING,
+                domain=ToolDomain.TESTING,
                 source_tool="playwright",
                 severity=Severity.HIGH,
+                rule_id="failed",
                 title=f"{full_name}{browser_info}: {self._truncate(error_message, 60)}",
                 description=description,
                 file_path=file_path,
                 line_start=line_number,
                 line_end=line_number,
-                scanner_metadata={
+                fixable=False,
+                metadata={
                     "full_name": full_name,
                     "test_title": test_title,
                     "ancestors": ancestors,

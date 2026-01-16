@@ -379,9 +379,10 @@ class IstanbulPlugin(CoveragePlugin):
 
         return UnifiedIssue(
             id=issue_id,
-            scanner=ToolDomain.COVERAGE,
+            domain=ToolDomain.COVERAGE,
             source_tool="istanbul",
             severity=severity,
+            rule_id="coverage_below_threshold",
             title=f"Coverage {percentage:.1f}% is below threshold {threshold}%",
             description=(
                 f"Project coverage is {percentage:.1f}%, which is {gap:.1f}% below "
@@ -391,10 +392,12 @@ class IstanbulPlugin(CoveragePlugin):
                 f"Branches: {branches.get('covered', 0)}/{branches.get('total', 0)} ({branches.get('pct', 0):.1f}%), "
                 f"Functions: {functions.get('covered', 0)}/{functions.get('total', 0)} ({functions.get('pct', 0):.1f}%)"
             ),
+            recommendation=f"Add tests to cover at least {gap:.1f}% more of the codebase.",
             file_path=None,  # Project-level issue
             line_start=None,
             line_end=None,
-            scanner_metadata={
+            fixable=False,
+            metadata={
                 "coverage_percentage": round(percentage, 2),
                 "threshold": threshold,
                 "total_lines": total_lines,

@@ -238,7 +238,7 @@ class TestOpenGrepScannerJsonParsing:
 
         assert len(issues) == 1
         issue = issues[0]
-        assert issue.scanner == ScanDomain.SAST
+        assert issue.domain == ScanDomain.SAST
         assert issue.source_tool == "opengrep"
         assert "python.security.test-rule" in issue.title
         assert issue.line_start == 10
@@ -279,7 +279,7 @@ class TestOpenGrepScannerJsonParsing:
         # Metadata severity should override extra.severity
         from lucidscan.core.models import Severity
         assert issue.severity == Severity.HIGH
-        assert "cwe" in issue.scanner_metadata.get("metadata", {})
+        assert "cwe" in issue.metadata.get("metadata", {})
 
     def test_parse_multiple_results(self) -> None:
         """Test parsing multiple results."""

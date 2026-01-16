@@ -73,7 +73,7 @@ class TestTrivySCAScanning:
             assert hasattr(issue, "id")
             assert hasattr(issue, "severity")
             assert hasattr(issue, "scanner")
-            assert issue.scanner == ScanDomain.SCA
+            assert issue.domain == ScanDomain.SCA
             assert issue.source_tool == "trivy"
 
     def test_scan_with_vulnerable_package(
@@ -131,7 +131,7 @@ class TestTrivySCAScanning:
 
         # Verify issue structure
         issue = issues[0]
-        assert issue.scanner == ScanDomain.SCA
+        assert issue.domain == ScanDomain.SCA
         assert issue.source_tool == "trivy"
         assert issue.severity in [
             Severity.CRITICAL,
@@ -224,10 +224,10 @@ class TestTrivyContainerScanning:
         # If there are issues, verify structure
         if issues:
             issue = issues[0]
-            assert issue.scanner == ScanDomain.CONTAINER
+            assert issue.domain == ScanDomain.CONTAINER
             assert issue.source_tool == "trivy"
-            assert "image_ref" in issue.scanner_metadata
-            assert issue.scanner_metadata["image_ref"] == "alpine:3.14"
+            assert "image_ref" in issue.metadata
+            assert issue.metadata["image_ref"] == "alpine:3.14"
 
     def test_scan_vulnerable_image(self, trivy_scanner: TrivyScanner) -> None:
         """Test scanning an image with known vulnerabilities (python:3.8-slim-buster)."""
@@ -260,9 +260,9 @@ class TestTrivyContainerScanning:
 
         # Verify issue structure
         issue = issues[0]
-        assert issue.scanner == ScanDomain.CONTAINER
+        assert issue.domain == ScanDomain.CONTAINER
         assert issue.source_tool == "trivy"
-        assert "image_ref" in issue.scanner_metadata
+        assert "image_ref" in issue.metadata
 
     def test_scan_multiple_images(self, trivy_scanner: TrivyScanner) -> None:
         """Test scanning multiple container images."""
@@ -328,7 +328,7 @@ class TestTrivyContainerScanning:
         # Just verify the scan completes and returns valid structure
         assert isinstance(issues, list)
         for issue in issues:
-            assert issue.scanner == ScanDomain.CONTAINER
+            assert issue.domain == ScanDomain.CONTAINER
 
 
 @trivy_available
@@ -365,9 +365,9 @@ class TestTrivyOutputParsing:
         # Verify scanner_metadata contains raw Trivy data
         if issues:
             issue = issues[0]
-            assert "vulnerability_id" in issue.scanner_metadata
-            assert "pkg_name" in issue.scanner_metadata
-            assert "installed_version" in issue.scanner_metadata
+            assert "vulnerability_id" in issue.metadata
+            assert "pkg_name" in issue.metadata
+            assert "installed_version" in issue.metadata
 
     def test_issue_id_is_deterministic(
         self, trivy_scanner: TrivyScanner, tmp_path: Path

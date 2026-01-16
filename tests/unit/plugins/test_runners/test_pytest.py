@@ -123,7 +123,7 @@ class TestPytestJsonParsing:
             issue = result.issues[0]
             assert "test_failure" in issue.title
             assert issue.severity == Severity.HIGH
-            assert issue.scanner == ToolDomain.TESTING
+            assert issue.domain == ToolDomain.TESTING
             assert issue.source_tool == "pytest"
 
     def test_parse_json_report_all_passed(self) -> None:

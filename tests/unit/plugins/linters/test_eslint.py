@@ -157,7 +157,7 @@ class TestESLintLinter:
 
                     assert len(issues) == 1
                     assert issues[0].source_tool == "eslint"
-                    assert issues[0].scanner == ToolDomain.LINTING
+                    assert issues[0].domain == ToolDomain.LINTING
                     assert "no-unused-vars" in issues[0].title
                     assert issues[0].line_start == 10
                     assert issues[0].severity == Severity.HIGH
@@ -517,7 +517,7 @@ class TestMessageToIssue:
         issue = linter._message_to_issue(message, "/test/file.js", Path("/project"))
 
         assert issue is not None
-        assert issue.scanner_metadata.get("fixable") is True
+        assert issue.fixable is True
 
     def test_message_without_fix(self) -> None:
         """Test message without fix information."""
@@ -533,7 +533,7 @@ class TestMessageToIssue:
         issue = linter._message_to_issue(message, "/test/file.js", Path("/project"))
 
         assert issue is not None
-        assert issue.scanner_metadata.get("fixable") is False
+        assert issue.fixable is False
 
     def test_message_without_rule_id(self) -> None:
         """Test message without rule ID."""

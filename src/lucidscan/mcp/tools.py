@@ -264,10 +264,10 @@ class MCPToolExecutor:
             return {"error": f"Issue not found: {issue_id}"}
 
         # Only linting issues are auto-fixable
-        if issue.scanner != ToolDomain.LINTING:
+        if issue.domain != ToolDomain.LINTING:
             return {
                 "error": "Only linting issues support auto-fix",
-                "issue_type": issue.scanner.value if issue.scanner else "unknown",
+                "issue_type": issue.domain.value if issue.domain else "unknown",
             }
 
         # Run linter in fix mode for the specific file

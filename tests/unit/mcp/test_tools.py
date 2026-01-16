@@ -159,7 +159,7 @@ class TestMCPToolExecutor:
         """Test that issues are cached for later retrieval."""
         issue = UnifiedIssue(
             id="cached-issue-1",
-            scanner=ScanDomain.SAST,
+            domain=ScanDomain.SAST, rule_id="test-rule",
             source_tool="test",
             severity=Severity.HIGH,
             title="Test issue",
@@ -214,7 +214,7 @@ class TestMCPToolExecutorAsync:
         """Test getting fix instructions for cached issue."""
         issue = UnifiedIssue(
             id="test-issue-1",
-            scanner=ScanDomain.SAST,
+            domain=ScanDomain.SAST, rule_id="test-rule",
             source_tool="test",
             severity=Severity.HIGH,
             title="Test vulnerability",
@@ -240,7 +240,7 @@ class TestMCPToolExecutorAsync:
         """Test that apply_fix only works for linting issues."""
         issue = UnifiedIssue(
             id="security-issue",
-            scanner=ScanDomain.SAST,
+            domain=ScanDomain.SAST, rule_id="test-rule",
             source_tool="test",
             severity=Severity.HIGH,
             title="Security issue",
@@ -292,7 +292,7 @@ class TestMCPToolExecutorAsync:
         """Test scan that returns issues."""
         mock_issue = UnifiedIssue(
             id="test-issue",
-            scanner=ToolDomain.LINTING,
+            domain=ToolDomain.LINTING, rule_id="F401",
             source_tool="test",
             severity=Severity.HIGH,
             title="Test issue",
@@ -338,7 +338,7 @@ class TestMCPToolExecutorAsync:
         """Test apply_fix when issue has no file path."""
         issue = UnifiedIssue(
             id="linting-issue",
-            scanner=ToolDomain.LINTING,
+            domain=ToolDomain.LINTING, rule_id="F401",
             source_tool="ruff",
             severity=Severity.LOW,
             title="Linting issue",
@@ -361,7 +361,7 @@ class TestMCPToolExecutorAsync:
 
         issue = UnifiedIssue(
             id="linting-issue",
-            scanner=ToolDomain.LINTING,
+            domain=ToolDomain.LINTING, rule_id="F401",
             source_tool="ruff",
             severity=Severity.LOW,
             title="Linting issue",
@@ -384,7 +384,7 @@ class TestMCPToolExecutorAsync:
 
         issue = UnifiedIssue(
             id="linting-issue",
-            scanner=ToolDomain.LINTING,
+            domain=ToolDomain.LINTING, rule_id="F401",
             source_tool="ruff",
             severity=Severity.LOW,
             title="Linting issue",

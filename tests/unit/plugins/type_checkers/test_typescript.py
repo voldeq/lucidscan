@@ -159,7 +159,7 @@ class TestTypeScriptChecker:
 
                     assert len(issues) == 1
                     assert issues[0].source_tool == "typescript"
-                    assert issues[0].scanner == ToolDomain.TYPE_CHECKING
+                    assert issues[0].domain == ToolDomain.TYPE_CHECKING
                     assert "TS2322" in issues[0].title
                     assert issues[0].line_start == 10
                     assert issues[0].severity == Severity.HIGH

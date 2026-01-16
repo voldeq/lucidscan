@@ -347,19 +347,21 @@ class CheckstyleLinter(LinterPlugin):
 
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ToolDomain.LINTING,
+                domain=ToolDomain.LINTING,
                 source_tool="checkstyle",
                 severity=severity,
+                rule_id=rule or "unknown",
                 title=f"[{rule}] {message}" if rule else message,
                 description=message,
+                documentation_url=f"https://checkstyle.org/checks.html#{rule}" if rule else None,
                 file_path=path,
                 line_start=line_num,
                 line_end=line_num,
-                scanner_metadata={
-                    "rule": rule,
+                column_start=col_num,
+                fixable=False,  # Checkstyle doesn't support auto-fix
+                metadata={
                     "source": source,
-                    "severity": severity_str,
-                    "column": col_num,
+                    "severity_raw": severity_str,
                 },
             )
         except Exception as e:

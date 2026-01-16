@@ -394,19 +394,29 @@ class OpenGrepScanner(ScannerPlugin):
                     "confidence": metadata.get("confidence"),
                 }
 
+            # Get documentation URL from metadata references
+            references = metadata.get("references", []) if metadata else []
+            documentation_url = references[0] if references else None
+
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ScanDomain.SAST,
+                domain=ScanDomain.SAST,
                 source_tool="opengrep",
                 severity=severity,
+                rule_id=rule_id,
                 title=title,
                 description=description,
+                documentation_url=documentation_url,
                 file_path=file_path,
                 line_start=line_start,
                 line_end=line_end,
+                column_start=start.get("col") if start else None,
+                column_end=end.get("col") if end else None,
                 code_snippet=code_snippet,
                 recommendation=recommendation,
-                scanner_metadata=scanner_metadata,
+                fixable=bool(extra.get("fix")),
+                suggested_fix=extra.get("fix"),
+                metadata=scanner_metadata,
             )
 
         except Exception as e:

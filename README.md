@@ -48,6 +48,8 @@ lucidscan scan --linting           # Linting (Ruff, ESLint, Biome)
 lucidscan scan --type-checking     # Type checking (mypy, pyright, tsc)
 lucidscan scan --sast              # Security code analysis (OpenGrep)
 lucidscan scan --sca               # Dependency vulnerabilities (Trivy)
+lucidscan scan --iac               # Infrastructure-as-Code (Checkov)
+lucidscan scan --container         # Container image scanning (Trivy)
 lucidscan scan --testing           # Run tests (pytest, Jest)
 lucidscan scan --coverage          # Coverage analysis
 
@@ -96,6 +98,7 @@ Configures both Claude Code and Cursor.
 | **Security (SAST)** | OpenGrep | Code vulnerabilities |
 | **Security (SCA)** | Trivy | Dependency vulnerabilities |
 | **Security (IaC)** | Checkov | Infrastructure misconfigurations |
+| **Security (Container)** | Trivy | Container image vulnerabilities |
 | **Testing** | pytest, Jest, Karma (Angular), Playwright (E2E) | Test failures |
 | **Coverage** | coverage.py, Istanbul | Coverage gaps |
 
@@ -157,7 +160,7 @@ lucidscan init --all                     # Configure all AI tools
 lucidscan autoconfigure [--ci github|gitlab|bitbucket] [--non-interactive]
 
 # Run quality pipeline
-lucidscan scan [--linting] [--type-checking] [--sca] [--sast] [--iac] [--testing] [--coverage] [--all]
+lucidscan scan [--linting] [--type-checking] [--sca] [--sast] [--iac] [--container] [--testing] [--coverage] [--all]
 lucidscan scan [--fix] [--stream] [--format table|json|sarif|summary]
 lucidscan scan [--fail-on critical|high|medium|low]
 

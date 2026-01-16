@@ -94,9 +94,10 @@ class TestPipelineExecutor:
         """Test that execute computes a summary."""
         mock_issue = UnifiedIssue(
             id="test-1",
-            scanner=ScanDomain.SCA,
+            domain=ScanDomain.SCA,
             source_tool="test",
             severity=Severity.HIGH,
+            rule_id="CVE-2021-1234",
             title="Test",
             description="Test issue",
         )

@@ -59,10 +59,12 @@ class TableReporter(ReporterPlugin):
 
         for issue in sorted_issues:
             sev = issue.severity.value.upper()
-            vuln_id = issue.scanner_metadata.get("vulnerability_id", issue.id)[:20]
+            # Use rule_id first, then check metadata for vulnerability_id, fallback to issue id
+            rule_id = issue.rule_id or issue.metadata.get("vulnerability_id", issue.id)
+            rule_id = rule_id[:20]
             dep = (issue.dependency or "")[:40]
             title = issue.title[:60] if len(issue.title) > 60 else issue.title
-            lines.append(f"{sev:<10} {vuln_id:<20} {dep:<40} {title}")
+            lines.append(f"{sev:<10} {rule_id:<20} {dep:<40} {title}")
 
         # Summary
         lines.append("")

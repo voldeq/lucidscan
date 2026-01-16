@@ -356,15 +356,17 @@ class KarmaRunner(TestRunnerPlugin):
 
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ToolDomain.TESTING,
+                domain=ToolDomain.TESTING,
                 source_tool="karma",
                 severity=Severity.HIGH,
+                rule_id="failed",
                 title=f"{full_name}: {self._truncate(message, 80)}",
                 description=message,
                 file_path=file_path,
                 line_start=line_number,
                 line_end=line_number,
-                scanner_metadata={
+                fixable=False,
+                metadata={
                     "full_name": full_name,
                     "suite": suite,
                     "description": description_name,
@@ -394,15 +396,17 @@ class KarmaRunner(TestRunnerPlugin):
 
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ToolDomain.TESTING,
+                domain=ToolDomain.TESTING,
                 source_tool="karma",
                 severity=Severity.HIGH,
+                rule_id="failed",
                 title=self._truncate(failure, 100),
                 description=failure,
                 file_path=None,
                 line_start=None,
                 line_end=None,
-                scanner_metadata={
+                fixable=False,
+                metadata={
                     "failure_line": failure,
                 },
             )

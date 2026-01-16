@@ -50,29 +50,47 @@ class Severity(str, Enum):
 
 @dataclass
 class UnifiedIssue:
-    """Normalized issue representation shared by all scanners.
+    """Normalized issue representation shared by all tools.
 
-    This is a preliminary skeleton aligned with the main specification's
-    unified issue schema. Additional fields may be added in later phases.
+    This unified schema handles issues from all domains:
+    - Linting: code style and quality issues
+    - Type checking: type errors and warnings
+    - Security (SAST/SCA/IaC/Container): vulnerabilities and misconfigurations
+    - Testing: test failures
+    - Coverage: coverage gaps
     """
 
+    # Core identification
     id: str
-    scanner: DomainType
-    source_tool: str
+    domain: DomainType  # The domain category (linting, sast, sca, etc.)
+    source_tool: str  # The actual tool (ruff, trivy, mypy, etc.)
     severity: Severity
+
+    # Content
+    rule_id: str  # Rule identifier (E501, CVE-2024-1234, CKV_AWS_1)
     title: str
     description: str
+    recommendation: Optional[str] = None
+    documentation_url: Optional[str] = None
 
+    # Location
     file_path: Optional[Path] = None
     line_start: Optional[int] = None
     line_end: Optional[int] = None
-
-    dependency: Optional[str] = None
-    iac_resource: Optional[str] = None
+    column_start: Optional[int] = None
+    column_end: Optional[int] = None
     code_snippet: Optional[str] = None
-    recommendation: Optional[str] = None
 
-    scanner_metadata: Dict[str, Any] = field(default_factory=dict)
+    # Fix information
+    fixable: bool = False
+    suggested_fix: Optional[str] = None
+
+    # Domain-specific fields
+    dependency: Optional[str] = None  # For SCA (e.g., "lodash@4.17.20")
+    iac_resource: Optional[str] = None  # For IaC (e.g., "aws_s3_bucket.public")
+
+    # Extensibility
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -171,19 +189,19 @@ class ScanResult:
     def compute_summary(self) -> ScanSummary:
         """Compute summary statistics from issues."""
         by_severity: Dict[str, int] = {}
-        by_scanner: Dict[str, int] = {}
+        by_domain: Dict[str, int] = {}
 
         for issue in self.issues:
             sev = issue.severity.value
             by_severity[sev] = by_severity.get(sev, 0) + 1
 
-            scanner = issue.scanner.value
-            by_scanner[scanner] = by_scanner.get(scanner, 0) + 1
+            domain = issue.domain.value
+            by_domain[domain] = by_domain.get(domain, 0) + 1
 
         return ScanSummary(
             total=len(self.issues),
             by_severity=by_severity,
-            by_scanner=by_scanner,
+            by_scanner=by_domain,  # Keep field name for backwards compatibility
         )
 
 

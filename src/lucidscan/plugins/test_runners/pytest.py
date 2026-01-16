@@ -371,15 +371,17 @@ class PytestRunner(TestRunnerPlugin):
 
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ToolDomain.TESTING,
+                domain=ToolDomain.TESTING,
                 source_tool="pytest",
                 severity=severity,
+                rule_id=outcome,
                 title=title,
                 description=longrepr or f"Test {outcome}",
                 file_path=file_path,
                 line_start=line_number,
                 line_end=line_number,
-                scanner_metadata={
+                fixable=False,
+                metadata={
                     "nodeid": nodeid,
                     "test_name": test_name,
                     "outcome": outcome,
@@ -518,15 +520,17 @@ class PytestRunner(TestRunnerPlugin):
 
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ToolDomain.TESTING,
+                domain=ToolDomain.TESTING,
                 source_tool="pytest",
                 severity=severity,
+                rule_id=outcome,
                 title=title,
                 description=content or message or f"Test {outcome}",
                 file_path=file_path,
                 line_start=line_number,
                 line_end=line_number,
-                scanner_metadata={
+                fixable=False,
+                metadata={
                     "nodeid": nodeid,
                     "test_name": name,
                     "classname": classname,

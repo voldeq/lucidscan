@@ -153,5 +153,5 @@ def test_assertion_failure():
             assert issue.description is not None
 
             # Check metadata
-            assert "test_name" in issue.scanner_metadata
-            assert "outcome" in issue.scanner_metadata
+            assert "test_name" in issue.metadata
+            assert "outcome" in issue.metadata

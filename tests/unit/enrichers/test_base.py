@@ -25,7 +25,7 @@ class ConcreteEnricher(EnricherPlugin):
     ) -> List[UnifiedIssue]:
         # Add metadata to each issue
         for issue in issues:
-            issue.scanner_metadata["enriched"] = True
+            issue.metadata["enriched"] = True
         return issues
 
 
@@ -86,17 +86,19 @@ class TestConcreteEnricher:
         return [
             UnifiedIssue(
                 id="issue-1",
-                scanner=ScanDomain.SCA,
+                domain=ScanDomain.SCA,
                 source_tool="test",
                 severity=Severity.HIGH,
+                rule_id="CVE-2021-1234",
                 title="High Issue",
                 description="A high severity issue",
             ),
             UnifiedIssue(
                 id="issue-2",
-                scanner=ScanDomain.SCA,
+                domain=ScanDomain.SCA,
                 source_tool="test",
                 severity=Severity.LOW,
+                rule_id="CVE-2021-5678",
                 title="Low Issue",
                 description="A low severity issue",
             ),
@@ -113,7 +115,7 @@ class TestConcreteEnricher:
 
         assert len(enriched) == 2
         for issue in enriched:
-            assert issue.scanner_metadata.get("enriched") is True
+            assert issue.metadata.get("enriched") is True
 
     def test_enrich_can_filter_issues(
         self,

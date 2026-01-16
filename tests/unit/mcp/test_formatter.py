@@ -77,9 +77,10 @@ class TestInstructionFormatter:
         issues = [
             UnifiedIssue(
                 id="issue-1",
-                scanner=ScanDomain.SAST,
+                domain=ScanDomain.SAST,
                 source_tool="opengrep",
                 severity=Severity.HIGH,
+                rule_id="python.security.sql-injection",
                 title="SQL Injection vulnerability",
                 description="User input is directly used in SQL query",
                 file_path=Path("src/db.py"),
@@ -87,9 +88,10 @@ class TestInstructionFormatter:
             ),
             UnifiedIssue(
                 id="issue-2",
-                scanner=ToolDomain.LINTING,
+                domain=ToolDomain.LINTING,
                 source_tool="ruff",
                 severity=Severity.LOW,
+                rule_id="F401",
                 title="Unused import",
                 description="'os' imported but unused",
                 file_path=Path("src/utils.py"),
@@ -123,9 +125,10 @@ class TestInstructionFormatter:
         # SQL injection
         issue = UnifiedIssue(
             id="test-1",
-            scanner=ScanDomain.SAST,
+            domain=ScanDomain.SAST,
             source_tool="test",
             severity=Severity.HIGH,
+            rule_id="sql-injection",
             title="SQL Injection detected",
             description="Test",
         )
@@ -148,9 +151,10 @@ class TestInstructionFormatter:
         """Test action generation for linting issues."""
         issue = UnifiedIssue(
             id="test-1",
-            scanner=ToolDomain.LINTING,
+            domain=ToolDomain.LINTING,
             source_tool="ruff",
             severity=Severity.LOW,
+            rule_id="E501",
             title="Line too long",
             description="Test",
         )
@@ -163,9 +167,10 @@ class TestInstructionFormatter:
         """Test action generation for type checking issues."""
         issue = UnifiedIssue(
             id="test-1",
-            scanner=ToolDomain.TYPE_CHECKING,
+            domain=ToolDomain.TYPE_CHECKING,
             source_tool="mypy",
             severity=Severity.MEDIUM,
+            rule_id="arg-type",
             title="Type mismatch",
             description="Test",
         )
@@ -178,9 +183,10 @@ class TestInstructionFormatter:
         """Test action generation for test failures."""
         issue = UnifiedIssue(
             id="test-1",
-            scanner=ToolDomain.TESTING,
+            domain=ToolDomain.TESTING,
             source_tool="pytest",
             severity=Severity.HIGH,
+            rule_id="failed",
             title="test_auth_login failed",
             description="Test",
         )
@@ -193,9 +199,10 @@ class TestInstructionFormatter:
         """Test action generation for coverage gaps."""
         issue = UnifiedIssue(
             id="test-1",
-            scanner=ToolDomain.COVERAGE,
+            domain=ToolDomain.COVERAGE,
             source_tool="coverage.py",
             severity=Severity.LOW,
+            rule_id="coverage_below_threshold",
             title="Uncovered lines",
             description="Test",
         )
@@ -206,9 +213,10 @@ class TestInstructionFormatter:
         """Test formatting a single issue."""
         issue = UnifiedIssue(
             id="test-1",
-            scanner=ScanDomain.SAST,
+            domain=ScanDomain.SAST,
             source_tool="opengrep",
             severity=Severity.CRITICAL,
+            rule_id="python.lang.security.audit.eval.eval",
             title="Remote Code Execution",
             description="Unsafe eval() usage allows arbitrary code execution",
             file_path=Path("src/handler.py"),
@@ -244,9 +252,10 @@ class TestInstructionFormatter:
         for domain, expected_keyword in domains_and_expected:
             issue = UnifiedIssue(
                 id="test",
-                scanner=domain,
+                domain=domain,
                 source_tool="test",
                 severity=Severity.MEDIUM,
+                rule_id="test-rule",
                 title="Test issue",
                 description="Test",
                 file_path=Path("test.py"),
@@ -289,9 +298,10 @@ class TestInstructionFormatter:
         issues = [
             UnifiedIssue(
                 id=f"issue-{i}",
-                scanner=ScanDomain.SAST,
+                domain=ScanDomain.SAST,
                 source_tool="test",
                 severity=sev,
+                rule_id=f"test-rule-{i}",
                 title="Test",
                 description="Test",
             )
@@ -317,9 +327,10 @@ class TestInstructionFormatter:
         """Test action generation for SCA issues."""
         issue = UnifiedIssue(
             id="test-1",
-            scanner=ScanDomain.SCA,
+            domain=ScanDomain.SCA,
             source_tool="trivy",
             severity=Severity.HIGH,
+            rule_id="CVE-2021-1234",
             title="Vulnerable dependency",
             description="Test",
         )
@@ -332,9 +343,10 @@ class TestInstructionFormatter:
         """Test action generation for IAC with exposed resource."""
         issue = UnifiedIssue(
             id="test-1",
-            scanner=ScanDomain.IAC,
+            domain=ScanDomain.IAC,
             source_tool="checkov",
             severity=Severity.HIGH,
+            rule_id="CKV_AWS_20",
             title="S3 bucket is exposed to public",
             description="Test",
         )
@@ -347,9 +359,10 @@ class TestInstructionFormatter:
         """Test action generation for IAC with public resource."""
         issue = UnifiedIssue(
             id="test-1",
-            scanner=ScanDomain.IAC,
+            domain=ScanDomain.IAC,
             source_tool="checkov",
             severity=Severity.MEDIUM,
+            rule_id="CKV_AWS_88",
             title="EC2 instance has public IP",
             description="Test",
         )
@@ -362,9 +375,10 @@ class TestInstructionFormatter:
         """Test action generation for IAC misconfiguration."""
         issue = UnifiedIssue(
             id="test-1",
-            scanner=ScanDomain.IAC,
+            domain=ScanDomain.IAC,
             source_tool="checkov",
             severity=Severity.LOW,
+            rule_id="CKV_AWS_19",
             title="Missing encryption at rest",
             description="Test",
         )
@@ -377,9 +391,10 @@ class TestInstructionFormatter:
         """Test action generation for container issues."""
         issue = UnifiedIssue(
             id="test-1",
-            scanner=ScanDomain.CONTAINER,
+            domain=ScanDomain.CONTAINER,
             source_tool="trivy",
             severity=Severity.HIGH,
+            rule_id="CVE-2021-5678",
             title="Vulnerable base image",
             description="Test",
         )
@@ -390,10 +405,10 @@ class TestInstructionFormatter:
         self, formatter: InstructionFormatter
     ) -> None:
         """Test action generation for unknown scanner returns default."""
-        # Create issue with non-standard scanner value using MagicMock
+        # Create issue with non-standard domain value using MagicMock
         from unittest.mock import MagicMock
         issue = MagicMock()
-        issue.scanner = "unknown_scanner"
+        issue.domain = "unknown_domain"
         issue.title = "Some issue"
         action = formatter._generate_action(issue)
         assert action == "FIX_ISSUE"
@@ -404,9 +419,10 @@ class TestInstructionFormatter:
         """Test summary line generation with file but no line number."""
         issue = UnifiedIssue(
             id="test-1",
-            scanner=ScanDomain.SAST,
+            domain=ScanDomain.SAST,
             source_tool="test",
             severity=Severity.HIGH,
+            rule_id="test-rule",
             title="Security issue",
             description="Test",
             file_path=Path("src/module.py"),
@@ -423,9 +439,10 @@ class TestInstructionFormatter:
         """Test summary line generation with no file."""
         issue = UnifiedIssue(
             id="test-1",
-            scanner=ScanDomain.SAST,
+            domain=ScanDomain.SAST,
             source_tool="test",
             severity=Severity.HIGH,
+            rule_id="test-rule",
             title="Security issue",
             description="Test",
         )
@@ -438,9 +455,10 @@ class TestInstructionFormatter:
         """Test formatting issue with detailed mode."""
         issue = UnifiedIssue(
             id="test-1",
-            scanner=ScanDomain.SAST,
+            domain=ScanDomain.SAST,
             source_tool="opengrep",
             severity=Severity.CRITICAL,
+            rule_id="python.lang.security.audit.subprocess-shell-true",
             title="Command Injection",
             description="User input used in shell command",
             file_path=Path("src/handler.py"),

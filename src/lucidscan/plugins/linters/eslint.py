@@ -301,7 +301,6 @@ class ESLintLinter(LinterPlugin):
             line = message.get("line")
             column = message.get("column")
             end_line = message.get("endLine")
-            _end_column = message.get("endColumn")  # noqa: F841
 
             # Get severity
             severity = SEVERITY_MAP.get(severity_int, Severity.MEDIUM)
@@ -320,21 +319,25 @@ class ESLintLinter(LinterPlugin):
             # Check if fixable
             fixable = message.get("fix") is not None
 
+            # Extract end column
+            end_column = message.get("endColumn")
+
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ToolDomain.LINTING,
+                domain=ToolDomain.LINTING,
                 source_tool="eslint",
                 severity=severity,
+                rule_id=rule_id or "unknown",
                 title=title,
                 description=msg,
+                documentation_url=f"https://eslint.org/docs/rules/{rule_id}" if rule_id else None,
                 file_path=path,
                 line_start=line,
                 line_end=end_line or line,
-                scanner_metadata={
-                    "rule": rule_id,
-                    "fixable": fixable,
-                    "column": column,
-                },
+                column_start=column,
+                column_end=end_column,
+                fixable=fixable,
+                metadata={},
             )
         except Exception as e:
             LOGGER.warning(f"Failed to parse ESLint message: {e}")

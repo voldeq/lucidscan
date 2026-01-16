@@ -20,8 +20,8 @@ from lucidscan.bootstrap.versions import get_tool_version
 from lucidscan.core.logging import get_logger
 from lucidscan.core.models import (
     ScanContext,
-    ScanDomain,
     Severity,
+    ToolDomain,
     UnifiedIssue,
 )
 from lucidscan.core.subprocess_runner import run_with_streaming
@@ -425,22 +425,31 @@ class RuffLinter(LinterPlugin):
             if source_line:
                 code_snippet = source_line
 
+            # Extract fix information
+            fix_info = violation.get("fix") or {}
+            is_fixable = fix_info.get("applicability") == "safe" or bool(fix_info.get("edits"))
+            fix_message = fix_info.get("message")
+
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ScanDomain.SAST,  # Linting issues use SAST domain for now
+                domain=ToolDomain.LINTING,
                 source_tool="ruff",
                 severity=severity,
+                rule_id=code,
                 title=f"{code}: {message}",
                 description=message,
+                documentation_url=violation.get("url"),
                 file_path=file_path,
                 line_start=location.get("row"),
                 line_end=location.get("row"),
+                column_start=location.get("column"),
+                column_end=violation.get("end_location", {}).get("column"),
                 code_snippet=code_snippet,
-                recommendation=(violation.get("fix") or {}).get("message"),
-                scanner_metadata={
-                    "rule": code,
-                    "fixable": violation.get("fix") is not None,
-                    "url": violation.get("url"),
+                fixable=is_fixable,
+                suggested_fix=fix_message,
+                recommendation=fix_message,
+                metadata={
+                    "noqa_row": violation.get("noqa_row"),
                 },
             )
         except Exception as e:

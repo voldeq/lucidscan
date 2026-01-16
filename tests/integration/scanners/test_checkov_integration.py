@@ -239,9 +239,9 @@ spec:
 
         # All issues should be from Terraform
         for issue in issues:
-            assert issue.scanner_metadata.get("check_type") in [
+            assert issue.metadata.get("check_type") in [
                 "terraform", "terraform_plan"
-            ], f"Unexpected check_type: {issue.scanner_metadata.get('check_type')}"
+            ], f"Unexpected check_type: {issue.metadata.get('check_type')}"
 
 
 @checkov_available
@@ -293,9 +293,9 @@ resource "aws_security_group" "allow_all" {
         # Verify scanner_metadata contains raw Checkov data
         if issues:
             issue = issues[0]
-            assert "check_id" in issue.scanner_metadata
-            assert "check_type" in issue.scanner_metadata
-            assert issue.scanner_metadata["check_id"].startswith("CKV")
+            assert "check_id" in issue.metadata
+            assert "check_type" in issue.metadata
+            assert issue.metadata["check_id"].startswith("CKV")
 
         # Find S3 bucket issues and verify iac_resource
         s3_issues = [

@@ -218,7 +218,7 @@ class TestCheckovScannerJsonParsing:
 
         assert len(issues) == 1
         issue = issues[0]
-        assert issue.scanner == ScanDomain.IAC
+        assert issue.domain == ScanDomain.IAC
         assert issue.source_tool == "checkov"
         assert "CKV_AWS_18" in issue.title
         assert issue.severity == Severity.HIGH
@@ -354,7 +354,7 @@ class TestCheckovScannerJsonParsing:
 
         assert len(issues) == 2
         # Check that both frameworks are represented
-        check_types = {issue.scanner_metadata.get("check_type") for issue in issues}
+        check_types = {issue.metadata.get("check_type") for issue in issues}
         assert "terraform" in check_types
         assert "kubernetes" in check_types
 
@@ -379,7 +379,7 @@ class TestCheckovScannerCheckConversion:
         issue = scanner._check_to_unified_issue(check, "terraform", Path("/project"))
 
         assert issue is not None
-        assert issue.scanner == ScanDomain.IAC
+        assert issue.domain == ScanDomain.IAC
         assert issue.source_tool == "checkov"
         assert issue.severity == Severity.HIGH
         assert "CKV_AWS_18" in issue.title
@@ -406,11 +406,11 @@ class TestCheckovScannerCheckConversion:
         issue = scanner._check_to_unified_issue(check, "terraform", Path("/project"))
 
         assert issue is not None
-        assert issue.scanner_metadata["check_id"] == "CKV_AWS_18"
-        assert issue.scanner_metadata["check_type"] == "terraform"
-        assert issue.scanner_metadata["resource"] == "aws_s3_bucket.example"
-        assert issue.scanner_metadata["resource_address"] == "module.s3.aws_s3_bucket.example"
-        assert issue.scanner_metadata["bc_check_id"] == "BC_AWS_S3_13"
+        assert issue.metadata["check_id"] == "CKV_AWS_18"
+        assert issue.metadata["check_type"] == "terraform"
+        assert issue.metadata["resource"] == "aws_s3_bucket.example"
+        assert issue.metadata["resource_address"] == "module.s3.aws_s3_bucket.example"
+        assert issue.metadata["bc_check_id"] == "BC_AWS_S3_13"
 
     def test_check_to_unified_issue_handles_missing_fields(self) -> None:
         """Test handling of checks with minimal fields."""

@@ -263,14 +263,15 @@ pipeline:
   coverage:
     enabled: true
     threshold: 80
-    tool: coverage.py
+    tools:
+      - name: coverage_py
 
 fail_on:
   linting: error
   type_checking: error
   security: high
   testing: any
-  coverage: below_threshold
+  coverage: any
 
 ignore:
   - "**/__pycache__/**"
@@ -328,19 +329,20 @@ All results normalized to common schema:
 {
   "issues": [
     {
-      "id": "ruff-E501",
+      "id": "ruff-E501-abc123",
       "domain": "linting",
-      "tool": "ruff",
-      "severity": "warning",
-      "file": "src/main.py",
-      "line": 42,
-      "column": 89,
-      "message": "Line too long (120 > 88)",
-      "rule": "E501",
+      "source_tool": "ruff",
+      "severity": "medium",
+      "rule_id": "E501",
+      "title": "[E501] Line too long (120 > 88)",
+      "description": "Line too long (120 > 88)",
+      "documentation_url": "https://docs.astral.sh/ruff/rules/line-too-long",
+      "file_path": "src/main.py",
+      "line_start": 42,
+      "column_start": 89,
       "fixable": true,
-      "fix": {
-        "description": "Split line or increase line length limit"
-      }
+      "suggested_fix": "Split line or increase line length limit",
+      "metadata": {}
     }
   ],
   "summary": {
@@ -468,7 +470,7 @@ pipeline:
     enabled: boolean
     tools:
       - name: string
-        domains: [sca, sast, iac, container, secrets]
+        domains: [sca, sast, iac, container]
         severity_threshold: string
 
   testing:
@@ -480,8 +482,9 @@ pipeline:
 
   coverage:
     enabled: boolean
-    threshold: number
-    tools: [string]  # coverage_py for Python, istanbul for JS/TS
+    threshold: number  # Default: 80
+    tools:
+      - name: string  # coverage_py for Python, istanbul for JS/TS
 
 fail_on:
   linting: error | none
@@ -546,15 +549,19 @@ Installation uses:
 
 #### 5.5.2 Version Pinning
 
-Tools are pinned to specific versions for reproducibility:
+LucidScan pins tool versions internally for reproducibility. Versions are defined in `pyproject.toml` under `[tool.lucidscan.tools]`:
 
-```yaml
-# lucidscan.yml
-tools:
-  ruff: "0.8.0"
-  trivy: "0.58.0"
-  opengrep: "1.12.0"
+```toml
+# pyproject.toml
+[tool.lucidscan.tools]
+trivy = "0.68.2"
+opengrep = "1.15.0"
+checkov = "3.2.497"
+ruff = "0.14.11"
+biome = "2.3.11"
 ```
+
+When installed as a package, LucidScan uses hardcoded fallback versions.
 
 #### 5.5.3 Binary Cache
 
@@ -734,32 +741,38 @@ All tools normalize to this schema:
 
 ```python
 @dataclass
-class Issue:
-    id: str                    # Unique identifier
-    domain: ToolDomain         # LINTING, SECURITY, etc.
-    tool: str                  # "ruff", "trivy", etc.
-    severity: Severity         # CRITICAL, HIGH, MEDIUM, LOW, WARNING, INFO
-
-    # Location
-    file: str
-    line: int
-    column: int | None
-    end_line: int | None
-    end_column: int | None
+class UnifiedIssue:
+    # Core identification
+    id: str                        # Unique identifier
+    domain: DomainType             # linting, type_checking, sast, sca, iac, etc.
+    source_tool: str               # "ruff", "trivy", "mypy", etc.
+    severity: Severity             # CRITICAL, HIGH, MEDIUM, LOW, INFO
 
     # Content
-    rule: str                  # Rule ID (e.g., "E501", "CVE-2024-1234")
-    message: str               # Human-readable message
-    code_snippet: str | None   # Relevant code
+    rule_id: str                   # Rule identifier (E501, CVE-2024-1234, CKV_AWS_1)
+    title: str                     # Short issue title
+    description: str               # Detailed description
+    recommendation: str | None     # How to fix
+    documentation_url: str | None  # Link to rule documentation
+
+    # Location
+    file_path: Path | None         # File containing the issue
+    line_start: int | None         # Starting line number
+    line_end: int | None           # Ending line number
+    column_start: int | None       # Starting column
+    column_end: int | None         # Ending column
+    code_snippet: str | None       # Relevant code
 
     # Fix information
-    fixable: bool
-    fix_description: str | None
-    suggested_fix: str | None
+    fixable: bool                  # Whether auto-fix is available
+    suggested_fix: str | None      # Suggested code fix
 
-    # Metadata
-    documentation_url: str | None
-    extra: dict[str, Any]      # Tool-specific data
+    # Domain-specific fields
+    dependency: str | None         # For SCA (e.g., "lodash@4.17.20")
+    iac_resource: str | None       # For IaC (e.g., "aws_s3_bucket.public")
+
+    # Extensibility
+    metadata: dict[str, Any]       # Tool-specific data
 ```
 
 ---
