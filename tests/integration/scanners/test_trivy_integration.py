@@ -296,7 +296,7 @@ class TestTrivyContainerScanning:
 
         # If issues exist, they should be from one of the scanned images
         if issues:
-            image_refs = {i.scanner_metadata.get("image_ref") for i in issues}
+            image_refs = {i.metadata.get("image_ref") for i in issues}
             assert image_refs.issubset({"alpine:latest", "busybox:latest", None})
 
     def test_scan_latest_alpine(self, trivy_scanner: TrivyScanner) -> None:

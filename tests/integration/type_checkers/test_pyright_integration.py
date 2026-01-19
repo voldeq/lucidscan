@@ -58,7 +58,7 @@ class TestPyrightTypeChecking:
             assert isinstance(issues, list)
             for issue in issues:
                 assert issue.source_tool == "pyright"
-                assert issue.scanner == ToolDomain.TYPE_CHECKING
+                assert issue.domain == ToolDomain.TYPE_CHECKING
 
     def test_check_clean_typed_file(self, pyright_checker: PyrightChecker) -> None:
         """Test checking a cleanly typed file returns no issues."""

@@ -140,7 +140,7 @@ def test_add():
 
             # Check the issue
             issue = result.issues[0]
-            assert issue.scanner == ToolDomain.COVERAGE
+            assert issue.domain == ToolDomain.COVERAGE
             assert issue.source_tool == "coverage.py"
             assert "below threshold" in issue.title.lower()
 

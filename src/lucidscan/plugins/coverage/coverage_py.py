@@ -132,29 +132,19 @@ class CoveragePyPlugin(CoveragePlugin):
             LOGGER.warning(str(e))
             return CoverageResult(threshold=threshold)
 
-        # Check for existing coverage data
-        coverage_file = context.project_root / ".coverage"
         test_stats: Optional[TestStatistics] = None
 
-        if not coverage_file.exists() and run_tests:
-            LOGGER.info("No coverage data found, running tests with coverage...")
+        # Always run tests fresh when run_tests=True to ensure accurate coverage
+        if run_tests:
+            LOGGER.info("Running tests with coverage...")
             success, test_stats = self._run_tests_with_coverage(binary, context)
             if not success:
                 LOGGER.warning("Failed to run tests with coverage")
                 return CoverageResult(threshold=threshold)
 
-        # Try to generate JSON report
+        # Generate JSON report from coverage data
         result = self._generate_and_parse_report(binary, context, threshold)
         result.test_stats = test_stats
-
-        # If report generation failed (e.g., stale coverage data) and we can run tests,
-        # re-run tests with coverage and try again
-        if result.total_lines == 0 and run_tests and coverage_file.exists():
-            LOGGER.info("Coverage data appears stale, re-running tests with coverage...")
-            success, test_stats = self._run_tests_with_coverage(binary, context)
-            if success:
-                result = self._generate_and_parse_report(binary, context, threshold)
-                result.test_stats = test_stats
 
         return result
 

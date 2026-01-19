@@ -126,30 +126,15 @@ class IstanbulPlugin(CoveragePlugin):
             LOGGER.warning(str(e))
             return CoverageResult(threshold=threshold)
 
-        # Check for existing coverage data in .nyc_output or coverage directory
-        nyc_output = context.project_root / ".nyc_output"
-        coverage_dir = context.project_root / "coverage"
-
-        has_coverage_data = (
-            nyc_output.exists() or
-            (coverage_dir.exists() and any(coverage_dir.glob("*.json")))
-        )
-
-        if not has_coverage_data and run_tests:
-            LOGGER.info("No coverage data found, running tests with coverage...")
+        # Always run tests fresh when run_tests=True to ensure accurate coverage
+        if run_tests:
+            LOGGER.info("Running tests with coverage...")
             if not self._run_tests_with_coverage(binary, context):
                 LOGGER.warning("Failed to run tests with coverage")
                 return CoverageResult(threshold=threshold)
 
-        # Try to generate JSON report
+        # Generate JSON report from coverage data
         result = self._generate_and_parse_report(binary, context, threshold)
-
-        # If report generation failed (e.g., stale coverage data) and we can run tests,
-        # re-run tests with coverage and try again
-        if result.total_lines == 0 and run_tests and has_coverage_data:
-            LOGGER.info("Coverage data appears stale, re-running tests with coverage...")
-            if self._run_tests_with_coverage(binary, context):
-                result = self._generate_and_parse_report(binary, context, threshold)
 
         return result
 

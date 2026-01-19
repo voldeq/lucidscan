@@ -92,7 +92,7 @@ def test_fail():
 
             # Check the failure issue
             issue = result.issues[0]
-            assert issue.scanner == ToolDomain.TESTING
+            assert issue.domain == ToolDomain.TESTING
             assert issue.source_tool == "pytest"
             assert "test_fail" in issue.title
 
@@ -146,7 +146,7 @@ def test_assertion_failure():
             # Check required fields
             assert issue.id is not None
             assert issue.id.startswith("pytest-")
-            assert issue.scanner == ToolDomain.TESTING
+            assert issue.domain == ToolDomain.TESTING
             assert issue.source_tool == "pytest"
             assert issue.severity is not None
             assert issue.title is not None

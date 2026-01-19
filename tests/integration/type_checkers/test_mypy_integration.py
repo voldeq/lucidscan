@@ -57,7 +57,7 @@ class TestMypyTypeChecking:
             # Should find the type error
             assert len(issues) > 0
             assert issues[0].source_tool == "mypy"
-            assert issues[0].scanner == ToolDomain.TYPE_CHECKING
+            assert issues[0].domain == ToolDomain.TYPE_CHECKING
 
     def test_check_clean_typed_file(self, mypy_checker: MypyChecker) -> None:
         """Test checking a cleanly typed file returns no issues."""

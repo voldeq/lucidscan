@@ -71,7 +71,7 @@ class TestTypeScriptTypeChecking:
             assert isinstance(issues, list)
             for issue in issues:
                 assert issue.source_tool == "typescript"
-                assert issue.scanner == ToolDomain.TYPE_CHECKING
+                assert issue.domain == ToolDomain.TYPE_CHECKING
 
     def test_check_clean_typescript_file(self, typescript_checker: TypeScriptChecker) -> None:
         """Test checking a cleanly typed TypeScript file returns no issues."""

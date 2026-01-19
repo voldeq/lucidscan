@@ -92,7 +92,7 @@ resource "aws_security_group" "allow_all" {
 
         # Verify issue structure
         for issue in issues:
-            assert issue.scanner == ScanDomain.IAC
+            assert issue.domain == ScanDomain.IAC
             assert issue.source_tool == "checkov"
             assert issue.severity in [
                 Severity.CRITICAL,

@@ -72,8 +72,8 @@ class TestOpenGrepSASTScanning:
         for issue in issues:
             assert hasattr(issue, "id")
             assert hasattr(issue, "severity")
-            assert hasattr(issue, "scanner")
-            assert issue.scanner == ScanDomain.SAST
+            assert hasattr(issue, "domain")
+            assert issue.domain == ScanDomain.SAST
             assert issue.source_tool == "opengrep"
 
     def test_scan_with_vulnerable_code(
@@ -114,7 +114,7 @@ def get_data():
         # If issues were found, verify structure
         if issues:
             issue = issues[0]
-            assert issue.scanner == ScanDomain.SAST
+            assert issue.domain == ScanDomain.SAST
             assert issue.source_tool == "opengrep"
             assert issue.file_path is not None
             assert issue.severity in [
@@ -172,7 +172,7 @@ const API_SECRET = "hardcoded_secret_key_12345";
 
         # If issues were found, verify they're for JavaScript
         for issue in issues:
-            assert issue.scanner == ScanDomain.SAST
+            assert issue.domain == ScanDomain.SAST
             assert issue.source_tool == "opengrep"
 
     def test_scan_with_custom_rules_path(
@@ -470,4 +470,4 @@ var secretKey = "hardcoded"
         assert isinstance(issues, list)
         # All issues should be SAST domain
         for issue in issues:
-            assert issue.scanner == ScanDomain.SAST
+            assert issue.domain == ScanDomain.SAST
