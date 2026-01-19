@@ -19,7 +19,7 @@ SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json"
 SARIF_VERSION = "2.1.0"
 
 # Project information
-LUCIDSCAN_INFO_URI = "https://github.com/voldeq/lucidscan"
+LUCIDSCAN_INFO_URI = "https://github.com/lucidscan/lucidscan"
 
 # Severity mapping to SARIF security-severity (CVSS-aligned 0.0-10.0)
 # and level (error, warning, note)

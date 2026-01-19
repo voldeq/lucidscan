@@ -1,10 +1,10 @@
 # LucidScan
 
-[![CI](https://github.com/voldeq/lucidscan/actions/workflows/ci.yml/badge.svg)](https://github.com/voldeq/lucidscan/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/voldeq/lucidscan/graph/badge.svg)](https://codecov.io/gh/voldeq/lucidscan)
+[![CI](https://github.com/lucidscan/lucidscan/actions/workflows/ci.yml/badge.svg)](https://github.com/lucidscan/lucidscan/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/lucidscan/lucidscan/graph/badge.svg)](https://codecov.io/gh/lucidscan/lucidscan)
 [![PyPI version](https://img.shields.io/pypi/v/lucidscan)](https://pypi.org/project/lucidscan/)
 [![Python](https://img.shields.io/pypi/pyversions/lucidscan)](https://pypi.org/project/lucidscan/)
-[![License](https://img.shields.io/github/license/voldeq/lucidscan)](https://github.com/voldeq/lucidscan/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/lucidscan/lucidscan)](https://github.com/lucidscan/lucidscan/blob/main/LICENSE)
 
 **The trust layer for AI-assisted development.**
 
@@ -184,7 +184,7 @@ lucidscan status [--tools]
 ## Development
 
 ```bash
-git clone https://github.com/voldeq/lucidscan.git
+git clone https://github.com/lucidscan/lucidscan.git
 cd lucidscan
 pip install -e ".[dev]"
 pytest tests/
