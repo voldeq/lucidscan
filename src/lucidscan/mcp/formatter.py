@@ -56,14 +56,27 @@ class InstructionFormatter:
         ToolDomain.COVERAGE: "IMPROVE_COVERAGE_",
     }
 
-    def format_scan_result(self, issues: List[UnifiedIssue]) -> Dict[str, Any]:
+    def format_scan_result(
+        self,
+        issues: List[UnifiedIssue],
+        checked_domains: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
         """Format scan result as AI instructions.
 
         Args:
             issues: List of unified issues from scan.
+            checked_domains: List of domain names that were checked.
 
         Returns:
-            Dictionary with structured AI instructions.
+            Dictionary with structured AI instructions including:
+            - total_issues: Count of all issues
+            - blocking: Whether there are high-priority issues
+            - summary: Human-readable summary
+            - severity_counts: Issues by severity level
+            - domain_status: Pass/fail status for each checked domain
+            - issues_by_domain: Issues grouped by domain
+            - instructions: Sorted list of fix instructions
+            - recommended_action: Suggested next step
         """
         instructions = [self._issue_to_instruction(issue) for issue in issues]
 
@@ -76,12 +89,55 @@ class InstructionFormatter:
             sev_name = issue.severity.value if issue.severity else "unknown"
             severity_counts[sev_name] = severity_counts.get(sev_name, 0) + 1
 
+        # Group issues by domain
+        issues_by_domain: Dict[str, List[Dict[str, Any]]] = {}
+        for issue in issues:
+            domain_name = issue.domain.value if issue.domain else "unknown"
+            if domain_name not in issues_by_domain:
+                issues_by_domain[domain_name] = []
+            issues_by_domain[domain_name].append(
+                self._issue_to_brief(issue)
+            )
+
+        # Build domain status (pass/fail for each checked domain)
+        domain_status: Dict[str, Dict[str, Any]] = {}
+        if checked_domains:
+            for domain in checked_domains:
+                domain_issues = issues_by_domain.get(domain, [])
+                issue_count = len(domain_issues)
+                fixable_count = sum(1 for i in domain_issues if i.get("fixable", False))
+
+                if issue_count == 0:
+                    status = "pass"
+                    status_display = "Pass"
+                else:
+                    status = "fail"
+                    if fixable_count > 0:
+                        status_display = f"{issue_count} issues ({fixable_count} auto-fixable)"
+                    else:
+                        status_display = f"{issue_count} issues"
+
+                domain_status[domain] = {
+                    "status": status,
+                    "display": status_display,
+                    "issue_count": issue_count,
+                    "fixable_count": fixable_count,
+                }
+
+        # Generate recommended action
+        recommended_action = self._generate_recommended_action(
+            issues, severity_counts, domain_status
+        )
+
         return {
             "total_issues": len(issues),
             "blocking": any(i.priority <= 2 for i in instructions),
             "summary": self._generate_summary(issues, severity_counts),
             "severity_counts": severity_counts,
+            "domain_status": domain_status,
+            "issues_by_domain": issues_by_domain,
             "instructions": [asdict(i) for i in instructions],
+            "recommended_action": recommended_action,
         }
 
     def format_single_issue(
@@ -380,3 +436,75 @@ class InstructionFormatter:
                 return auto_fix
 
         return None
+
+    def _issue_to_brief(self, issue: UnifiedIssue) -> Dict[str, Any]:
+        """Convert issue to brief format for domain grouping.
+
+        Args:
+            issue: The unified issue.
+
+        Returns:
+            Brief issue dictionary.
+        """
+        file_path = str(issue.file_path) if issue.file_path else ""
+        location = file_path
+        if issue.line_start:
+            location = f"{file_path}:{issue.line_start}"
+
+        return {
+            "id": issue.id,
+            "location": location,
+            "severity": issue.severity.value if issue.severity else "unknown",
+            "title": issue.title or "",
+            "fixable": issue.fixable,
+        }
+
+    def _generate_recommended_action(
+        self,
+        issues: List[UnifiedIssue],
+        severity_counts: Dict[str, int],
+        domain_status: Dict[str, Dict[str, Any]],
+    ) -> str:
+        """Generate recommended next action based on scan results.
+
+        Args:
+            issues: List of issues found.
+            severity_counts: Count of issues by severity.
+            domain_status: Status of each checked domain.
+
+        Returns:
+            Recommended action string.
+        """
+        if not issues:
+            return "All checks passed. Ready to proceed."
+
+        # Count fixable issues
+        fixable_count = sum(1 for i in issues if i.fixable)
+        linting_fixable = sum(
+            1 for i in issues if i.domain == ToolDomain.LINTING and i.fixable
+        )
+
+        # Check for critical/high severity issues
+        critical_count = severity_counts.get("critical", 0)
+        high_count = severity_counts.get("high", 0)
+
+        if critical_count > 0:
+            return f"Fix {critical_count} critical issue(s) immediately before proceeding."
+
+        if high_count > 0:
+            return f"Address {high_count} high-severity issue(s) before committing."
+
+        if linting_fixable > 0:
+            return f"Run `scan(fix=true)` to auto-fix {linting_fixable} linting issue(s), then address remaining issues manually."
+
+        if fixable_count > 0:
+            return f"Run `scan(fix=true)` to auto-fix {fixable_count} issue(s)."
+
+        # Type errors or other issues
+        type_issues = sum(
+            1 for i in issues if i.domain == ToolDomain.TYPE_CHECKING
+        )
+        if type_issues > 0:
+            return f"Fix {type_issues} type error(s) by updating type annotations or handling None values."
+
+        return f"Review and fix {len(issues)} issue(s), then re-scan to verify."

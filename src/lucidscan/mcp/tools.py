@@ -187,8 +187,15 @@ class MCPToolExecutor:
         for issue in all_issues:
             self._issue_cache[issue.id] = issue
 
-        # Format as AI instructions
-        formatted_result = self.instruction_formatter.format_scan_result(all_issues)
+        # Build list of checked domain names for the formatter
+        checked_domain_names: List[str] = []
+        for domain in enabled_domains:
+            checked_domain_names.append(domain.value)
+
+        # Format as AI instructions with domain status
+        formatted_result = self.instruction_formatter.format_scan_result(
+            all_issues, checked_domains=checked_domain_names
+        )
 
         # Add coverage summary if coverage was run
         if context.coverage_result is not None:

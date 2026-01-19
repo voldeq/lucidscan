@@ -39,14 +39,14 @@ Run a scan after completing a batch of related code changes (not after each indi
 
 ### Fast Scan (After Code Changes)
 
-After completing code modifications, run:
+After completing code modifications, run a scan (scans changed files by default):
 ```
-scan(domains=["linting", "type_checking", "security", "sca"], files=["path/to/changed/files"])
+scan(domains=["linting", "type_checking", "sast", "sca"])
 ```
 
-Or for the whole project:
+For full project scan:
 ```
-scan(domains=["linting", "type_checking", "security", "sca"])
+scan(domains=["linting", "type_checking", "sast", "sca"], all_files=true)
 ```
 
 ### Full Scan (Before Commit)
@@ -93,14 +93,14 @@ Run a scan after completing a batch of related code changes (not after each indi
 
 ## Fast Scan (After Code Changes)
 
-After completing code modifications, run:
+After completing code modifications, run a scan (scans changed files by default):
 ```
-scan(domains=["linting", "type_checking", "security", "sca"], files=["path/to/changed/files"])
+scan(domains=["linting", "type_checking", "sast", "sca"])
 ```
 
-Or for the whole project:
+For full project scan:
 ```
-scan(domains=["linting", "type_checking", "security", "sca"])
+scan(domains=["linting", "type_checking", "sast", "sca"], all_files=true)
 ```
 
 ## Full Scan (Before Commit)
