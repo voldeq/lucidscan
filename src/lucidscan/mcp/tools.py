@@ -12,15 +12,20 @@ from pathlib import Path
 from typing import Any, Callable, Coroutine, Dict, List, Optional
 
 from lucidscan.config import LucidScanConfig
-from lucidscan.config.ignore import load_ignore_patterns
 from lucidscan.core.domain_runner import (
     DomainRunner,
     detect_language,
     get_domains_for_language,
 )
-from lucidscan.core.git import get_changed_files
 from lucidscan.core.logging import get_logger
-from lucidscan.core.models import DomainType, ScanContext, ScanDomain, ToolDomain, UnifiedIssue
+from lucidscan.core.models import (
+    DomainType,
+    ScanContext,
+    ScanDomain,
+    ToolDomain,
+    UnifiedIssue,
+    parse_domain,
+)
 from lucidscan.core.streaming import (
     CLIStreamHandler,
     MCPStreamHandler,
@@ -34,20 +39,6 @@ LOGGER = get_logger(__name__)
 
 class MCPToolExecutor:
     """Executes LucidScan operations for MCP tools."""
-
-    # Map string domain names to the appropriate enum
-    # ScanDomain for scanner plugins, ToolDomain for other tools
-    # Use canonical names only - no synonyms
-    DOMAIN_MAP: Dict[str, DomainType] = {
-        "linting": ToolDomain.LINTING,
-        "type_checking": ToolDomain.TYPE_CHECKING,
-        "sast": ScanDomain.SAST,
-        "sca": ScanDomain.SCA,
-        "iac": ScanDomain.IAC,
-        "container": ScanDomain.CONTAINER,
-        "testing": ToolDomain.TESTING,
-        "coverage": ToolDomain.COVERAGE,
-    }
 
     def __init__(self, project_root: Path, config: LucidScanConfig):
         """Initialize MCPToolExecutor.
@@ -269,27 +260,7 @@ class MCPToolExecutor:
 
         # Add coverage summary if coverage was run
         if context.coverage_result is not None:
-            cov = context.coverage_result
-            coverage_summary: Dict[str, Any] = {
-                "coverage_percentage": round(cov.percentage, 2),
-                "threshold": cov.threshold,
-                "total_lines": cov.total_lines,
-                "covered_lines": cov.covered_lines,
-                "missing_lines": cov.missing_lines,
-                "passed": cov.passed,
-            }
-            # Add test statistics if available
-            if cov.test_stats is not None:
-                ts = cov.test_stats
-                coverage_summary["tests"] = {
-                    "total": ts.total,
-                    "passed": ts.passed,
-                    "failed": ts.failed,
-                    "skipped": ts.skipped,
-                    "errors": ts.errors,
-                    "success": ts.success,
-                }
-            formatted_result["coverage_summary"] = coverage_summary
+            formatted_result["coverage_summary"] = context.coverage_result.to_dict()
 
         return formatted_result
 
@@ -378,21 +349,11 @@ class MCPToolExecutor:
         Returns:
             Status information.
         """
-        from lucidscan.plugins.scanners import discover_scanner_plugins
-        from lucidscan.plugins.linters import discover_linter_plugins
-        from lucidscan.plugins.type_checkers import discover_type_checker_plugins
-
-        scanners = discover_scanner_plugins()
-        linters = discover_linter_plugins()
-        type_checkers = discover_type_checker_plugins()
+        from lucidscan.plugins.discovery import get_all_available_tools
 
         return {
             "project_root": str(self.project_root),
-            "available_tools": {
-                "scanners": list(scanners.keys()),
-                "linters": list(linters.keys()),
-                "type_checkers": list(type_checkers.keys()),
-            },
+            "available_tools": get_all_available_tools(),
             "enabled_domains": self.config.get_enabled_domains(),
             "cached_issues": len(self._issue_cache),
         }
@@ -421,61 +382,31 @@ class MCPToolExecutor:
         Returns:
             Structured validation result with valid flag, errors, and warnings.
         """
-        from lucidscan.config.loader import find_project_config
-        from lucidscan.config.validation import validate_config_file, ValidationSeverity
+        from lucidscan.config.validation import validate_config_at_path
 
-        # Determine config path
-        path: Optional[Path]
-        if config_path:
-            path = self.project_root / config_path
-        else:
-            path = find_project_config(self.project_root)
+        result = validate_config_at_path(self.project_root, config_path)
 
-        if path is None:
-            return {
+        if result.error_message:
+            response: Dict[str, Any] = {
                 "valid": False,
-                "error": "No configuration file found in project root",
-                "searched_for": [
+                "error": result.error_message,
+                "errors": [],
+                "warnings": [],
+            }
+            if result.config_path is None:
+                response["searched_for"] = [
                     ".lucidscan.yml",
                     ".lucidscan.yaml",
                     "lucidscan.yml",
                     "lucidscan.yaml",
-                ],
-                "errors": [],
-                "warnings": [],
-            }
-
-        if not path.exists():
-            return {
-                "valid": False,
-                "error": f"Configuration file not found: {path}",
-                "errors": [],
-                "warnings": [],
-            }
-
-        is_valid, issues = validate_config_file(path)
-
-        errors = []
-        warnings = []
-
-        for issue in issues:
-            issue_dict: Dict[str, Any] = {
-                "message": issue.message,
-                "key": issue.key,
-            }
-            if issue.suggestion:
-                issue_dict["suggestion"] = issue.suggestion
-
-            if issue.severity == ValidationSeverity.ERROR:
-                errors.append(issue_dict)
-            else:
-                warnings.append(issue_dict)
+                ]
+            return response
 
         return {
-            "valid": is_valid,
-            "config_path": str(path),
-            "errors": errors,
-            "warnings": warnings,
+            "valid": result.is_valid,
+            "config_path": str(result.config_path),
+            "errors": [issue.to_dict() for issue in result.errors],
+            "warnings": [issue.to_dict() for issue in result.warnings],
         }
 
     async def autoconfigure(self) -> Dict[str, Any]:
@@ -884,9 +815,9 @@ ignore:
 
         result = []
         for domain in domains:
-            domain_lower = domain.lower()
-            if domain_lower in self.DOMAIN_MAP:
-                result.append(self.DOMAIN_MAP[domain_lower])
+            parsed = parse_domain(domain)
+            if parsed is not None:
+                result.append(parsed)
             else:
                 LOGGER.warning(f"Unknown domain: {domain}")
 
@@ -915,64 +846,12 @@ ignore:
         Returns:
             ScanContext instance.
         """
-        # Determine which paths to scan
-        paths: List[Path]
-
-        if files:
-            # Explicit files specified - use those
-            paths = []
-            for f in files:
-                file_path = self.project_root / f
-                if file_path.exists():
-                    paths.append(file_path)
-                else:
-                    LOGGER.warning(f"File not found: {f}")
-            if paths:
-                LOGGER.info(f"Scanning {len(paths)} specified file(s)")
-            else:
-                LOGGER.warning("No valid files specified, falling back to full scan")
-                paths = [self.project_root]
-        elif all_files:
-            # Explicit full scan requested
-            LOGGER.info("Scanning entire project (all_files=true)")
-            paths = [self.project_root]
-        else:
-            # Default: scan only changed files
-            changed_files = get_changed_files(self.project_root)
-            if changed_files is not None and len(changed_files) > 0:
-                LOGGER.info(f"Scanning {len(changed_files)} changed file(s)")
-                paths = changed_files
-            elif changed_files is not None and len(changed_files) == 0:
-                LOGGER.info("No changed files detected, nothing to scan")
-                paths = []  # Return empty list - no files to scan
-            else:
-                # Not a git repo or git command failed
-                LOGGER.info("Not a git repository, scanning entire project")
-                paths = [self.project_root]
-
-        # Load ignore patterns from .lucidscanignore and config
-        ignore_patterns = load_ignore_patterns(self.project_root, self.config.ignore)
-
-        # Filter paths through ignore patterns
-        # This is necessary because explicitly passed file paths bypass
-        # the linter's --exclude flags (e.g., ruff only applies excludes
-        # when expanding directories, not for explicit file arguments)
-        if paths and ignore_patterns:
-            original_count = len(paths)
-            paths = [
-                p for p in paths
-                if not ignore_patterns.matches(p, self.project_root)
-            ]
-            filtered_count = original_count - len(paths)
-            if filtered_count > 0:
-                LOGGER.debug(f"Filtered {filtered_count} files via ignore patterns")
-
-        return ScanContext(
+        return ScanContext.create(
             project_root=self.project_root,
-            paths=paths,
-            enabled_domains=domains,
             config=self.config,
-            ignore_patterns=ignore_patterns,
+            enabled_domains=domains,
+            files=files,
+            all_files=all_files,
             stream_handler=stream_handler,
         )
 

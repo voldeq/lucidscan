@@ -37,6 +37,58 @@ class ToolDomain(str, Enum):
 # Type alias for any domain type (ScanDomain or ToolDomain)
 DomainType = Union[ScanDomain, ToolDomain]
 
+# Mapping from domain string names to enum values
+_DOMAIN_MAP: Dict[str, DomainType] = {
+    # Tool domains
+    "linting": ToolDomain.LINTING,
+    "type_checking": ToolDomain.TYPE_CHECKING,
+    "testing": ToolDomain.TESTING,
+    "coverage": ToolDomain.COVERAGE,
+    # Security/scan domains
+    "sast": ScanDomain.SAST,
+    "sca": ScanDomain.SCA,
+    "iac": ScanDomain.IAC,
+    "container": ScanDomain.CONTAINER,
+}
+
+
+def parse_domain(name: str) -> Optional[DomainType]:
+    """Parse a domain name string to a DomainType enum.
+
+    Args:
+        name: Domain name (e.g., "linting", "sast", "sca").
+
+    Returns:
+        DomainType enum value, or None if not found.
+    """
+    return _DOMAIN_MAP.get(name.lower())
+
+
+def parse_domains(names: List[str]) -> List[DomainType]:
+    """Parse multiple domain name strings to DomainType enums.
+
+    Unknown domain names are skipped with a warning.
+
+    Args:
+        names: List of domain names.
+
+    Returns:
+        List of DomainType enum values.
+    """
+    from lucidscan.core.logging import get_logger
+
+    logger = get_logger(__name__)
+    result: List[DomainType] = []
+
+    for name in names:
+        domain = parse_domain(name)
+        if domain is not None:
+            result.append(domain)
+        else:
+            logger.warning(f"Unknown domain: {name}")
+
+    return result
+
 
 class Severity(str, Enum):
     """Unified severity levels used across all scanners."""
@@ -135,6 +187,51 @@ class ScanContext:
         if self.ignore_patterns is None:
             return []
         return self.ignore_patterns.get_exclude_patterns()
+
+    @classmethod
+    def create(
+        cls,
+        project_root: Path,
+        config: "LucidScanConfig",
+        enabled_domains: Sequence[DomainType],
+        files: Optional[List[str]] = None,
+        all_files: bool = False,
+        stream_handler: Optional["StreamHandler"] = None,
+    ) -> "ScanContext":
+        """Create a ScanContext with path determination and ignore filtering.
+
+        This factory method handles the common pattern of:
+        1. Determining which paths to scan (specific files, all files, or changed files)
+        2. Loading and applying ignore patterns
+        3. Building the context
+
+        Args:
+            project_root: Project root directory.
+            config: LucidScan configuration.
+            enabled_domains: List of domains to scan.
+            files: Optional list of specific files to scan (relative or absolute).
+            all_files: If True, scan entire project.
+            stream_handler: Optional handler for streaming output.
+
+        Returns:
+            Configured ScanContext instance.
+        """
+        from lucidscan.config.ignore import filter_paths_with_ignore
+        from lucidscan.core.paths import determine_scan_paths
+
+        paths = determine_scan_paths(project_root, files, all_files)
+        paths, ignore_patterns = filter_paths_with_ignore(
+            paths, project_root, config.ignore
+        )
+
+        return cls(
+            project_root=project_root,
+            paths=paths,
+            enabled_domains=enabled_domains,
+            config=config,
+            ignore_patterns=ignore_patterns,
+            stream_handler=stream_handler,
+        )
 
 
 @dataclass

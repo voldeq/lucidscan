@@ -36,6 +36,20 @@ class ConfigValidationIssue:
     key: Optional[str] = None
     suggestion: Optional[str] = None
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON/MCP output.
+
+        Returns:
+            Dictionary with message, key, and optional suggestion.
+        """
+        result: Dict[str, Any] = {
+            "message": self.message,
+            "key": self.key,
+        }
+        if self.suggestion:
+            result["suggestion"] = self.suggestion
+        return result
+
 
 # Valid top-level keys (core config)
 VALID_TOP_LEVEL_KEYS: Set[str] = {
@@ -643,3 +657,73 @@ def validate_config_file(config_path: Path) -> Tuple[bool, List[ConfigValidation
     # Valid if no errors
     has_errors = any(issue.severity == ValidationSeverity.ERROR for issue in issues)
     return not has_errors, issues
+
+
+@dataclass
+class ValidationResult:
+    """Result of config validation with categorized issues."""
+
+    is_valid: bool
+    config_path: Optional[Path]
+    errors: List[ConfigValidationIssue]
+    warnings: List[ConfigValidationIssue]
+    error_message: Optional[str] = None
+
+
+def validate_config_at_path(
+    project_root: Path,
+    config_path: Optional[str] = None,
+) -> ValidationResult:
+    """Find and validate a configuration file.
+
+    This is a high-level helper that handles:
+    1. Finding the config file (or using provided path)
+    2. Validating it
+    3. Categorizing issues into errors and warnings
+
+    Args:
+        project_root: Project root directory.
+        config_path: Optional path to config file (relative to project root).
+            If not provided, searches for lucidscan.yml in project root.
+
+    Returns:
+        ValidationResult with categorized issues.
+    """
+    from lucidscan.config.loader import find_project_config
+
+    # Determine config path
+    path: Optional[Path]
+    if config_path:
+        path = project_root / config_path
+    else:
+        path = find_project_config(project_root)
+
+    if path is None:
+        return ValidationResult(
+            is_valid=False,
+            config_path=None,
+            errors=[],
+            warnings=[],
+            error_message="No configuration file found in project root",
+        )
+
+    if not path.exists():
+        return ValidationResult(
+            is_valid=False,
+            config_path=path,
+            errors=[],
+            warnings=[],
+            error_message=f"Configuration file not found: {path}",
+        )
+
+    is_valid, issues = validate_config_file(path)
+
+    errors = [i for i in issues if i.severity == ValidationSeverity.ERROR]
+    warnings = [i for i in issues if i.severity == ValidationSeverity.WARNING]
+
+    return ValidationResult(
+        is_valid=is_valid,
+        config_path=path,
+        errors=errors,
+        warnings=warnings,
+    )

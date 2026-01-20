@@ -105,3 +105,22 @@ def list_available_plugins(group: str) -> List[str]:
         List of plugin names.
     """
     return list(discover_plugins(group).keys())
+
+
+def get_all_available_tools() -> Dict[str, List[str]]:
+    """Get all available tools organized by category.
+
+    This is a convenience function that discovers all plugin types
+    and returns them in a structured format.
+
+    Returns:
+        Dictionary with keys 'scanners', 'linters', 'type_checkers',
+        'test_runners', 'coverage' mapping to lists of plugin names.
+    """
+    return {
+        "scanners": list_available_plugins(SCANNER_ENTRY_POINT_GROUP),
+        "linters": list_available_plugins(LINTER_ENTRY_POINT_GROUP),
+        "type_checkers": list_available_plugins(TYPE_CHECKER_ENTRY_POINT_GROUP),
+        "test_runners": list_available_plugins(TEST_RUNNER_ENTRY_POINT_GROUP),
+        "coverage": list_available_plugins(COVERAGE_ENTRY_POINT_GROUP),
+    }

@@ -14,10 +14,8 @@ from lucidscan.cli.exit_codes import (
     EXIT_SCANNER_ERROR,
     EXIT_SUCCESS,
 )
-from lucidscan.config.ignore import load_ignore_patterns
 from lucidscan.config.models import LucidScanConfig
 from lucidscan.core.domain_runner import DomainRunner, check_severity_threshold
-from lucidscan.core.git import get_changed_files
 from lucidscan.core.logging import get_logger
 from lucidscan.core.models import CoverageSummary, ScanContext, ScanResult, UnifiedIssue
 from lucidscan.core.streaming import CLIStreamHandler, StreamHandler
@@ -121,26 +119,6 @@ class ScanCommand(Command):
 
         enabled_domains = ConfigBridge.get_enabled_domains(config, args)
 
-        # Load ignore patterns from .lucidscanignore and config
-        ignore_patterns = load_ignore_patterns(project_root, config.ignore)
-
-        # Determine which files to scan (partial scanning logic)
-        scan_paths = self._determine_scan_paths(args, project_root)
-
-        # Filter scan paths through ignore patterns
-        # This is necessary because explicitly passed file paths bypass
-        # the linter's --exclude flags (e.g., ruff only applies excludes
-        # when expanding directories, not for explicit file arguments)
-        if scan_paths and ignore_patterns:
-            original_count = len(scan_paths)
-            scan_paths = [
-                p for p in scan_paths
-                if not ignore_patterns.matches(p, project_root)
-            ]
-            filtered_count = original_count - len(scan_paths)
-            if filtered_count > 0:
-                LOGGER.debug(f"Filtered {filtered_count} files via ignore patterns")
-
         # Create stream handler if streaming is enabled
         stream_handler: Optional[StreamHandler] = None
         stream_enabled = getattr(args, "stream", False) or getattr(args, "verbose", False)
@@ -151,13 +129,13 @@ class ScanCommand(Command):
                 use_rich=False,  # Use plain output for better compatibility
             )
 
-        # Build scan context
-        context = ScanContext(
+        # Build scan context with path determination and ignore filtering
+        context = ScanContext.create(
             project_root=project_root,
-            paths=scan_paths,
-            enabled_domains=enabled_domains,
             config=config,
-            ignore_patterns=ignore_patterns,
+            enabled_domains=enabled_domains,
+            files=getattr(args, "files", None),
+            all_files=getattr(args, "all_files", False),
             stream_handler=stream_handler,
         )
 
@@ -204,23 +182,7 @@ class ScanCommand(Command):
 
             # Build coverage summary from context.coverage_result
             if context.coverage_result is not None:
-                cov = context.coverage_result
-                coverage_summary = CoverageSummary(
-                    coverage_percentage=round(cov.percentage, 2),
-                    threshold=cov.threshold,
-                    total_lines=cov.total_lines,
-                    covered_lines=cov.covered_lines,
-                    missing_lines=cov.missing_lines,
-                    passed=cov.passed,
-                )
-                # Add test stats if available
-                if cov.test_stats is not None:
-                    ts = cov.test_stats
-                    coverage_summary.tests_total = ts.total
-                    coverage_summary.tests_passed = ts.passed
-                    coverage_summary.tests_failed = ts.failed
-                    coverage_summary.tests_skipped = ts.skipped
-                    coverage_summary.tests_errors = ts.errors
+                coverage_summary = context.coverage_result.to_summary()
 
         # Run security scanning if any domains are enabled
         if enabled_domains:
@@ -263,59 +225,3 @@ class ScanCommand(Command):
             result.metadata = pipeline_result.metadata
 
         return result
-
-    def _determine_scan_paths(
-        self, args: Namespace, project_root: Path
-    ) -> List[Path]:
-        """Determine which paths to scan based on CLI arguments.
-
-        Priority:
-        1. --files: Scan only specified files
-        2. --all-files: Scan entire project
-        3. Default: Scan only changed files (uncommitted changes)
-
-        Args:
-            args: Parsed CLI arguments.
-            project_root: Project root directory.
-
-        Returns:
-            List of paths to scan.
-        """
-        # If --files is specified, use those files
-        files_arg = getattr(args, "files", None)
-        if files_arg:
-            paths = []
-            for file_path in files_arg:
-                path = Path(file_path)
-                if not path.is_absolute():
-                    path = project_root / path
-                path = path.resolve()
-                if path.exists():
-                    paths.append(path)
-                else:
-                    LOGGER.warning(f"File not found: {file_path}")
-            if paths:
-                LOGGER.info(f"Scanning {len(paths)} specified file(s)")
-                return paths
-            # Fall through to full scan if no valid files
-            LOGGER.warning("No valid files specified, falling back to full scan")
-
-        # If --all-files is specified, scan entire project
-        all_files = getattr(args, "all_files", False)
-        if all_files:
-            LOGGER.info("Scanning entire project (--all-files)")
-            return [project_root]
-
-        # Default: scan only changed files
-        changed_files = get_changed_files(project_root)
-        if changed_files is not None and len(changed_files) > 0:
-            LOGGER.info(f"Scanning {len(changed_files)} changed file(s)")
-            return changed_files
-
-        # Fall back to full scan if no changed files or not a git repo
-        if changed_files is not None and len(changed_files) == 0:
-            LOGGER.info("No changed files detected, nothing to scan")
-            return []  # Return empty list - no files to scan
-        else:
-            LOGGER.info("Not a git repository, scanning entire project")
-            return [project_root]

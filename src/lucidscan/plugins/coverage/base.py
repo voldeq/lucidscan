@@ -13,7 +13,9 @@ from typing import Dict, List, Optional
 # Re-export TestStatistics for plugins
 __all__ = ["CoveragePlugin", "CoverageResult", "FileCoverage", "TestStatistics"]
 
-from lucidscan.core.models import ScanContext, UnifiedIssue, ToolDomain
+from typing import Any
+
+from lucidscan.core.models import CoverageSummary, ScanContext, UnifiedIssue, ToolDomain
 
 
 @dataclass
@@ -75,6 +77,53 @@ class CoverageResult:
     def passed(self) -> bool:
         """Whether coverage meets the threshold."""
         return self.percentage >= self.threshold
+
+    def to_summary(self) -> CoverageSummary:
+        """Convert to CoverageSummary for CLI output.
+
+        Returns:
+            CoverageSummary dataclass with all coverage statistics.
+        """
+        summary = CoverageSummary(
+            coverage_percentage=round(self.percentage, 2),
+            threshold=self.threshold,
+            total_lines=self.total_lines,
+            covered_lines=self.covered_lines,
+            missing_lines=self.missing_lines,
+            passed=self.passed,
+        )
+        if self.test_stats is not None:
+            summary.tests_total = self.test_stats.total
+            summary.tests_passed = self.test_stats.passed
+            summary.tests_failed = self.test_stats.failed
+            summary.tests_skipped = self.test_stats.skipped
+            summary.tests_errors = self.test_stats.errors
+        return summary
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for MCP/JSON output.
+
+        Returns:
+            Dictionary with coverage statistics.
+        """
+        result: Dict[str, Any] = {
+            "coverage_percentage": round(self.percentage, 2),
+            "threshold": self.threshold,
+            "total_lines": self.total_lines,
+            "covered_lines": self.covered_lines,
+            "missing_lines": self.missing_lines,
+            "passed": self.passed,
+        }
+        if self.test_stats is not None:
+            result["tests"] = {
+                "total": self.test_stats.total,
+                "passed": self.test_stats.passed,
+                "failed": self.test_stats.failed,
+                "skipped": self.test_stats.skipped,
+                "errors": self.test_stats.errors,
+                "success": self.test_stats.success,
+            }
+        return result
 
 
 class CoveragePlugin(ABC):

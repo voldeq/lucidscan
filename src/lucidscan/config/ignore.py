@@ -13,7 +13,7 @@ Uses pathspec library for full gitignore compliance including:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 import pathspec
 
@@ -176,3 +176,34 @@ def load_ignore_patterns(
 
     # Merge (file patterns first, then config)
     return IgnorePatterns.merge(file_patterns, config_ignore)
+
+
+def filter_paths_with_ignore(
+    paths: List[Path],
+    project_root: Path,
+    config_patterns: List[str],
+) -> Tuple[List[Path], IgnorePatterns]:
+    """Load ignore patterns and filter paths.
+
+    This is necessary because explicitly passed file paths bypass
+    the linter's --exclude flags (e.g., ruff only applies excludes
+    when expanding directories, not for explicit file arguments).
+
+    Args:
+        paths: List of paths to filter.
+        project_root: Project root directory.
+        config_patterns: Patterns from config.ignore.
+
+    Returns:
+        Tuple of (filtered_paths, ignore_patterns).
+    """
+    ignore_patterns = load_ignore_patterns(project_root, config_patterns)
+
+    if paths:
+        original_count = len(paths)
+        paths = [p for p in paths if not ignore_patterns.matches(p, project_root)]
+        filtered_count = original_count - len(paths)
+        if filtered_count > 0:
+            LOGGER.debug(f"Filtered {filtered_count} files via ignore patterns")
+
+    return paths, ignore_patterns

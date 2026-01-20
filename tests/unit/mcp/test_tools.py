@@ -15,7 +15,14 @@ from lucidscan.config.models import (
     ToolConfig,
 )
 from lucidscan.core.domain_runner import detect_language, get_domains_for_language
-from lucidscan.core.models import ScanContext, ScanDomain, Severity, ToolDomain, UnifiedIssue
+from lucidscan.core.models import (
+    ScanContext,
+    ScanDomain,
+    Severity,
+    ToolDomain,
+    UnifiedIssue,
+    _DOMAIN_MAP,
+)
 from lucidscan.mcp.tools import MCPToolExecutor
 
 
@@ -73,7 +80,7 @@ class TestMCPToolExecutor:
     def test_domain_map_contains_all_domains(
         self, executor: MCPToolExecutor
     ) -> None:
-        """Test that domain map covers all expected canonical domains (no synonyms)."""
+        """Test that shared domain map covers all expected canonical domains."""
         expected_domains = [
             "linting",
             "type_checking",
@@ -83,7 +90,7 @@ class TestMCPToolExecutor:
             "coverage",
         ]
         for domain in expected_domains:
-            assert domain in executor.DOMAIN_MAP
+            assert domain in _DOMAIN_MAP
 
     def test_parse_domains_with_all_respects_config(
         self, full_executor: MCPToolExecutor

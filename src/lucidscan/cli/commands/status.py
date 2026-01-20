@@ -13,6 +13,7 @@ from lucidscan.bootstrap.platform import get_platform_info
 from lucidscan.bootstrap.validation import validate_binary, ToolStatus
 from lucidscan.cli.commands import Command
 from lucidscan.cli.exit_codes import EXIT_SUCCESS
+from lucidscan.plugins.discovery import get_all_available_tools
 from lucidscan.plugins.scanners import discover_scanner_plugins
 
 
@@ -54,12 +55,15 @@ class StatusCommand(Command):
         print(f"Tool cache: {home}/bin/")
         print()
 
-        # Discover plugins via entry points
-        print("Scanner plugins:")
-        plugins = discover_scanner_plugins()
+        # Discover all available tools
+        all_tools = get_all_available_tools()
 
-        if plugins:
-            for name, plugin_class in sorted(plugins.items()):
+        # Show scanner plugins with detailed binary status
+        print("Scanner plugins:")
+        scanner_plugins = discover_scanner_plugins()
+
+        if scanner_plugins:
+            for name, plugin_class in sorted(scanner_plugins.items()):
                 try:
                     plugin = plugin_class()
                     domains = ", ".join(d.value.upper() for d in plugin.domains)
@@ -78,7 +82,17 @@ class StatusCommand(Command):
         else:
             print("  No plugins discovered.")
 
+        # Show other tool categories
+        if all_tools["linters"]:
+            print(f"\nLinter plugins: {', '.join(sorted(all_tools['linters']))}")
+        if all_tools["type_checkers"]:
+            print(f"Type checker plugins: {', '.join(sorted(all_tools['type_checkers']))}")
+        if all_tools["test_runners"]:
+            print(f"Test runner plugins: {', '.join(sorted(all_tools['test_runners']))}")
+        if all_tools["coverage"]:
+            print(f"Coverage plugins: {', '.join(sorted(all_tools['coverage']))}")
+
         print()
-        print("Tools are downloaded to .lucidscan/ on first scan.")
+        print("Security tools are downloaded to .lucidscan/ on first scan.")
 
         return EXIT_SUCCESS
