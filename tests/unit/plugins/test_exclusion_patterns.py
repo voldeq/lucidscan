@@ -49,7 +49,7 @@ class TestRuffExclusionPatterns:
     """Tests for Ruff linter exclusion pattern handling."""
 
     def test_ruff_adds_exclude_flags(self) -> None:
-        """Test that Ruff adds --exclude flags for each pattern."""
+        """Test that Ruff adds --extend-exclude flags for each pattern."""
         from lucidscan.plugins.linters.ruff import RuffLinter
 
         linter = RuffLinter()
@@ -68,9 +68,9 @@ class TestRuffExclusionPatterns:
 
                 # Check the command arguments
                 cmd = mock_run.call_args[0][0]
-                assert "--exclude" in cmd
+                assert "--extend-exclude" in cmd
                 # Verify both patterns are added
-                exclude_indices = [i for i, x in enumerate(cmd) if x == "--exclude"]
+                exclude_indices = [i for i, x in enumerate(cmd) if x == "--extend-exclude"]
                 assert len(exclude_indices) == 2
 
 

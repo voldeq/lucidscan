@@ -118,6 +118,8 @@ class CheckovScanner(ScannerPlugin):
         Returns:
             Path to the checkov binary in the virtual environment.
         """
+        import time
+
         venv_dir = self._paths.plugin_bin_dir(self.name, self._version) / "venv"
         binary_path = self._get_binary_path(venv_dir)
 
@@ -128,7 +130,29 @@ class CheckovScanner(ScannerPlugin):
         LOGGER.info(f"Installing Checkov v{self._version}...")
         self._install_checkov(venv_dir)
 
+        # On Windows, file system operations may have a small delay before
+        # the file becomes visible. Retry a few times with a short delay.
+        if sys.platform == "win32":
+            for attempt in range(5):
+                if binary_path.exists():
+                    break
+                LOGGER.debug(
+                    f"Waiting for binary to appear (attempt {attempt + 1}/5)..."
+                )
+                time.sleep(0.5)
+
         if not binary_path.exists():
+            # Try alternative binary path (without .exe extension)
+            alt_binary = venv_dir / "Scripts" / "checkov"
+            if alt_binary.exists():
+                LOGGER.debug(f"Using alternative binary path: {alt_binary}")
+                return alt_binary
+
+            # Log directory contents for debugging
+            scripts_dir = venv_dir / "Scripts" if sys.platform == "win32" else venv_dir / "bin"
+            if scripts_dir.exists():
+                contents = list(scripts_dir.iterdir())
+                LOGGER.error(f"Scripts directory contents: {[f.name for f in contents]}")
             raise RuntimeError(f"Failed to install Checkov to {binary_path}")
 
         return binary_path

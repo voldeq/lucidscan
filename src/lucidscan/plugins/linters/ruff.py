@@ -32,6 +32,9 @@ LOGGER = get_logger(__name__)
 # Default version from pyproject.toml [tool.lucidscan.tools]
 DEFAULT_VERSION = get_tool_version("ruff")
 
+# Python file extensions that Ruff supports
+PYTHON_EXTENSIONS = {".py", ".pyi", ".pyw"}
+
 # Ruff severity mapping
 # Ruff outputs: E=error, W=warning, F=flake8, I=isort, etc.
 # We map based on rule category
@@ -183,14 +186,25 @@ class RuffLinter(LinterPlugin):
             "--output-format", "json",
         ]
 
-        # Add paths to check
-        paths = [str(p) for p in context.paths] if context.paths else ["."]
+        # Filter and add paths to check
+        # Only include Python files to avoid linting non-Python files
+        if context.paths:
+            paths = self._filter_paths(context.paths, context.project_root)
+        else:
+            paths = ["."]
+
+        # If no valid paths after filtering, skip linting
+        if not paths:
+            LOGGER.debug("No Python files to lint")
+            return []
+
         cmd.extend(paths)
 
-        # Add exclude patterns
+        # Add exclude patterns using --extend-exclude to preserve Ruff's defaults
+        # (--exclude would replace all defaults like .git, .venv, __pycache__, etc.)
         exclude_patterns = context.get_exclude_patterns()
         for pattern in exclude_patterns:
-            cmd.extend(["--exclude", pattern])
+            cmd.extend(["--extend-exclude", pattern])
 
         # Run Ruff
         LOGGER.debug(f"Running: {' '.join(cmd)}")
@@ -238,12 +252,23 @@ class RuffLinter(LinterPlugin):
             "--output-format", "json",
         ]
 
-        paths = [str(p) for p in context.paths] if context.paths else ["."]
+        # Filter and add paths
+        if context.paths:
+            paths = self._filter_paths(context.paths, context.project_root)
+        else:
+            paths = ["."]
+
+        # If no valid paths after filtering, skip fix
+        if not paths:
+            LOGGER.debug("No Python files to fix")
+            return FixResult()
+
         cmd.extend(paths)
 
+        # Add exclude patterns using --extend-exclude to preserve Ruff's defaults
         exclude_patterns = context.get_exclude_patterns()
         for pattern in exclude_patterns:
-            cmd.extend(["--exclude", pattern])
+            cmd.extend(["--extend-exclude", pattern])
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
@@ -277,6 +302,35 @@ class RuffLinter(LinterPlugin):
             issues_fixed=len(pre_issues) - len(post_issues),
             issues_remaining=len(post_issues),
         )
+
+    def _filter_paths(
+        self,
+        paths: List[Path],
+        project_root: Path,
+    ) -> List[str]:
+        """Filter paths to only include Python files.
+
+        Directories are passed through as-is (Ruff will handle them).
+        Files are filtered to only include supported extensions.
+
+        Args:
+            paths: List of paths to filter.
+            project_root: Project root directory.
+
+        Returns:
+            List of filtered path strings.
+        """
+        filtered = []
+        for path in paths:
+            if path.is_dir():
+                # Directories are passed through - Ruff will find Python files
+                filtered.append(str(path))
+            elif path.suffix.lower() in PYTHON_EXTENSIONS:
+                # Only include files with Python extensions
+                filtered.append(str(path))
+            else:
+                LOGGER.debug(f"Skipping non-Python file: {path}")
+        return filtered
 
     def _download_release(self, target_dir: Path) -> Path:
         """Download Ruff release archive.
