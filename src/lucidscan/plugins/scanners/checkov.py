@@ -236,9 +236,10 @@ class CheckovScanner(ScannerPlugin):
         iac_config = context.get_scanner_options("iac")
 
         # Build command
+        # Use as_posix() for Windows compatibility (forward slashes)
         cmd = [
             str(binary),
-            "--directory", str(context.project_root),
+            "--directory", context.project_root.as_posix(),
             "--output", "json",
             "--quiet",
             "--compact",

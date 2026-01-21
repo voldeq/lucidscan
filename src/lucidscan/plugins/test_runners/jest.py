@@ -134,8 +134,9 @@ class JestRunner(TestRunnerPlugin):
                 cmd.append("--coverage")
 
             # Add paths to test if specified
+            # Use as_posix() for Windows compatibility (forward slashes)
             if context.paths:
-                paths = [str(p) for p in context.paths]
+                paths = [p.as_posix() for p in context.paths]
                 cmd.extend(paths)
 
             LOGGER.debug(f"Running: {' '.join(cmd)}")

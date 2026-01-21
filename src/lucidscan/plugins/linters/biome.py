@@ -142,12 +142,13 @@ class BiomeLinter(LinterPlugin):
         ]
 
         # Add paths to check
+        # Use as_posix() for Windows compatibility (forward slashes)
         if context.paths:
-            paths = [str(p) for p in context.paths]
+            paths = [p.as_posix() for p in context.paths]
         else:
             src_dir = context.project_root / "src"
             if src_dir.exists():
-                paths = [str(src_dir)]
+                paths = [src_dir.as_posix()]
             else:
                 paths = ["."]
 
@@ -197,12 +198,13 @@ class BiomeLinter(LinterPlugin):
             "--apply",
         ]
 
+        # Use as_posix() for Windows compatibility (forward slashes)
         if context.paths:
-            paths = [str(p) for p in context.paths]
+            paths = [p.as_posix() for p in context.paths]
         else:
             src_dir = context.project_root / "src"
             if src_dir.exists():
-                paths = [str(src_dir)]
+                paths = [src_dir.as_posix()]
             else:
                 paths = ["."]
 

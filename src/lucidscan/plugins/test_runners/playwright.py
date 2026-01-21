@@ -102,11 +102,14 @@ class PlaywrightRunner(TestRunnerPlugin):
             "  npx playwright install"
         )
 
-    def run_tests(self, context: ScanContext) -> TestResult:
+    def run_tests(
+        self, context: ScanContext, with_coverage: bool = False
+    ) -> TestResult:
         """Run Playwright on the specified paths.
 
         Args:
             context: Scan context with paths and configuration.
+            with_coverage: Whether to run with coverage (not yet implemented).
 
         Returns:
             TestResult with test statistics and issues for failures.
@@ -124,8 +127,9 @@ class PlaywrightRunner(TestRunnerPlugin):
         ]
 
         # Add paths to test if specified
+        # Use as_posix() for Windows compatibility (forward slashes)
         if context.paths:
-            paths = [str(p) for p in context.paths]
+            paths = [p.as_posix() for p in context.paths]
             cmd.extend(paths)
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")

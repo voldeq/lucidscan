@@ -211,7 +211,8 @@ class OpenGrepScanner(ScannerPlugin):
             cmd.extend(["--exclude", pattern])
 
         # Add target path
-        cmd.append(str(context.project_root))
+        # Use as_posix() for Windows compatibility (forward slashes)
+        cmd.append(context.project_root.as_posix())
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 

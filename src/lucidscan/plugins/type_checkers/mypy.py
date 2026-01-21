@@ -210,10 +210,11 @@ class MypyChecker(TypeCheckerPlugin):
             cmd.extend(["--config-file", str(pyproject)])
 
         # Add paths to check (filter to Python files or directories)
+        # Use as_posix() for Windows compatibility (forward slashes)
         if context.paths:
             python_extensions = {".py", ".pyi", ".pyx"}
             paths = [
-                str(p) for p in context.paths
+                p.as_posix() for p in context.paths
                 if p.is_dir() or p.suffix.lower() in python_extensions
             ]
             if not paths:

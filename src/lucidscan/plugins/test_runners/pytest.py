@@ -229,7 +229,8 @@ class PytestRunner(TestRunnerPlugin):
             ])
 
             # Add paths to test
-            paths = [str(p) for p in context.paths] if context.paths else ["."]
+            # Use as_posix() for Windows compatibility (forward slashes)
+            paths = [p.as_posix() for p in context.paths] if context.paths else ["."]
             cmd.extend(paths)
 
             LOGGER.debug(f"Running: {' '.join(cmd)}")
@@ -293,7 +294,8 @@ class PytestRunner(TestRunnerPlugin):
             ])
 
             # Add paths to test
-            paths = [str(p) for p in context.paths] if context.paths else ["."]
+            # Use as_posix() for Windows compatibility (forward slashes)
+            paths = [p.as_posix() for p in context.paths] if context.paths else ["."]
             cmd.extend(paths)
 
             LOGGER.debug(f"Running: {' '.join(cmd)}")

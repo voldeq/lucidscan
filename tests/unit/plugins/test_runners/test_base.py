@@ -61,7 +61,9 @@ class ConcreteTestRunner(TestRunnerPlugin):
     def ensure_binary(self) -> Path:
         return Path("/usr/bin/test")
 
-    def run_tests(self, context: ScanContext) -> TestResult:
+    def run_tests(
+        self, context: ScanContext, with_coverage: bool = False
+    ) -> TestResult:
         return TestResult(passed=5, failed=0)
 
 

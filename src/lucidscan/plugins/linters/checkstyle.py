@@ -267,7 +267,8 @@ class CheckstyleLinter(LinterPlugin):
                 if context.ignore_patterns is None or not context.ignore_patterns.matches(
                     java_file, context.project_root
                 ):
-                    java_files.append(str(java_file))
+                    # Use as_posix() for Windows compatibility (forward slashes)
+                    java_files.append(java_file.as_posix())
 
         return java_files
 

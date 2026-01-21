@@ -247,7 +247,8 @@ class TrivyScanner(ScannerPlugin):
                 # For file patterns, use --skip-files
                 cmd.extend(["--skip-files", pattern])
 
-        cmd.append(str(context.project_root))
+        # Use as_posix() for Windows compatibility (forward slashes)
+        cmd.append(context.project_root.as_posix())
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
