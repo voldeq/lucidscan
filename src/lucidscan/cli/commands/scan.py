@@ -74,11 +74,16 @@ class ScanCommand(Command):
             # Write output to stdout
             reporter.report(result, sys.stdout)
 
-            # Check severity threshold - CLI overrides config
-            # Use get_fail_on_threshold to handle both string and dict formats
-            threshold = args.fail_on if args.fail_on else config.get_fail_on_threshold("security")
-            if check_severity_threshold(result.issues, threshold):
-                return EXIT_ISSUES_FOUND
+            # Check fail_on thresholds for all domains
+            # CLI --fail-on overrides all config thresholds
+            if args.fail_on:
+                # CLI flag applies to all issues regardless of domain
+                if check_severity_threshold(result.issues, args.fail_on):
+                    return EXIT_ISSUES_FOUND
+            else:
+                # Check per-domain thresholds from config
+                if self._check_domain_thresholds(result.issues, config):
+                    return EXIT_ISSUES_FOUND
 
             return EXIT_SUCCESS
 
@@ -230,3 +235,63 @@ class ScanCommand(Command):
             result.metadata = pipeline_result.metadata
 
         return result
+
+    def _check_domain_thresholds(
+        self, issues: List[UnifiedIssue], config: LucidScanConfig
+    ) -> bool:
+        """Check if any issues exceed their domain's fail_on threshold.
+
+        Groups issues by domain and checks each against its configured threshold.
+
+        Args:
+            issues: List of all issues found.
+            config: Configuration with per-domain thresholds.
+
+        Returns:
+            True if any domain exceeds its threshold, False otherwise.
+        """
+        from lucidscan.core.models import ScanDomain, ToolDomain
+
+        # Map issue domains to config domain names
+        # ScanDomain values (SCA, CONTAINER, IAC, SAST) all map to "security"
+        domain_mapping: dict[ScanDomain | ToolDomain, str] = {
+            ToolDomain.LINTING: "linting",
+            ToolDomain.TYPE_CHECKING: "type_checking",
+            ToolDomain.SECURITY: "security",
+            ToolDomain.TESTING: "testing",
+            ToolDomain.COVERAGE: "coverage",
+            ScanDomain.SCA: "security",
+            ScanDomain.CONTAINER: "security",
+            ScanDomain.IAC: "security",
+            ScanDomain.SAST: "security",
+        }
+
+        # Group issues by domain
+        issues_by_domain: dict[str, List[UnifiedIssue]] = {}
+        for issue in issues:
+            domain_name = domain_mapping.get(issue.domain, "security")
+            if domain_name not in issues_by_domain:
+                issues_by_domain[domain_name] = []
+            issues_by_domain[domain_name].append(issue)
+
+        # Check each domain against its threshold
+        for domain_name, domain_issues in issues_by_domain.items():
+            threshold = config.get_fail_on_threshold(domain_name)
+            if threshold:
+                # Handle special threshold values
+                if threshold == "any" and domain_issues:
+                    LOGGER.debug(f"Domain {domain_name}: {len(domain_issues)} issues exceed 'any' threshold")
+                    return True
+                elif threshold == "error":
+                    # For linting/type_checking: fail on any HIGH severity (errors)
+                    if any(i.severity.value in ("high", "critical") for i in domain_issues):
+                        LOGGER.debug(f"Domain {domain_name}: issues exceed 'error' threshold")
+                        return True
+                elif threshold == "none":
+                    # Never fail
+                    continue
+                elif check_severity_threshold(domain_issues, threshold):
+                    LOGGER.debug(f"Domain {domain_name}: issues exceed '{threshold}' threshold")
+                    return True
+
+        return False
