@@ -110,52 +110,32 @@ class CheckovScanner(ScannerPlugin):
         return self._version
 
     def ensure_binary(self) -> Path:
-        """Ensure the Checkov binary is available, installing if needed.
+        """Ensure Checkov is installed and return the venv Python path.
 
         Checkov is a Python package, so we install it into a dedicated
         virtual environment to avoid conflicts with system packages.
 
+        We return the venv's Python interpreter path because on Windows,
+        pip may create shell scripts instead of .exe files for entry points.
+        Using `python -m checkov` is more reliable across platforms.
+
         Returns:
-            Path to the checkov binary in the virtual environment.
+            Path to the Python interpreter in the virtual environment.
         """
-        import time
-
         venv_dir = self._paths.plugin_bin_dir(self.name, self._version) / "venv"
-        binary_path = self._get_binary_path(venv_dir)
+        python_path = self._get_python_path(venv_dir)
 
-        if binary_path.exists():
-            LOGGER.debug(f"Checkov binary found at {binary_path}")
-            return binary_path
+        if python_path.exists():
+            LOGGER.debug(f"Checkov venv Python found at {python_path}")
+            return python_path
 
         LOGGER.info(f"Installing Checkov v{self._version}...")
         self._install_checkov(venv_dir)
 
-        # On Windows, file system operations may have a small delay before
-        # the file becomes visible. Retry a few times with a short delay.
-        if sys.platform == "win32":
-            for attempt in range(5):
-                if binary_path.exists():
-                    break
-                LOGGER.debug(
-                    f"Waiting for binary to appear (attempt {attempt + 1}/5)..."
-                )
-                time.sleep(0.5)
+        if not python_path.exists():
+            raise RuntimeError(f"Failed to install Checkov venv at {venv_dir}")
 
-        if not binary_path.exists():
-            # Try alternative binary path (without .exe extension)
-            alt_binary = venv_dir / "Scripts" / "checkov"
-            if alt_binary.exists():
-                LOGGER.debug(f"Using alternative binary path: {alt_binary}")
-                return alt_binary
-
-            # Log directory contents for debugging
-            scripts_dir = venv_dir / "Scripts" if sys.platform == "win32" else venv_dir / "bin"
-            if scripts_dir.exists():
-                contents = list(scripts_dir.iterdir())
-                LOGGER.error(f"Scripts directory contents: {[f.name for f in contents]}")
-            raise RuntimeError(f"Failed to install Checkov to {binary_path}")
-
-        return binary_path
+        return python_path
 
     def _get_binary_path(self, venv_dir: Path) -> Path:
         """Get the path to the checkov binary in the virtual environment."""
@@ -163,6 +143,12 @@ class CheckovScanner(ScannerPlugin):
         if sys.platform == "win32":
             return venv_dir / "Scripts" / "checkov.exe"
         return venv_dir / "bin" / "checkov"
+
+    def _get_python_path(self, venv_dir: Path) -> Path:
+        """Get the path to Python in the virtual environment."""
+        if sys.platform == "win32":
+            return venv_dir / "Scripts" / "python.exe"
+        return venv_dir / "bin" / "python"
 
     def _get_pip_path(self, venv_dir: Path) -> Path:
         """Get the path to pip in the virtual environment."""
@@ -237,16 +223,16 @@ class CheckovScanner(ScannerPlugin):
         if ScanDomain.IAC not in context.enabled_domains:
             return []
 
-        binary = self.ensure_binary()
-        return self._run_iac_scan(binary, context)
+        python_path = self.ensure_binary()
+        return self._run_iac_scan(python_path, context)
 
     def _run_iac_scan(
-        self, binary: Path, context: ScanContext
+        self, python_path: Path, context: ScanContext
     ) -> List[UnifiedIssue]:
         """Run Checkov IaC scan.
 
         Args:
-            binary: Path to the Checkov binary.
+            python_path: Path to the venv Python interpreter.
             context: Scan context with project root and configuration.
 
         Returns:
@@ -255,9 +241,11 @@ class CheckovScanner(ScannerPlugin):
         # Get IaC-specific config options
         iac_config = context.get_scanner_options("iac")
 
-        # Build command
+        # Build command using python -m checkov for cross-platform reliability
+        # This avoids issues with Windows entry point scripts
         cmd = [
-            str(binary),
+            str(python_path),
+            "-m", "checkov",
             "--directory", str(context.project_root),
             "--output", "json",
             "--quiet",
