@@ -6,6 +6,7 @@ Dependencies are auto-installed on first run.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -101,6 +102,7 @@ def run_lucidshark(
     domains: list[str] | None = None,
     extra_args: list[str] | None = None,
     timeout: int = 120,
+    all_files: bool = True,
 ) -> ScanResult:
     """Run lucidshark CLI against a project and return parsed results.
 
@@ -109,6 +111,7 @@ def run_lucidshark(
         domains: List of domains to enable (e.g., ["linting", "type_checking"])
         extra_args: Additional CLI arguments
         timeout: Command timeout in seconds
+        all_files: If True, scan all files (not just git-changed). Default True for tests.
 
     Returns:
         ScanResult with parsed output
@@ -122,6 +125,10 @@ def run_lucidshark(
         lucidshark_bin = Path(shutil.which("lucidshark") or "lucidshark")
 
     cmd = [str(lucidshark_bin), "scan", "--format", "json"]
+
+    # By default, scan all files in integration tests (not just git-changed)
+    if all_files:
+        cmd.append("--all-files")
 
     if domains:
         for domain in domains:
@@ -268,6 +275,7 @@ def _setup_node_modules(project_path: Path) -> Path:
         capture_output=True,
         text=True,
         timeout=120,
+        env={**os.environ, "CI": "true"},  # Disable interactive prompts
     )
 
     if result.returncode != 0:
