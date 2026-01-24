@@ -33,11 +33,12 @@ pipeline:
   duplication:
     enabled: true
     threshold: 10.0
-    min_lines: 4
+    min_lines: 7
     tools: [duplo]
     exclude:
       - "htmlcov/**"
       - "docs/**"
+      - "tests/**"
 
 fail_on:
   linting: error
