@@ -1,0 +1,27 @@
+version: 2
+updates:
+  # Python dependencies (pip) - root project only
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+# IMPORTANT: Test projects in tests/integration/projects/ are NOT configured
+# here intentionally. They contain vulnerable dependencies for security
+# scanner integration testing. Do not add configurations for:
+#   - tests/integration/projects/python-webapp
+#   - tests/integration/projects/typescript-api
