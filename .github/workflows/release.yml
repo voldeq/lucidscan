@@ -54,7 +54,7 @@ jobs:
             target: linux-arm64
             artifact_name: lucidshark
             asset_name: lucidshark-linux-arm64
-          - os: macos-13
+          - os: macos-15-intel
             target: darwin-amd64
             artifact_name: lucidshark
             asset_name: lucidshark-darwin-amd64
@@ -66,10 +66,6 @@ jobs:
             target: windows-amd64
             artifact_name: lucidshark.exe
             asset_name: lucidshark-windows-amd64.exe
-          - os: windows-11-arm
-            target: windows-arm64
-            artifact_name: lucidshark.exe
-            asset_name: lucidshark-windows-arm64.exe
 
     runs-on: ${{ matrix.os }}
 
@@ -167,7 +163,6 @@ jobs:
             binaries/lucidshark-darwin-amd64
             binaries/lucidshark-darwin-arm64
             binaries/lucidshark-windows-amd64.exe
-            binaries/lucidshark-windows-arm64.exe
           body: |
             ## LucidShark - The Trust Layer for AI-Assisted Development
 
