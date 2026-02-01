@@ -187,9 +187,16 @@ class RuffLinter(LinterPlugin):
         ]
 
         # Filter and add paths to check
-        # Only include Python files to avoid linting non-Python files
+        # Only include Python files; also drop any path that matches ignore patterns
+        # (defensive so ignored paths are never passed to Ruff, including on Windows)
         if context.paths:
-            paths = self._filter_paths(context.paths, context.project_root)
+            paths_to_use = context.paths
+            if context.ignore_patterns is not None:
+                paths_to_use = [
+                    p for p in paths_to_use
+                    if not context.ignore_patterns.matches(p, context.project_root)
+                ]
+            paths = self._filter_paths(paths_to_use, context.project_root)
         else:
             paths = ["."]
 
@@ -202,8 +209,7 @@ class RuffLinter(LinterPlugin):
 
         # Add exclude patterns using --extend-exclude to preserve Ruff's defaults
         # (--exclude would replace all defaults like .git, .venv, __pycache__, etc.)
-        exclude_patterns = context.get_exclude_patterns()
-        for pattern in exclude_patterns:
+        for pattern in self._get_ruff_exclude_patterns(context):
             cmd.extend(["--extend-exclude", pattern])
 
         # Run Ruff
@@ -252,9 +258,15 @@ class RuffLinter(LinterPlugin):
             "--output-format", "json",
         ]
 
-        # Filter and add paths
+        # Filter and add paths (same ignore filtering as lint)
         if context.paths:
-            paths = self._filter_paths(context.paths, context.project_root)
+            paths_to_use = context.paths
+            if context.ignore_patterns is not None:
+                paths_to_use = [
+                    p for p in paths_to_use
+                    if not context.ignore_patterns.matches(p, context.project_root)
+                ]
+            paths = self._filter_paths(paths_to_use, context.project_root)
         else:
             paths = ["."]
 
@@ -266,8 +278,7 @@ class RuffLinter(LinterPlugin):
         cmd.extend(paths)
 
         # Add exclude patterns using --extend-exclude to preserve Ruff's defaults
-        exclude_patterns = context.get_exclude_patterns()
-        for pattern in exclude_patterns:
+        for pattern in self._get_ruff_exclude_patterns(context):
             cmd.extend(["--extend-exclude", pattern])
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
@@ -302,6 +313,34 @@ class RuffLinter(LinterPlugin):
             issues_fixed=len(pre_issues) - len(post_issues),
             issues_remaining=len(post_issues),
         )
+
+    def _get_ruff_exclude_patterns(self, context: ScanContext) -> List[str]:
+        """Get exclude patterns for Ruff, normalized for Windows.
+
+        On Windows, Ruff may compare patterns against native paths (backslash).
+        We pass patterns with forward slashes (glob convention) and, on Windows,
+        also backslash variants so excludes apply correctly.
+
+        Args:
+            context: Scan context with ignore patterns.
+
+        Returns:
+            List of patterns to pass to --extend-exclude.
+        """
+        raw = context.get_exclude_patterns()
+        # Normalize to forward slashes so config with backslashes works everywhere
+        patterns = [p.replace("\\", "/") for p in raw]
+        if platform.system() != "Windows":
+            return patterns
+        # On Windows, Ruff's glob matcher may receive paths with backslashes;
+        # add backslash variants so exclude patterns match native paths
+        seen = set(patterns)
+        for p in list(patterns):
+            backslash = p.replace("/", "\\")
+            if backslash != p and backslash not in seen:
+                patterns.append(backslash)
+                seen.add(backslash)
+        return patterns
 
     def _filter_paths(
         self,

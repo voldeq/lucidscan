@@ -68,7 +68,10 @@ class IgnorePatterns:
             True if path should be ignored, False otherwise.
         """
         try:
-            rel_path = path.relative_to(root)
+            # Normalize so relative_to works on Windows when path/root have mixed slashes
+            path_res = path.resolve() if path.is_absolute() else (root / path).resolve()
+            root_res = root.resolve()
+            rel_path = path_res.relative_to(root_res)
         except ValueError:
             rel_path = path
 
