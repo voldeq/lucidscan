@@ -145,7 +145,7 @@ class MypyChecker(TypeCheckerPlugin):
         """Ensure mypy is available.
 
         Checks for mypy in:
-        1. Project's .venv/bin/mypy
+        1. Project's .venv (bin/mypy on Unix, Scripts/mypy.exe on Windows)
         2. System PATH
 
         Returns:
@@ -154,9 +154,14 @@ class MypyChecker(TypeCheckerPlugin):
         Raises:
             FileNotFoundError: If mypy is not installed.
         """
+        import sys
+
         # Check project venv first
         if self._project_root:
-            venv_mypy = self._project_root / ".venv" / "bin" / "mypy"
+            if sys.platform == "win32":
+                venv_mypy = self._project_root / ".venv" / "Scripts" / "mypy.exe"
+            else:
+                venv_mypy = self._project_root / ".venv" / "bin" / "mypy"
             if venv_mypy.exists():
                 return venv_mypy
 
@@ -210,17 +215,22 @@ class MypyChecker(TypeCheckerPlugin):
             cmd.extend(["--config-file", str(pyproject)])
 
         # Add paths to check (filter to Python files or directories)
-        # Use as_posix() for Windows compatibility (forward slashes)
+        # When only path is project_root (a directory), pass "." so mypy runs from cwd reliably
         if context.paths:
             python_extensions = {".py", ".pyi", ".pyx"}
-            paths = [
-                p.as_posix() for p in context.paths
+            filtered = [
+                p for p in context.paths
                 if p.is_dir() or p.suffix.lower() in python_extensions
             ]
-            if not paths:
+            if not filtered:
                 # No Python files or directories to check
                 LOGGER.debug("No Python files or directories in scan paths, skipping mypy")
                 return []
+            # Single path that is project_root -> use "." for reliable discovery
+            if len(filtered) == 1 and filtered[0].resolve() == context.project_root.resolve():
+                paths = ["."]
+            else:
+                paths = [p.as_posix() for p in filtered]
         else:
             paths = ["."]
         cmd.extend(paths)
@@ -248,8 +258,9 @@ class MypyChecker(TypeCheckerPlugin):
             LOGGER.error(f"Failed to run mypy: {e}")
             return []
 
-        # Parse output
-        issues = self._parse_output(result.stdout, context.project_root)
+        # Parse output (mypy may write to stdout or stderr depending on version)
+        output = result.stdout or result.stderr or ""
+        issues = self._parse_output(output, context.project_root)
 
         LOGGER.info(f"mypy found {len(issues)} issues")
         return issues
@@ -257,29 +268,32 @@ class MypyChecker(TypeCheckerPlugin):
     def _parse_output(self, output: str, project_root: Path) -> List[UnifiedIssue]:
         """Parse mypy JSON output.
 
-        Args:
-            output: JSON output from mypy (one JSON object per line).
-            project_root: Project root directory.
-
-        Returns:
-            List of UnifiedIssue objects.
+        Supports: (1) one JSON object per line; (2) single JSON object with
+        "messages" array (mypy 2.x).
         """
-        if not output.strip():
+        if not output or not output.strip():
             return []
 
         issues = []
+        # Try line-by-line (one JSON object per line)
         for line in output.strip().split("\n"):
             if not line.strip():
                 continue
-
             try:
-                error = json.loads(line)
-                issue = self._error_to_issue(error, project_root)
+                obj = json.loads(line)
+                # Single object with "messages" array (mypy 2.x)
+                if isinstance(obj, dict) and "messages" in obj:
+                    for error in obj.get("messages", []):
+                        issue = self._error_to_issue(error, project_root)
+                        if issue:
+                            issues.append(issue)
+                    continue
+                # Single error object per line
+                issue = self._error_to_issue(obj, project_root)
                 if issue:
                     issues.append(issue)
             except json.JSONDecodeError:
-                # Skip non-JSON lines (e.g., summary messages)
-                LOGGER.debug(f"Skipping non-JSON line: {line}")
+                LOGGER.debug(f"Skipping non-JSON line: {line[:80]!r}")
                 continue
 
         return issues

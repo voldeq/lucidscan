@@ -69,9 +69,59 @@ class TestRuffExclusionPatterns:
                 # Check the command arguments
                 cmd = mock_run.call_args[0][0]
                 assert "--extend-exclude" in cmd
-                # Verify both patterns are added
+                # Verify both patterns are added (simplified forms)
                 exclude_indices = [i for i, x in enumerate(cmd) if x == "--extend-exclude"]
                 assert len(exclude_indices) == 2
+
+    def test_ruff_simplifies_glob_patterns_for_exclude(self) -> None:
+        """Patterns like **/.venv/** are simplified to bare names for cross-platform reliability."""
+        from lucidshark.plugins.linters.ruff import RuffLinter
+
+        linter = RuffLinter()
+        ignore = IgnorePatterns([
+            "**/.venv/**",
+            "**/node_modules/**",
+            "**/__pycache__/**",
+            "tests/integration/projects/**",
+            "*.log",
+        ])
+        context = ScanContext(
+            project_root=Path("/project"),
+            paths=[],
+            enabled_domains=[ToolDomain.LINTING],
+            ignore_patterns=ignore,
+        )
+
+        patterns = linter._get_ruff_exclude_patterns(context)
+        # **/<name>/** stripped to bare name
+        assert ".venv" in patterns
+        assert "node_modules" in patterns
+        assert "__pycache__" in patterns
+        # <path>/** stripped trailing /**
+        assert "tests/integration/projects" in patterns
+        # Simple glob kept as-is
+        assert "*.log" in patterns
+        # No ** wrappers remain
+        assert "**/.venv/**" not in patterns
+        assert "**/node_modules/**" not in patterns
+
+    def test_ruff_simplify_exclude_pattern_variants(self) -> None:
+        """Test various pattern forms are simplified correctly."""
+        from lucidshark.plugins.linters.ruff import RuffLinter
+
+        simplify = RuffLinter._simplify_exclude_pattern
+        # **/<name>/** → <name>
+        assert simplify("**/.lucidshark/**") == ".lucidshark"
+        # **/<name> → <name>
+        assert simplify("**/build") == "build"
+        # <path>/** → <path>
+        assert simplify("docs/**") == "docs"
+        # bare name stays as-is
+        assert simplify(".venv") == ".venv"
+        # simple glob stays as-is
+        assert simplify("*.pyc") == "*.pyc"
+        # backslashes normalized to forward slashes
+        assert simplify("**\\.git\\**") == ".git"
 
 
 class TestESLintExclusionPatterns:

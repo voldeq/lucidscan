@@ -187,9 +187,16 @@ class RuffLinter(LinterPlugin):
         ]
 
         # Filter and add paths to check
-        # Only include Python files to avoid linting non-Python files
+        # Only include Python files; also drop any path that matches ignore patterns
+        # (defensive so ignored paths are never passed to Ruff, including on Windows)
         if context.paths:
-            paths = self._filter_paths(context.paths, context.project_root)
+            paths_to_use = context.paths
+            if context.ignore_patterns is not None:
+                paths_to_use = [
+                    p for p in paths_to_use
+                    if not context.ignore_patterns.matches(p, context.project_root)
+                ]
+            paths = self._filter_paths(paths_to_use, context.project_root)
         else:
             paths = ["."]
 
@@ -202,8 +209,7 @@ class RuffLinter(LinterPlugin):
 
         # Add exclude patterns using --extend-exclude to preserve Ruff's defaults
         # (--exclude would replace all defaults like .git, .venv, __pycache__, etc.)
-        exclude_patterns = context.get_exclude_patterns()
-        for pattern in exclude_patterns:
+        for pattern in self._get_ruff_exclude_patterns(context):
             cmd.extend(["--extend-exclude", pattern])
 
         # Run Ruff
@@ -252,9 +258,15 @@ class RuffLinter(LinterPlugin):
             "--output-format", "json",
         ]
 
-        # Filter and add paths
+        # Filter and add paths (same ignore filtering as lint)
         if context.paths:
-            paths = self._filter_paths(context.paths, context.project_root)
+            paths_to_use = context.paths
+            if context.ignore_patterns is not None:
+                paths_to_use = [
+                    p for p in paths_to_use
+                    if not context.ignore_patterns.matches(p, context.project_root)
+                ]
+            paths = self._filter_paths(paths_to_use, context.project_root)
         else:
             paths = ["."]
 
@@ -266,8 +278,7 @@ class RuffLinter(LinterPlugin):
         cmd.extend(paths)
 
         # Add exclude patterns using --extend-exclude to preserve Ruff's defaults
-        exclude_patterns = context.get_exclude_patterns()
-        for pattern in exclude_patterns:
+        for pattern in self._get_ruff_exclude_patterns(context):
             cmd.extend(["--extend-exclude", pattern])
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
@@ -302,6 +313,61 @@ class RuffLinter(LinterPlugin):
             issues_fixed=len(pre_issues) - len(post_issues),
             issues_remaining=len(post_issues),
         )
+
+    @staticmethod
+    def _simplify_exclude_pattern(pattern: str) -> str:
+        """Simplify a gitignore-style glob into a form Ruff handles on all platforms.
+
+        Ruff's CLI ``--extend-exclude`` uses globset for matching.  On Windows,
+        patterns containing ``**`` and forward slashes may fail to match paths
+        discovered with native backslash separators (known Ruff issue).
+
+        In gitignore semantics a bare name (e.g. ``.lucidshark``) matches that
+        name at **any depth**, which is equivalent to ``**/.lucidshark/**``.
+        Stripping the ``**/`` wrapper produces a simpler pattern that Ruff's
+        globset can match reliably on every platform.
+
+        Transformations applied (in order):
+        - ``**/<name>/**`` → ``<name>``
+        - ``**/<name>``    → ``<name>``
+        - ``<path>/**``    → ``<path>``
+        - everything else  → kept as-is, with backslashes normalised to ``/``
+        """
+        # Normalise separators first
+        p = pattern.replace("\\", "/")
+
+        # Strip leading **/ (matches any depth prefix)
+        if p.startswith("**/"):
+            p = p[3:]
+
+        # Strip trailing /** (matches any depth suffix)
+        if p.endswith("/**"):
+            p = p[:-3]
+
+        return p
+
+    def _get_ruff_exclude_patterns(self, context: ScanContext) -> List[str]:
+        """Get exclude patterns for Ruff, simplified for cross-platform reliability.
+
+        Simplifies gitignore-style globs (e.g. ``**/.venv/**``) into bare
+        directory names (e.g. ``.venv``) that Ruff's globset can match
+        regardless of path separator conventions on the host OS.
+
+        Args:
+            context: Scan context with ignore patterns.
+
+        Returns:
+            List of patterns to pass to ``--extend-exclude``.
+        """
+        raw = context.get_exclude_patterns()
+        seen: set[str] = set()
+        result: list[str] = []
+        for pattern in raw:
+            simplified = self._simplify_exclude_pattern(pattern)
+            if simplified and simplified not in seen:
+                result.append(simplified)
+                seen.add(simplified)
+        return result
 
     def _filter_paths(
         self,

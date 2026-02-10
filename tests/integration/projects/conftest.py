@@ -118,13 +118,23 @@ def run_lucidshark(
     """
     import json
 
-    # Find lucidshark in the same directory as the Python executable
-    lucidshark_bin = Path(sys.executable).parent / "lucidshark"
+    # Find lucidshark: same dir as Python (venv Scripts/bin) or PATH, or run as module
+    exe_dir = Path(sys.executable).parent
+    if sys.platform == "win32":
+        lucidshark_bin = exe_dir / "lucidshark.exe"
+    else:
+        lucidshark_bin = exe_dir / "lucidshark"
     if not lucidshark_bin.exists():
-        # Fall back to PATH
-        lucidshark_bin = Path(shutil.which("lucidshark") or "lucidshark")
+        which = shutil.which("lucidshark")
+        if which:
+            lucidshark_bin = Path(which)
+        else:
+            lucidshark_bin = None  # use python -m lucidshark
 
-    cmd = [str(lucidshark_bin), "scan", "--format", "json"]
+    if lucidshark_bin is not None:
+        cmd = [str(lucidshark_bin), "scan", "--format", "json"]
+    else:
+        cmd = [sys.executable, "-m", "lucidshark", "scan", "--format", "json"]
 
     # By default, scan all files in integration tests (not just git-changed)
     if all_files:
@@ -211,17 +221,17 @@ def _setup_python_venv(project_path: Path) -> Path:
         capture_output=True,
     )
 
-    # Determine pip path
+    # Determine pip path (Windows: pip.exe in Scripts)
     if sys.platform == "win32":
-        pip = venv_path / "Scripts" / "pip"
+        pip = venv_path / "Scripts" / "pip.exe"
     else:
         pip = venv_path / "bin" / "pip"
 
-    # Upgrade pip
+    # Upgrade pip (best-effort; can fail on Windows with file locking)
     subprocess.run(
         [str(pip), "install", "--upgrade", "pip"],
         capture_output=True,
-        check=True,
+        check=False,
     )
 
     # Install project dependencies (vulnerable deps for SCA testing)
