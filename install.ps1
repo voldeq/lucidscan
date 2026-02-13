@@ -165,19 +165,45 @@ function Main {
 
     Write-Host ""
 
-    # Post-install instructions
+    # Post-install: configure shell for global installs
     if ($installMode -eq "global") {
-        # Check if already in PATH
-        $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
-        if ($currentPath -notlike "*$installDir*") {
-            Write-Host "Adding to user PATH..."
-            $newPath = "$installDir;$currentPath"
-            [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
-            Write-Success "Added $installDir to user PATH"
-            Write-Host ""
-            Write-Warn "Please restart your terminal for PATH changes to take effect."
-            Write-Host ""
+        # Get PowerShell profile path
+        $profilePath = $PROFILE.CurrentUserAllHosts
+        $profileDir = Split-Path $profilePath -Parent
+
+        # Ensure profile directory exists
+        if (-not (Test-Path $profileDir)) {
+            New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
         }
+
+        # Check if lucidshark function already configured
+        $profileExists = Test-Path $profilePath
+        $alreadyConfigured = $profileExists -and (Select-String -Path $profilePath -Pattern "# LucidShark" -Quiet)
+
+        if ($alreadyConfigured) {
+            Write-Info "Shell already configured in $profilePath"
+        }
+        else {
+            # Add function that prefers local binary over global
+            $functionCode = @"
+
+# LucidShark - prefers local binary over global
+function lucidshark {
+    if (Test-Path ".\lucidshark.exe") {
+        & ".\lucidshark.exe" @args
+    } else {
+        & "$installPath" @args
+    }
+}
+"@
+            Add-Content -Path $profilePath -Value $functionCode
+            Write-Success "Added lucidshark to $profilePath"
+        }
+
+        Write-Host ""
+        Write-Warn "Restart your terminal or run:"
+        Write-Host "  . `$PROFILE"
+        Write-Host ""
         Write-Host "Run: lucidshark --help"
     }
     else {

@@ -211,18 +211,49 @@ main() {
 
     echo ""
 
-    # Post-install instructions
+    # Post-install: configure shell for global installs
     if [[ "$install_mode" == "global" ]]; then
-        if [[ ":$PATH:" != *":${install_dir}:"* ]]; then
-            echo "To use lucidshark globally, add to your PATH:"
-            echo ""
-            echo "  # Add to ~/.bashrc or ~/.zshrc:"
-            echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
-            echo ""
-            echo "Then run:"
-            echo "  source ~/.bashrc  # or ~/.zshrc"
-            echo ""
+        # Detect shell and rc file
+        local shell_name rc_file
+        shell_name="$(basename "${SHELL:-/bin/bash}")"
+
+        case "$shell_name" in
+            zsh)  rc_file="${HOME}/.zshrc" ;;
+            fish) rc_file="${HOME}/.config/fish/config.fish" ;;
+            *)    rc_file="${HOME}/.bashrc" ;;
+        esac
+
+        # Check if lucidshark function/alias already configured
+        if [[ -f "$rc_file" ]] && grep -qF "# LucidShark" "$rc_file" 2>/dev/null; then
+            info "Shell already configured in ${rc_file}"
+        else
+            # Add shell function that prefers local binary over global
+            echo "" >> "$rc_file"
+            echo "# LucidShark - prefers local binary over global" >> "$rc_file"
+            if [[ "$shell_name" == "fish" ]]; then
+                echo 'function lucidshark' >> "$rc_file"
+                echo '    if test -x "./lucidshark"' >> "$rc_file"
+                echo '        ./lucidshark $argv' >> "$rc_file"
+                echo '    else' >> "$rc_file"
+                echo "        ${install_dir}/lucidshark \$argv" >> "$rc_file"
+                echo '    end' >> "$rc_file"
+                echo 'end' >> "$rc_file"
+            else
+                echo 'lucidshark() {' >> "$rc_file"
+                echo '    if [[ -x "./lucidshark" ]]; then' >> "$rc_file"
+                echo '        ./lucidshark "$@"' >> "$rc_file"
+                echo '    else' >> "$rc_file"
+                echo "        ${install_dir}/lucidshark \"\$@\"" >> "$rc_file"
+                echo '    fi' >> "$rc_file"
+                echo '}' >> "$rc_file"
+            fi
+            success "Added lucidshark to ${rc_file}"
         fi
+
+        echo ""
+        warn "Restart your terminal or run:"
+        echo "  source ${rc_file}"
+        echo ""
         echo "Run: lucidshark --help"
     else
         echo "Run: ./lucidshark --help"
