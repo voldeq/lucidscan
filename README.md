@@ -62,7 +62,7 @@ That's it! Your AI assistant will analyze your codebase, ask you a few questions
 
 The install scripts will prompt you to choose:
 - **Global install** (`~/.local/bin` or `%LOCALAPPDATA%\Programs\lucidshark`) - available system-wide
-- **Project-local install** (`.lucidshark/bin`) - project-specific, auto-detected by LucidShark
+- **Project-local install** (current directory) - project-specific, keeps the binary in your project root
 
 ### Alternative: CLI Configuration
 
@@ -91,7 +91,25 @@ lucidshark scan --duplication       # Code duplication detection
 
 # Auto-fix linting issues
 lucidshark scan --linting --fix
+
+# Preview what would be scanned (dry run)
+lucidshark scan --all --dry-run
 ```
+
+### Diagnostics
+
+Check your LucidShark setup with the doctor command:
+
+```bash
+lucidshark doctor
+```
+
+This checks:
+- Configuration file presence and validity
+- Tool availability (security scanners, linters, type checkers)
+- Python environment compatibility
+- Git repository status
+- MCP integrations (Claude Code, Cursor)
 
 ### AI Tool Setup
 
@@ -142,6 +160,38 @@ Configures both Claude Code and Cursor.
 All results are normalized to a common format.
 
 ## Configuration
+
+### Presets
+
+Start fast with built-in presets:
+
+```bash
+# Use a preset for quick setup
+lucidshark scan --preset python-strict
+lucidshark scan --preset typescript-minimal
+```
+
+| Preset | Best For | Includes |
+|--------|----------|----------|
+| `python-strict` | Production Python | Ruff, mypy (strict), pytest, 80% coverage, security, duplication |
+| `python-minimal` | Quick Python setup | Ruff, mypy, security |
+| `typescript-strict` | Production TS/React | ESLint, TypeScript, Jest, security |
+| `typescript-minimal` | Quick TS setup | ESLint, TypeScript, security |
+| `minimal` | Any project | Security only (Trivy + OpenGrep) |
+
+Presets can also be set in `lucidshark.yml`:
+
+```yaml
+version: 1
+preset: python-strict
+
+# Override specific preset values
+pipeline:
+  coverage:
+    threshold: 90  # Override preset's 80%
+```
+
+### Custom Configuration
 
 LucidShark auto-detects your project. For custom settings, create `lucidshark.yml`:
 
@@ -206,13 +256,16 @@ lucidshark autoconfigure [--ci github|gitlab|bitbucket] [--non-interactive]
 lucidshark scan [--linting] [--type-checking] [--sca] [--sast] [--iac] [--container] [--testing] [--coverage] [--duplication] [--all]
 lucidshark scan [--fix] [--stream] [--format table|json|sarif|summary]
 lucidshark scan [--fail-on critical|high|medium|low]
+lucidshark scan [--preset python-strict|python-minimal|typescript-strict|typescript-minimal|minimal]
+lucidshark scan [--dry-run]               # Preview what would be scanned
 
 # Server mode
 lucidshark serve --mcp                    # Run MCP server
 lucidshark serve --watch                  # Watch mode with auto-checking
 
-# Show status
-lucidshark status [--tools]
+# Diagnostics
+lucidshark doctor                         # Check setup and environment health
+lucidshark status [--tools]               # Show configuration and tool status
 ```
 
 ## Exit Codes
