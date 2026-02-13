@@ -107,7 +107,8 @@ function Main {
         Write-Host "      - Binary placed in project root"
         Write-Host ""
 
-        $choice = Read-Host "Choice [1/2]"
+        Write-Host -NoNewline "Choice [1/2]: "
+        $choice = [Console]::ReadLine()
         Write-Host ""
 
         switch ($choice) {
