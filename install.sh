@@ -157,7 +157,7 @@ main() {
         echo ""
 
         local choice
-        read -rp "Choice [1/2]: " choice
+        read -rp "Choice [1/2]: " choice < /dev/tty
         echo ""
 
         case "$choice" in
