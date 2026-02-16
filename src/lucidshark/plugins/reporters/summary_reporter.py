@@ -48,11 +48,11 @@ class SummaryReporter(ReporterPlugin):
                         lines.append(f"  {sev.upper()}: {count}")
 
             if result.summary.by_scanner:
-                lines.append("\nBy scanner domain:")
-                for scanner, count in result.summary.by_scanner.items():
-                    lines.append(f"  {scanner.upper()}: {count}")
+                lines.append("\nBy domain:")
+                for domain, count in result.summary.by_scanner.items():
+                    lines.append(f"  {domain.upper()}: {count}")
         else:
-            lines.append("No summary available.")
+            lines.append("All checks passed. No issues found.")
 
         # Coverage summary
         if result.coverage_summary:

@@ -137,8 +137,8 @@ class TestCLIRunner:
             result = runner.init_cmd
             assert result is None
 
-    def test_handle_scan_no_domains_selected(self, capsys, tmp_path: Path) -> None:
-        """Test scan command with no domains selected."""
+    def test_handle_scan_no_domains_no_config(self, capsys, tmp_path: Path) -> None:
+        """Test scan command with no domains selected and no config file."""
         runner = CLIRunner()
 
         with patch(
@@ -148,12 +148,34 @@ class TestCLIRunner:
             mock_config.get_enabled_domains.return_value = []
             mock_load.return_value = mock_config
 
-            # scan uses positional path
+            # scan uses positional path (tmp_path has no lucidshark.yml)
             result = runner.run(["scan", str(tmp_path)])
 
             assert result == EXIT_SUCCESS
             captured = capsys.readouterr()
-            assert "No scan domains selected" in captured.out
+            assert "No lucidshark.yml found" in captured.out
+            assert "autoconfigure" in captured.out
+
+    def test_handle_scan_no_domains_with_config(self, capsys, tmp_path: Path) -> None:
+        """Test scan command with config file but all domains disabled."""
+        # Create a config file so find_project_config finds it
+        config_file = tmp_path / "lucidshark.yml"
+        config_file.write_text("pipeline: {}\n")
+
+        runner = CLIRunner()
+
+        with patch(
+            "lucidshark.cli.runner.load_config",
+        ) as mock_load:
+            mock_config = MagicMock()
+            mock_config.get_enabled_domains.return_value = []
+            mock_load.return_value = mock_config
+
+            result = runner.run(["scan", str(tmp_path)])
+
+            assert result == EXIT_SUCCESS
+            captured = capsys.readouterr()
+            assert "All domains in config are disabled" in captured.out
 
     def test_handle_scan_config_error(self, tmp_path: Path) -> None:
         """Test scan command with config error."""

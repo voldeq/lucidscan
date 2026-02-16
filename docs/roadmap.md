@@ -1,6 +1,6 @@
 # LucidShark Roadmap
 
-> **Vision**: The trust layer for AI-assisted development
+> **Vision**: Unified code quality pipeline for AI-assisted development
 
 LucidShark unifies code quality tools (linting, type checking, security, testing, coverage, duplication detection) into a single pipeline that auto-configures for any project and integrates with AI coding tools like Claude Code and Cursor.
 

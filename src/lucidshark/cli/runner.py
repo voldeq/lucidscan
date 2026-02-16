@@ -22,7 +22,7 @@ from lucidshark.cli.commands.scan import ScanCommand
 from lucidshark.cli.commands.help import HelpCommand
 from lucidshark.cli.commands.doctor import DoctorCommand
 from lucidshark.config import load_config
-from lucidshark.config.loader import ConfigError
+from lucidshark.config.loader import ConfigError, find_project_config
 from lucidshark.core.logging import configure_logging, get_logger
 
 LOGGER = get_logger(__name__)
@@ -218,9 +218,17 @@ class CLIRunner:
                 LOGGER.error(f"Scan failed: {e}")
                 return EXIT_SCANNER_ERROR
 
-        # No scanners selected - show scan help
-        print("No scan domains selected. Use --sca, --sast, --iac, --linting, --type-checking, or --all.")
-        print("\nRun 'lucidshark scan --help' for more options.")
+        # No scanners selected - provide context-specific guidance
+        has_config = find_project_config(project_root) is not None
+        if has_config:
+            print("All domains in config are disabled. Enable domains in lucidshark.yml or use CLI flags:")
+            print("  lucidshark scan --sca, --sast, --iac, --linting, --type-checking, or --all")
+        else:
+            print("No lucidshark.yml found and no scan domains specified.")
+            print("\nQuick start:")
+            print("  lucidshark autoconfigure   Generate a config for this project")
+            print("  lucidshark scan --all      Run all available checks without a config")
+            print("  lucidshark scan --preset python-strict   Use a preset configuration")
         return EXIT_SUCCESS
 
     def _handle_status(self, args) -> int:
