@@ -2,18 +2,31 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import IO, List
 
-from lucidshark.core.models import ScanResult, Severity
+from lucidshark.core.models import ScanResult, Severity, UnifiedIssue
 from lucidshark.plugins.reporters.base import ReporterPlugin
+
+# Domains that use FILE:LINE layout instead of DEPENDENCY layout
+_CODE_DOMAINS = {"linting", "type_checking", "testing", "duplication", "coverage"}
+
+_SEVERITY_ORDER = {
+    Severity.CRITICAL: 0,
+    Severity.HIGH: 1,
+    Severity.MEDIUM: 2,
+    Severity.LOW: 3,
+    Severity.INFO: 4,
+}
 
 
 class TableReporter(ReporterPlugin):
     """Reporter plugin that outputs scan results as a human-readable table.
 
     Produces a formatted table suitable for terminal display with:
-    - Severity-sorted issues
-    - Truncated fields for readability
+    - Issues grouped by domain
+    - Domain-appropriate columns (FILE:LINE for code, DEPENDENCY for SCA)
+    - Severity-sorted issues within each group
     - Summary statistics at the bottom
     """
 
@@ -40,31 +53,28 @@ class TableReporter(ReporterPlugin):
             lines.append("No issues found.")
             return lines
 
-        # Header
-        lines.append(f"{'SEVERITY':<10} {'ID':<20} {'DEPENDENCY':<40} {'TITLE'}")
-        lines.append("-" * 100)
+        # Group issues by domain
+        by_domain: dict[str, List[UnifiedIssue]] = defaultdict(list)
+        for issue in result.issues:
+            by_domain[issue.domain.value].append(issue)
 
-        # Sort by severity
-        severity_order = {
-            Severity.CRITICAL: 0,
-            Severity.HIGH: 1,
-            Severity.MEDIUM: 2,
-            Severity.LOW: 3,
-            Severity.INFO: 4,
-        }
+        # Sort each group by severity
+        for domain_issues in by_domain.values():
+            domain_issues.sort(key=lambda x: _SEVERITY_ORDER.get(x.severity, 5))
 
-        sorted_issues = sorted(
-            result.issues, key=lambda x: severity_order.get(x.severity, 5)
-        )
+        # Render each domain group
+        first = True
+        for domain, domain_issues in by_domain.items():
+            if not first:
+                lines.append("")
+            first = False
 
-        for issue in sorted_issues:
-            sev = issue.severity.value.upper()
-            # Use rule_id first, then check metadata for vulnerability_id, fallback to issue id
-            rule_id = issue.rule_id or issue.metadata.get("vulnerability_id", issue.id)
-            rule_id = rule_id[:20]
-            dep = (issue.dependency or "")[:40]
-            title = issue.title[:60] if len(issue.title) > 60 else issue.title
-            lines.append(f"{sev:<10} {rule_id:<20} {dep:<40} {title}")
+            lines.append(f"--- {domain.upper()} ({len(domain_issues)} issues) ---")
+
+            if domain in _CODE_DOMAINS:
+                self._render_code_table(domain_issues, lines)
+            else:
+                self._render_dependency_table(domain_issues, lines)
 
         # Summary
         lines.append("")
@@ -91,3 +101,35 @@ class TableReporter(ReporterPlugin):
             lines.append(f"Duplication: {ds.duplication_percent:.1f}% (threshold: {ds.threshold}%) - {status}")
 
         return lines
+
+    def _render_code_table(
+        self, issues: List[UnifiedIssue], lines: List[str]
+    ) -> None:
+        """Render issues using FILE:LINE + RULE + DESCRIPTION columns."""
+        lines.append(f"{'SEVERITY':<10} {'FILE:LINE':<35} {'RULE':<20} {'DESCRIPTION'}")
+        lines.append("-" * 100)
+
+        for issue in issues:
+            sev = issue.severity.value.upper()
+            location = str(issue.file_path or "")
+            if issue.line_start is not None:
+                location = f"{location}:{issue.line_start}"
+            location = location[:35]
+            rule = (issue.rule_id or "")[:20]
+            title = issue.title[:60] if len(issue.title) > 60 else issue.title
+            lines.append(f"{sev:<10} {location:<35} {rule:<20} {title}")
+
+    def _render_dependency_table(
+        self, issues: List[UnifiedIssue], lines: List[str]
+    ) -> None:
+        """Render issues using DEPENDENCY column (for SCA/security domains)."""
+        lines.append(f"{'SEVERITY':<10} {'ID':<20} {'DEPENDENCY':<40} {'TITLE'}")
+        lines.append("-" * 100)
+
+        for issue in issues:
+            sev = issue.severity.value.upper()
+            rule_id = issue.rule_id or issue.metadata.get("vulnerability_id", issue.id)
+            rule_id = rule_id[:20]
+            dep = (issue.dependency or "")[:40]
+            title = issue.title[:60] if len(issue.title) > 60 else issue.title
+            lines.append(f"{sev:<10} {rule_id:<20} {dep:<40} {title}")

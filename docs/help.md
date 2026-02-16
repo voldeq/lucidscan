@@ -650,6 +650,203 @@ output:
   format: json  # json, table, sarif, summary
 ```
 
+### Common Configuration Examples
+
+Copy-paste-ready configs for common project setups.
+
+#### Python Only (Minimal)
+
+Linting with Ruff and type checking with mypy. Good starting point for any Python project.
+
+```yaml
+version: 1
+project:
+  name: my-python-app
+  languages: [python]
+pipeline:
+  linting:
+    enabled: true
+    tools:
+      - name: ruff
+  type_checking:
+    enabled: true
+    tools:
+      - name: mypy
+fail_on:
+  linting: error
+  type_checking: error
+ignore:
+  - "**/__pycache__/**"
+  - "**/.venv/**"
+```
+
+#### TypeScript Only (Minimal)
+
+Linting with ESLint and type checking with tsc. Works for any TypeScript or JavaScript project.
+
+```yaml
+version: 1
+project:
+  name: my-ts-app
+  languages: [typescript, javascript]
+pipeline:
+  linting:
+    enabled: true
+    tools:
+      - name: eslint
+  type_checking:
+    enabled: true
+    tools:
+      - name: typescript
+fail_on:
+  linting: error
+  type_checking: error
+ignore:
+  - "**/node_modules/**"
+  - "**/dist/**"
+```
+
+#### Python with Testing and Coverage
+
+Full Python quality pipeline: Ruff, mypy, pytest, and coverage.py with an 80% threshold.
+
+```yaml
+version: 1
+project:
+  name: my-python-app
+  languages: [python]
+pipeline:
+  linting:
+    enabled: true
+    tools:
+      - name: ruff
+  type_checking:
+    enabled: true
+    tools:
+      - name: mypy
+        strict: true
+  testing:
+    enabled: true
+    tools:
+      - name: pytest
+  coverage:
+    enabled: true
+    tools:
+      - name: coverage_py
+    threshold: 80
+fail_on:
+  linting: error
+  type_checking: error
+  testing: any
+  coverage: below_threshold
+ignore:
+  - "**/__pycache__/**"
+  - "**/.venv/**"
+  - "**/.pytest_cache/**"
+```
+
+#### TypeScript Full Stack
+
+ESLint, tsc, Jest, and Istanbul coverage. Suitable for React, Next.js, or Node.js projects.
+
+```yaml
+version: 1
+project:
+  name: my-fullstack-app
+  languages: [typescript, javascript]
+pipeline:
+  linting:
+    enabled: true
+    tools:
+      - name: eslint
+  type_checking:
+    enabled: true
+    tools:
+      - name: typescript
+  testing:
+    enabled: true
+    tools:
+      - name: jest
+  coverage:
+    enabled: true
+    tools:
+      - name: istanbul
+    threshold: 80
+fail_on:
+  linting: error
+  type_checking: error
+  testing: any
+  coverage: below_threshold
+ignore:
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/build/**"
+  - "**/coverage/**"
+```
+
+#### Security Only (Any Language)
+
+Dependency vulnerability scanning (Trivy SCA) and code security patterns (OpenGrep SAST). No language-specific tools needed.
+
+```yaml
+version: 1
+project:
+  name: my-project
+pipeline:
+  security:
+    enabled: true
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: opengrep
+        domains: [sast]
+fail_on:
+  security: high
+ignore:
+  - "**/.git/**"
+  - "**/node_modules/**"
+  - "**/__pycache__/**"
+  - "**/.venv/**"
+```
+
+#### Java Project
+
+Checkstyle for linting, SpotBugs for type/bug analysis, Maven for testing, and JaCoCo for coverage.
+
+```yaml
+version: 1
+project:
+  name: my-java-app
+  languages: [java]
+pipeline:
+  linting:
+    enabled: true
+    tools:
+      - name: checkstyle
+  type_checking:
+    enabled: true
+    tools:
+      - name: spotbugs
+  testing:
+    enabled: true
+    tools:
+      - name: maven
+  coverage:
+    enabled: true
+    tools:
+      - name: jacoco
+    threshold: 80
+    extra_args: ["-DskipITs"]
+fail_on:
+  linting: error
+  type_checking: error
+  testing: any
+  coverage: below_threshold
+ignore:
+  - "**/target/**"
+  - "**/.gradle/**"
+```
+
 ### Configuration Sections
 
 #### `project`

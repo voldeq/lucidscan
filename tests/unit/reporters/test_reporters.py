@@ -13,6 +13,7 @@ from lucidshark.core.models import (
     ScanMetadata,
     ScanResult,
     Severity,
+    ToolDomain,
     UnifiedIssue,
 )
 from lucidshark.plugins.reporters.json_reporter import JSONReporter
@@ -171,18 +172,18 @@ class TestTableReporter:
         content = output.getvalue()
         assert "No issues found." in content
 
-    def test_report_with_issues(self, sample_result: ScanResult) -> None:
+    def test_report_with_sca_issues(self, sample_result: ScanResult) -> None:
         reporter = TableReporter()
         output = io.StringIO()
 
         reporter.report(sample_result, output)
 
         content = output.getvalue()
-        # Check header
-        assert "SEVERITY" in content
-        assert "ID" in content
+        # Check SCA domain header
+        assert "--- SCA (" in content
+        # Check dependency layout for SCA
         assert "DEPENDENCY" in content
-        assert "TITLE" in content
+        assert "ID" in content
         # Check issues are present
         assert "CRITICAL" in content
         assert "HIGH" in content
@@ -190,6 +191,76 @@ class TestTableReporter:
         assert "CVE-2021-1234" in content
         # Check summary
         assert "Total:" in content
+
+    def test_report_with_linting_issues(self) -> None:
+        """Test that linting issues use FILE:LINE + RULE layout."""
+        issues = [
+            UnifiedIssue(
+                id="ruff-1",
+                domain=ToolDomain.LINTING,
+                source_tool="ruff",
+                severity=Severity.LOW,
+                rule_id="E501",
+                title="Line too long",
+                description="Line too long",
+                file_path=Path("src/main.py"),
+                line_start=42,
+            ),
+        ]
+        result = ScanResult(issues=issues)
+        result.summary = result.compute_summary()
+
+        reporter = TableReporter()
+        output = io.StringIO()
+        reporter.report(result, output)
+
+        content = output.getvalue()
+        assert "--- LINTING (" in content
+        assert "FILE:LINE" in content
+        assert "RULE" in content
+        assert "DESCRIPTION" in content
+        assert "src/main.py:42" in content
+        assert "E501" in content
+        # DEPENDENCY column should NOT appear for linting-only output
+        assert "DEPENDENCY" not in content
+
+    def test_report_mixed_domains(self) -> None:
+        """Test that mixed domains get appropriate column layouts."""
+        issues = [
+            UnifiedIssue(
+                id="ruff-1",
+                domain=ToolDomain.LINTING,
+                source_tool="ruff",
+                severity=Severity.LOW,
+                rule_id="E501",
+                title="Line too long",
+                description="Line too long",
+                file_path=Path("src/main.py"),
+                line_start=10,
+            ),
+            UnifiedIssue(
+                id="trivy-1",
+                domain=ScanDomain.SCA,
+                source_tool="trivy",
+                severity=Severity.HIGH,
+                rule_id="CVE-2021-1234",
+                title="Vulnerability",
+                description="A vulnerability",
+                dependency="lodash@4.17.15",
+            ),
+        ]
+        result = ScanResult(issues=issues)
+        result.summary = result.compute_summary()
+
+        reporter = TableReporter()
+        output = io.StringIO()
+        reporter.report(result, output)
+
+        content = output.getvalue()
+        assert "--- LINTING (" in content
+        assert "--- SCA (" in content
+        assert "FILE:LINE" in content
+        assert "DEPENDENCY" in content
 
     def test_issues_sorted_by_severity(self, sample_result: ScanResult) -> None:
         reporter = TableReporter()
@@ -277,14 +348,14 @@ class TestSummaryReporter:
         assert "HIGH: 1" in content
         assert "MEDIUM: 1" in content
 
-    def test_scanner_domain_breakdown(self, sample_result: ScanResult) -> None:
+    def test_domain_breakdown(self, sample_result: ScanResult) -> None:
         reporter = SummaryReporter()
         output = io.StringIO()
 
         reporter.report(sample_result, output)
 
         content = output.getvalue()
-        assert "By scanner domain:" in content
+        assert "By domain:" in content
         assert "SCA: 3" in content
 
     def test_metadata_displayed(self, sample_result: ScanResult) -> None:
@@ -297,8 +368,8 @@ class TestSummaryReporter:
         assert "Scan duration: 5000ms" in content
         assert "Project: /path/to/project" in content
 
-    def test_no_summary_available(self) -> None:
-        """Test output when summary is None."""
+    def test_no_summary_shows_all_passed(self) -> None:
+        """Test output when summary is None shows all-clear message."""
         result = ScanResult(issues=[])
         result.summary = None
 
@@ -307,7 +378,7 @@ class TestSummaryReporter:
         reporter.report(result, output)
 
         content = output.getvalue()
-        assert "No summary available." in content
+        assert "All checks passed. No issues found." in content
 
 
 class TestSARIFReporter:

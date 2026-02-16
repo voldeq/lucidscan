@@ -75,26 +75,43 @@ lucidshark autoconfigure
 ### Running Scans
 
 ```bash
-# Run the full quality pipeline
-lucidshark scan --all
-
-# Run specific checks
-lucidshark scan --linting           # Linting (Ruff, ESLint, Biome)
-lucidshark scan --type-checking     # Type checking (mypy, pyright, tsc)
-lucidshark scan --sast              # Security code analysis (OpenGrep)
-lucidshark scan --sca               # Dependency vulnerabilities (Trivy)
-lucidshark scan --iac               # Infrastructure-as-Code (Checkov)
-lucidshark scan --container         # Container image scanning (Trivy)
-lucidshark scan --testing           # Run tests (pytest, Jest)
-lucidshark scan --coverage          # Coverage analysis
-lucidshark scan --duplication       # Code duplication detection
-
-# Auto-fix linting issues
-lucidshark scan --linting --fix
-
-# Preview what would be scanned (dry run)
-lucidshark scan --all --dry-run
+lucidshark scan --all               # Run all quality checks
+lucidshark scan --linting           # Run specific domains
+lucidshark scan --linting --fix     # Auto-fix linting issues
+lucidshark scan --all --dry-run     # Preview what would be scanned
 ```
+
+Scan domains: `--linting`, `--type-checking`, `--sast`, `--sca`, `--iac`, `--container`, `--testing`, `--coverage`, `--duplication`
+
+### Example Output
+
+When issues are found:
+
+```
+$ lucidshark scan --linting --type-checking --sast
+Total issues: 4
+
+By severity:
+  HIGH: 1
+  MEDIUM: 2
+  LOW: 1
+
+By scanner domain:
+  LINTING: 2
+  TYPE_CHECKING: 1
+  SAST: 1
+
+Scan duration: 1243ms
+```
+
+When everything passes:
+
+```
+$ lucidshark scan --all
+No issues found.
+```
+
+Use `--format table` for a detailed per-issue breakdown, or `--format json` for machine-readable output.
 
 ### Diagnostics
 
@@ -113,35 +130,13 @@ This checks:
 
 ### AI Tool Setup
 
-#### Claude Code
-
 ```bash
-lucidshark init --claude-code
+lucidshark init --claude-code    # Configure Claude Code (.mcp.json + CLAUDE.md)
+lucidshark init --cursor         # Configure Cursor (mcp.json + rules)
+lucidshark init --all            # Configure all AI tools
 ```
 
-This:
-- Adds LucidShark to your Claude Code MCP configuration (`.mcp.json`)
-- Creates `.claude/CLAUDE.md` with scan workflow instructions
-
-Restart Claude Code to activate.
-
-#### Cursor
-
-```bash
-lucidshark init --cursor
-```
-
-This:
-- Adds LucidShark to Cursor's MCP configuration (`~/.cursor/mcp.json`)
-- Creates `.cursor/rules/lucidshark.mdc` with auto-scan rules
-
-#### All AI Tools
-
-```bash
-lucidshark init --all
-```
-
-Configures both Claude Code and Cursor.
+Restart your AI tool after running `init` to activate.
 
 ## What It Checks
 
@@ -197,105 +192,34 @@ LucidShark auto-detects your project. For custom settings, create `lucidshark.ym
 
 ```yaml
 version: 1
-
 pipeline:
-  linting:
-    enabled: true
-    tools:
-      - name: ruff
-
-  type_checking:
-    enabled: true
-    tools:
-      - name: mypy
-        strict: true
-
-  security:
-    enabled: true
-    tools:
-      - name: trivy
-      - name: opengrep
-
-  testing:
-    enabled: true
-    tools:
-      - name: pytest
-
-  coverage:
-    enabled: true
-    threshold: 80
-
-  duplication:
-    enabled: true
-    threshold: 10.0  # Max allowed duplication percentage
-
+  linting:  { enabled: true, tools: [{ name: ruff }] }
+  type_checking:  { enabled: true, tools: [{ name: mypy, strict: true }] }
+  security: { enabled: true, tools: [{ name: trivy }, { name: opengrep }] }
+  testing:  { enabled: true, tools: [{ name: pytest }] }
+  coverage: { enabled: true, threshold: 80 }
+  duplication: { enabled: true, threshold: 10.0 }
 fail_on:
   linting: error
   security: high
   testing: any
-  coverage: below_threshold
-  duplication: above_threshold
-
-ignore:
-  - "**/node_modules/**"
-  - "**/.venv/**"
+ignore: ["**/node_modules/**", "**/.venv/**"]
 ```
+
+See [docs/help.md](docs/help.md) for the full configuration reference.
 
 ## CLI Reference
 
-```bash
-# Configure AI tools (Claude Code, Cursor)
-lucidshark init --claude-code             # Configure Claude Code
-lucidshark init --cursor                  # Configure Cursor
-lucidshark init --all                     # Configure all AI tools
-lucidshark init --remove --claude-code    # Remove LucidShark from Claude Code
-lucidshark init --dry-run --all           # Preview changes without applying
-lucidshark init --force --all             # Overwrite existing configuration
+| Command | Description |
+|---------|-------------|
+| `lucidshark scan --all` | Run all quality checks |
+| `lucidshark scan --linting --fix` | Lint and auto-fix |
+| `lucidshark init --all` | Configure AI tools (Claude Code, Cursor) |
+| `lucidshark autoconfigure` | Auto-detect project and generate config |
+| `lucidshark doctor` | Check setup and environment health |
+| `lucidshark validate` | Validate `lucidshark.yml` |
 
-# Auto-configure project (detect languages, generate lucidshark.yml)
-lucidshark autoconfigure [--non-interactive] [--force] [path]
-
-# Run quality pipeline
-lucidshark scan [--linting] [--type-checking] [--sca] [--sast] [--iac] [--container] [--testing] [--coverage] [--duplication] [--all]
-lucidshark scan [--fix] [--stream] [--format table|json|sarif|summary]
-lucidshark scan [--fail-on critical|high|medium|low]
-lucidshark scan [--preset python-strict|python-minimal|typescript-strict|typescript-minimal|minimal]
-lucidshark scan [--dry-run]               # Preview what would be scanned
-lucidshark scan [--files FILE ...]        # Scan specific files
-lucidshark scan [--all-files]             # Scan entire project (not just changed files)
-lucidshark scan [--image IMAGE]           # Scan container image (with --container)
-lucidshark scan [--config PATH]           # Use specific config file
-lucidshark scan [--sequential]            # Disable parallel execution (debugging)
-lucidshark scan [--coverage-threshold N]  # Override coverage threshold
-lucidshark scan [--duplication-threshold N] # Override duplication threshold
-
-# Validate configuration
-lucidshark validate [--config PATH]       # Validate lucidshark.yml
-
-# Server mode
-lucidshark serve --mcp                    # Run MCP server
-lucidshark serve --watch                  # Watch mode with auto-checking
-
-# Diagnostics
-lucidshark doctor                         # Check setup and environment health
-lucidshark status [--tools] [--config]    # Show configuration and tool status
-
-# Help
-lucidshark help                           # Show LLM-friendly documentation
-lucidshark --version                      # Show version
-lucidshark --debug                        # Enable debug logging
-lucidshark --verbose                      # Enable verbose logging
-```
-
-## Exit Codes
-
-| Code | Meaning |
-|------|---------|
-| 0 | All checks passed |
-| 1 | Issues found above threshold |
-| 2 | Tool execution error |
-| 3 | Configuration error |
-| 4 | Bootstrap/download failure |
+For the full CLI reference, all scan flags, output formats, and exit codes, see [docs/help.md](docs/help.md).
 
 ## Development
 
@@ -308,7 +232,10 @@ pytest tests/
 
 ## Documentation
 
+- [Getting Started: Python](docs/guide-python.md) - Step-by-step guide for Python projects
+- [Getting Started: TypeScript](docs/guide-typescript.md) - Step-by-step guide for TypeScript projects
 - [LLM Reference Documentation](docs/help.md) - For AI agents and detailed reference
+- [Ignore Patterns](docs/ignore-patterns.md) - Guide for excluding files and findings
 - [Full Specification](docs/main.md)
 - [Roadmap](docs/roadmap.md)
 

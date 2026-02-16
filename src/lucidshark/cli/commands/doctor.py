@@ -268,12 +268,13 @@ class DoctorCommand(Command):
         results: List[CheckResult] = []
         project_root = Path.cwd()
 
-        # Check Claude Code MCP config (global and project-level)
+        # Check Claude Code MCP config (project .mcp.json, project .claude/, global)
         claude_result = self._check_mcp_config(
             name="claude_code_mcp",
             display_name="Claude Code",
             global_config=Path.home() / ".claude" / "mcp_servers.json",
             project_config=project_root / ".claude" / "mcp_servers.json",
+            project_mcp_json=project_root / ".mcp.json",
             init_command="lucidshark init --claude-code",
             report_if_missing=True,
         )
@@ -302,10 +303,11 @@ class DoctorCommand(Command):
         project_config: Path,
         init_command: str,
         report_if_missing: bool = True,
+        project_mcp_json: Path | None = None,
     ) -> CheckResult | None:
         """Check MCP configuration for an AI tool.
 
-        Checks both global and project-level configurations.
+        Checks project .mcp.json, project-level, and global configurations.
 
         Args:
             name: Check result name identifier.
@@ -314,16 +316,20 @@ class DoctorCommand(Command):
             project_config: Path to project-level MCP config file.
             init_command: Command to run for initialization.
             report_if_missing: Whether to report if tool is not installed.
+            project_mcp_json: Optional path to project .mcp.json (Claude Code).
 
         Returns:
             CheckResult or None if tool not installed and report_if_missing is False.
         """
         import json
 
-        configs_to_check = [
+        configs_to_check = []
+        if project_mcp_json is not None:
+            configs_to_check.append((project_mcp_json, "project"))
+        configs_to_check.extend([
             (project_config, "project"),
             (global_config, "global"),
-        ]
+        ])
 
         for config_path, level in configs_to_check:
             if config_path.exists():
@@ -346,7 +352,11 @@ class DoctorCommand(Command):
                     )
 
         # Check if any config file exists (tool is installed but not configured)
-        any_config_exists = global_config.exists() or project_config.exists()
+        any_config_exists = (
+            global_config.exists()
+            or project_config.exists()
+            or (project_mcp_json is not None and project_mcp_json.exists())
+        )
 
         if any_config_exists:
             return CheckResult(
