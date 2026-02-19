@@ -291,7 +291,7 @@ class DuploPlugin(DuplicationPlugin):
 
         # Use pathspec for proper gitignore-style matching (supports **)
         spec = pathspec.PathSpec.from_lines(
-            pathspec.patterns.GitWildMatchPattern,
+            "gitignore",
             all_patterns,
         )
 

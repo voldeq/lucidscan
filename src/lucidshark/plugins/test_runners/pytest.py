@@ -14,6 +14,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import defusedxml.ElementTree as ElementTree  # type: ignore[import-untyped]
+from xml.etree.ElementTree import Element
 
 from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
@@ -421,14 +422,17 @@ class PytestRunner(TestRunnerPlugin):
         try:
             tree = ElementTree.parse(report_file)
             root = tree.getroot()
+            assert root is not None
         except Exception as e:
             LOGGER.error(f"Failed to parse JUnit XML report: {e}")
             return TestResult()
 
         # Get testsuite element (may be root or child)
-        testsuite = root if root.tag == "testsuite" else root.find("testsuite")
-        if testsuite is None:
+        if root.tag == "testsuite":
             testsuite = root
+        else:
+            found = root.find("testsuite")
+            testsuite = found if found is not None else root
 
         # Parse summary from attributes
         tests_total = int(testsuite.get("tests", 0))
@@ -472,8 +476,8 @@ class PytestRunner(TestRunnerPlugin):
 
     def _xml_testcase_to_issue(
         self,
-        testcase: ElementTree.Element,
-        failure_elem: ElementTree.Element,
+        testcase: Element,
+        failure_elem: Element,
         project_root: Path,
         outcome: str,
     ) -> Optional[UnifiedIssue]:

@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 import defusedxml.ElementTree as ET  # type: ignore[import-untyped]
+from xml.etree.ElementTree import Element
 
 from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
@@ -309,14 +310,19 @@ class MavenTestRunner(TestRunnerPlugin):
         try:
             tree = ET.parse(xml_file)
             root = tree.getroot()
+            assert root is not None
         except Exception as e:
             LOGGER.warning(f"Failed to parse JUnit XML {xml_file}: {e}")
             return TestResult(tool="maven")
 
         # Get testsuite element
-        testsuite = root if root.tag == "testsuite" else root.find("testsuite")
-        if testsuite is None:
-            return TestResult(tool="maven")
+        if root.tag == "testsuite":
+            testsuite = root
+        else:
+            found = root.find("testsuite")
+            if found is None:
+                return TestResult(tool="maven")
+            testsuite = found
 
         # Parse summary from attributes
         tests_total = int(testsuite.get("tests", 0))
@@ -353,8 +359,8 @@ class MavenTestRunner(TestRunnerPlugin):
 
     def _testcase_to_issue(
         self,
-        testcase: ET.Element,
-        failure_elem: ET.Element,
+        testcase: Element,
+        failure_elem: Element,
         project_root: Path,
         outcome: str,
     ) -> Optional[UnifiedIssue]:

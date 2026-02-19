@@ -89,9 +89,10 @@ class LucidSharkFileWatcher:
 
         self._running = True
         handler = _FileChangeHandler(self._on_file_change)
-        self._observer = Observer()
-        self._observer.schedule(handler, str(self.project_root), recursive=True)
-        self._observer.start()
+        observer = Observer()
+        self._observer = observer
+        observer.schedule(handler, str(self.project_root), recursive=True)
+        observer.start()
 
         LOGGER.info(f"Watching {self.project_root} for changes...")
 
@@ -229,9 +230,9 @@ class _FileChangeHandler(FileSystemEventHandler):
     def on_modified(self, event):
         """Handle file modification."""
         if not event.is_directory:
-            self.callback(Path(event.src_path))
+            self.callback(Path(str(event.src_path)))
 
     def on_created(self, event):
         """Handle file creation."""
         if not event.is_directory:
-            self.callback(Path(event.src_path))
+            self.callback(Path(str(event.src_path)))

@@ -432,6 +432,7 @@ class JaCoCoPlugin(CoveragePlugin):
         try:
             tree = ET.parse(report_file)
             root = tree.getroot()
+            assert root is not None
         except Exception as e:
             LOGGER.error(f"Failed to parse JaCoCo XML report: {e}")
             return CoverageResult(threshold=threshold, tool="jacoco")

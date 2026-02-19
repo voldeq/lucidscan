@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import defusedxml.ElementTree as ET  # type: ignore[import-untyped]
+from xml.etree.ElementTree import Element
 
 from lucidshark.bootstrap.download import download_file
 from lucidshark.bootstrap.paths import LucidsharkPaths
@@ -401,7 +402,7 @@ class SpotBugsChecker(TypeCheckerPlugin):
 
     def _bug_to_issue(
         self,
-        bug_elem: ET.Element,
+        bug_elem: Element,
         project_root: Path,
         source_dirs: List[Path],
     ) -> Optional[UnifiedIssue]:

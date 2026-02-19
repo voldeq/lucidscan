@@ -188,10 +188,12 @@ class MypyChecker(TypeCheckerPlugin):
         ]
 
         # Check for strict mode in config
-        if context.config and hasattr(context.config, "type_checking"):
-            type_config = context.config.type_checking
-            if hasattr(type_config, "strict") and type_config.strict:
-                cmd.append("--strict")
+        if context.config and context.config.pipeline.type_checking:
+            type_config = context.config.pipeline.type_checking
+            for tool in type_config.tools:
+                if tool.strict:
+                    cmd.append("--strict")
+                    break
 
         # Check for mypy config file
         mypy_ini = context.project_root / "mypy.ini"

@@ -50,7 +50,7 @@ class IgnorePatterns:
         ]
 
         self._spec = pathspec.PathSpec.from_lines(
-            pathspec.patterns.GitWildMatchPattern,
+            "gitignore",
             clean_patterns,
         )
 
