@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import platform
 import shutil
 import subprocess
 from pathlib import Path
@@ -176,6 +177,9 @@ class SpotBugsChecker(TypeCheckerPlugin):
                     member_path = (install_dir / member.name).resolve()
                     if not str(member_path).startswith(str(install_dir.resolve())):
                         raise ValueError(f"Path traversal attempt: {member.name}")
+                    # Skip symlinks on Windows (unsupported in most environments)
+                    if platform.system() == "Windows" and (member.issym() or member.islnk()):
+                        continue
                     # Extract individual member safely
                     tar.extract(member, path=install_dir)
 

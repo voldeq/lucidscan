@@ -231,7 +231,7 @@ def detect_source_directory(project_root: Path) -> Optional[str]:
         # Look for a package inside src/
         for child in src_dir.iterdir():
             if child.is_dir() and (child / "__init__.py").exists():
-                return str(child.relative_to(project_root))
+                return child.relative_to(project_root).as_posix()
         # Fallback to src/ itself
         return "src"
 

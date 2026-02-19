@@ -503,7 +503,7 @@ class InitCommand(Command):
         skill_dir.mkdir(parents=True, exist_ok=True)
 
         try:
-            skill_file.write_text(LUCIDSHARK_SKILL_CONTENT.lstrip())
+            skill_file.write_text(LUCIDSHARK_SKILL_CONTENT.lstrip(), encoding="utf-8")
             print(f"  Created lucidshark skill at {skill_file}")
             return True
         except Exception as e:
@@ -553,7 +553,7 @@ class InitCommand(Command):
 
         rules_dir.mkdir(parents=True, exist_ok=True)
         try:
-            rules_file.write_text(LUCIDSHARK_CURSOR_RULES.lstrip())
+            rules_file.write_text(LUCIDSHARK_CURSOR_RULES.lstrip(), encoding="utf-8")
             print(f"  Created {rules_file}")
             return True
         except Exception as e:
