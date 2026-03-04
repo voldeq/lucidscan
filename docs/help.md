@@ -623,6 +623,15 @@ fail_on:
 # Alternative: single threshold for all security
 # fail_on: high
 
+# Ignore specific issues by rule ID (acknowledged but excluded from fail thresholds)
+ignore_issues:
+  - E501                                    # Simple form: just the rule ID
+  - rule_id: CVE-2021-3807                  # Structured form with reason
+    reason: "Not exploitable in our context"
+  - rule_id: CKV_AWS_18                     # Structured form with reason and expiry
+    reason: "Access logging not required for dev buckets"
+    expires: 2026-06-01
+
 # Global file/directory excludes (applies to all domains)
 exclude:
   - "**/.git/**"
@@ -1047,6 +1056,38 @@ exclude:
 ```
 
 Per-domain `exclude` patterns can be set in each pipeline section for domain-specific exclusions. The effective excludes for any domain are the union of global `exclude`, `.lucidsharkignore`, and the domain's own `exclude` patterns. See [Exclude Patterns](exclude-patterns.md) for the full reference.
+
+#### `ignore_issues`
+
+Ignore specific issues by rule ID. Ignored issues are **acknowledged** -- they still appear in output (tagged as ignored) but are excluded from `fail_on` threshold checks and do not affect the exit code.
+
+Supports both simple strings and structured objects:
+
+```yaml
+ignore_issues:
+  # Simple: just the rule ID
+  - E501
+  - CVE-2021-3807
+
+  # Structured: with optional reason and expiry
+  - rule_id: CKV_AWS_18
+    reason: "Access logging not required for dev buckets"
+    expires: 2026-06-01
+```
+
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `rule_id` | yes | string | Native scanner rule ID (e.g., `E501`, `CVE-2021-3807`, `CKV_AWS_1`) |
+| `reason` | no | string | Why this issue is being ignored |
+| `expires` | no | date | ISO date (`YYYY-MM-DD`). After this date, the ignore stops working and a warning is emitted |
+
+**Behavior:**
+- Matched issues are tagged `ignored: true` in all output formats
+- Ignored issues do not count toward `fail_on` thresholds
+- Expired ignores stop working and produce a warning
+- Unmatched rule IDs (typos, stale entries) produce a warning
+
+Works across all domains -- linting, type checking, security, testing, coverage, and duplication.
 
 ### Config File Locations
 

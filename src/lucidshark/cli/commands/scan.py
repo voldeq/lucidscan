@@ -109,7 +109,8 @@ class ScanCommand(Command):
             # CLI --fail-on overrides all config thresholds
             if args.fail_on:
                 # CLI flag applies to all issues regardless of domain
-                if check_severity_threshold(result.issues, args.fail_on):
+                active_issues = [i for i in result.issues if not i.ignored]
+                if check_severity_threshold(active_issues, args.fail_on):
                     return EXIT_ISSUES_FOUND
             else:
                 # Check per-domain thresholds from config
@@ -394,6 +395,14 @@ class ScanCommand(Command):
                 pipeline_result = executor.execute(needed_scanners, context)
                 all_issues.extend(pipeline_result.issues)
 
+        # Apply ignore_issues
+        if config.ignore_issues:
+            from lucidshark.core.ignore_issues import apply_ignore_issues
+
+            ignore_warnings = apply_ignore_issues(all_issues, config.ignore_issues)
+            for w in ignore_warnings:
+                LOGGER.warning(w)
+
         # Build final result
         result = ScanResult(issues=all_issues)
         result.summary = result.compute_summary()
@@ -422,7 +431,8 @@ class ScanCommand(Command):
         """
         from lucidshark.core.models import ScanDomain, ToolDomain
 
-        issues = result.issues
+        # Filter out ignored issues before threshold checks
+        issues = [i for i in result.issues if not i.ignored]
 
         # Map issue domains to config domain names
         # ScanDomain values (SCA, CONTAINER, IAC, SAST) all map to "security"

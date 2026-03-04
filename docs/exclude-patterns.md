@@ -518,6 +518,44 @@ fn test_integration() {
 }
 ```
 
+## Ignoring Specific Issues (`ignore_issues`)
+
+While file-level excludes and inline ignores target **where** issues are found, `ignore_issues` targets **which** issues are reported, by rule ID. Ignored issues are acknowledged -- they still appear in output (tagged as ignored) but are excluded from `fail_on` threshold checks and do not affect the exit code.
+
+```yaml
+ignore_issues:
+  # Simple form: just the rule ID
+  - E501
+  - CVE-2021-3807
+
+  # Structured form: with reason and/or expiry
+  - rule_id: CKV_AWS_18
+    reason: "Access logging not required for internal dev buckets"
+  - rule_id: CVE-2024-1234
+    reason: "Not exploitable -- we don't use the affected API"
+    expires: 2026-06-01
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `rule_id` | yes | Native scanner rule ID (e.g., `E501`, `CVE-2021-3807`, `CKV_AWS_1`, `py/sql-injection`) |
+| `reason` | no | Why this issue is being ignored |
+| `expires` | no | ISO date (`YYYY-MM-DD`). After this date, the ignore stops working and a warning is emitted |
+
+**Key behaviors:**
+- Expired ignores stop suppressing -- the issue is reported normally and a warning is emitted
+- Unmatched rule IDs produce a warning (catches typos and stale entries)
+- Works across all domains (linting, type checking, security, testing, coverage, duplication)
+
+### Choosing the Right Exclusion Mechanism
+
+| Mechanism | Scope | Effect | Use When |
+|-----------|-------|--------|----------|
+| `exclude` / `.lucidsharkignore` | Files/directories | Entire files skipped by scanners | Generated code, build output, vendored dependencies |
+| Per-domain `exclude` | Files within a domain | Files skipped for that domain only | Test fixtures excluded from security, migrations excluded from linting |
+| Inline ignores (`# noqa`, `# nosemgrep`) | Single code location | Tool-native, per-line suppression | One-off exceptions at a specific line |
+| `ignore_issues` | All occurrences of a rule | Acknowledged in output, excluded from fail thresholds | Known CVEs, accepted risks, false positives, project-wide rule exceptions |
+
 ## Domain-Specific Configuration
 
 ### Disable Entire Domains

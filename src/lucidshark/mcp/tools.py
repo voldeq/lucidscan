@@ -292,6 +292,14 @@ class MCPToolExecutor:
                 elif result is not None:
                     all_issues.extend(result)
 
+        # Apply ignore_issues
+        if self.config.ignore_issues:
+            from lucidshark.core.ignore_issues import apply_ignore_issues
+
+            ignore_warnings = apply_ignore_issues(all_issues, self.config.ignore_issues)
+            for w in ignore_warnings:
+                LOGGER.warning(w)
+
         # Cache issues for later reference
         for issue in all_issues:
             self._issue_cache[issue.id] = issue

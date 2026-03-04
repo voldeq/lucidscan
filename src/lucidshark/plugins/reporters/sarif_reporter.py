@@ -214,6 +214,16 @@ class SARIFReporter(ReporterPlugin):
         if location:
             result["locations"] = [location]
 
+        # Add suppressions for ignored issues
+        if issue.ignored:
+            suppression: Dict[str, Any] = {
+                "kind": "inSource",
+                "status": "accepted",
+            }
+            if issue.ignore_reason:
+                suppression["justification"] = issue.ignore_reason
+            result["suppressions"] = [suppression]
+
         return result
 
     def _build_location(self, issue: UnifiedIssue) -> Optional[Dict[str, Any]]:

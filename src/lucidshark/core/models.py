@@ -143,6 +143,10 @@ class UnifiedIssue:
     dependency: Optional[str] = None  # For SCA (e.g., "lodash@4.17.20")
     iac_resource: Optional[str] = None  # For IaC (e.g., "aws_s3_bucket.public")
 
+    # Ignore tracking (set by apply_ignore_issues)
+    ignored: bool = False
+    ignore_reason: Optional[str] = None
+
     # Extensibility
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -255,6 +259,7 @@ class ScanSummary:
     """Summary statistics for scan results."""
 
     total: int = 0
+    ignored_total: int = 0
     by_severity: Dict[str, int] = field(default_factory=dict)
     by_scanner: Dict[str, int] = field(default_factory=dict)
 
@@ -305,6 +310,7 @@ class ScanResult:
         """Compute summary statistics from issues."""
         by_severity: Dict[str, int] = {}
         by_domain: Dict[str, int] = {}
+        ignored_total = 0
 
         for issue in self.issues:
             sev = issue.severity.value
@@ -313,8 +319,12 @@ class ScanResult:
             domain = issue.domain.value
             by_domain[domain] = by_domain.get(domain, 0) + 1
 
+            if issue.ignored:
+                ignored_total += 1
+
         return ScanSummary(
             total=len(self.issues),
+            ignored_total=ignored_total,
             by_severity=by_severity,
             by_scanner=by_domain,  # Keep field name for backwards compatibility
         )

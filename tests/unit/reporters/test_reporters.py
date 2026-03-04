@@ -704,6 +704,164 @@ class TestSARIFReporter:
         assert region["endLine"] == 45
 
 
+class TestJSONReporterIgnored:
+    """Tests for JSON reporter handling of ignored issues."""
+
+    def test_ignored_fields_included(self) -> None:
+        issue = UnifiedIssue(
+            id="test-1",
+            domain=ToolDomain.LINTING,
+            source_tool="ruff",
+            severity=Severity.LOW,
+            rule_id="E501",
+            title="Line too long",
+            description="Line too long",
+            ignored=True,
+            ignore_reason="Accepted",
+        )
+        result = ScanResult(issues=[issue])
+        result.summary = result.compute_summary()
+
+        reporter = JSONReporter()
+        output = io.StringIO()
+        reporter.report(result, output)
+
+        data = json.loads(output.getvalue())
+        assert data["issues"][0]["ignored"] is True
+        assert data["issues"][0]["ignore_reason"] == "Accepted"
+
+    def test_non_ignored_fields_default(self) -> None:
+        issue = UnifiedIssue(
+            id="test-1",
+            domain=ToolDomain.LINTING,
+            source_tool="ruff",
+            severity=Severity.LOW,
+            rule_id="E501",
+            title="Line too long",
+            description="Line too long",
+        )
+        result = ScanResult(issues=[issue])
+        result.summary = result.compute_summary()
+
+        reporter = JSONReporter()
+        output = io.StringIO()
+        reporter.report(result, output)
+
+        data = json.loads(output.getvalue())
+        assert data["issues"][0]["ignored"] is False
+        assert data["issues"][0]["ignore_reason"] is None
+
+
+class TestTableReporterIgnored:
+    """Tests for table reporter handling of ignored issues."""
+
+    def test_ignored_issue_shows_marker(self) -> None:
+        issue = UnifiedIssue(
+            id="test-1",
+            domain=ToolDomain.LINTING,
+            source_tool="ruff",
+            severity=Severity.LOW,
+            rule_id="E501",
+            title="Line too long",
+            description="Line too long",
+            file_path=Path("src/main.py"),
+            line_start=42,
+            ignored=True,
+        )
+        result = ScanResult(issues=[issue])
+        result.summary = result.compute_summary()
+
+        reporter = TableReporter()
+        output = io.StringIO()
+        reporter.report(result, output)
+
+        content = output.getvalue()
+        assert "[ignored]" in content
+
+    def test_ignored_count_in_summary(self) -> None:
+        issues = [
+            UnifiedIssue(
+                id="test-1",
+                domain=ToolDomain.LINTING,
+                source_tool="ruff",
+                severity=Severity.LOW,
+                rule_id="E501",
+                title="Line too long",
+                description="Line too long",
+                ignored=True,
+            ),
+            UnifiedIssue(
+                id="test-2",
+                domain=ToolDomain.LINTING,
+                source_tool="ruff",
+                severity=Severity.LOW,
+                rule_id="E502",
+                title="Another issue",
+                description="Another issue",
+            ),
+        ]
+        result = ScanResult(issues=issues)
+        result.summary = result.compute_summary()
+
+        reporter = TableReporter()
+        output = io.StringIO()
+        reporter.report(result, output)
+
+        content = output.getvalue()
+        assert "1 ignored" in content
+
+
+class TestSARIFReporterIgnored:
+    """Tests for SARIF reporter handling of ignored issues."""
+
+    def test_ignored_issue_has_suppressions(self) -> None:
+        issue = UnifiedIssue(
+            id="test-1",
+            domain=ScanDomain.SCA,
+            source_tool="trivy",
+            severity=Severity.HIGH,
+            rule_id="CVE-2021-1234",
+            title="Vulnerability",
+            description="A vulnerability",
+            ignored=True,
+            ignore_reason="Accepted risk",
+        )
+        result = ScanResult(issues=[issue])
+        result.summary = result.compute_summary()
+
+        reporter = SARIFReporter()
+        output = io.StringIO()
+        reporter.report(result, output)
+
+        data = json.loads(output.getvalue())
+        sarif_result = data["runs"][0]["results"][0]
+        assert "suppressions" in sarif_result
+        assert len(sarif_result["suppressions"]) == 1
+        assert sarif_result["suppressions"][0]["kind"] == "inSource"
+        assert sarif_result["suppressions"][0]["justification"] == "Accepted risk"
+
+    def test_non_ignored_issue_no_suppressions(self) -> None:
+        issue = UnifiedIssue(
+            id="test-1",
+            domain=ScanDomain.SCA,
+            source_tool="trivy",
+            severity=Severity.HIGH,
+            rule_id="CVE-2021-1234",
+            title="Vulnerability",
+            description="A vulnerability",
+        )
+        result = ScanResult(issues=[issue])
+        result.summary = result.compute_summary()
+
+        reporter = SARIFReporter()
+        output = io.StringIO()
+        reporter.report(result, output)
+
+        data = json.loads(output.getvalue())
+        sarif_result = data["runs"][0]["results"][0]
+        assert "suppressions" not in sarif_result
+
+
 class TestReporterDiscovery:
     """Tests for reporter plugin discovery."""
 

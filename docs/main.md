@@ -561,6 +561,13 @@ fail_on:
   coverage: below_threshold | any | none  # Note: test failures always fail coverage regardless of this setting
   duplication: above_threshold | any | none | percentage (e.g., "5%")
 
+# Ignore specific issues by rule ID
+ignore_issues:
+  - string                          # Simple form: just the rule ID
+  - rule_id: string                 # Structured form
+    reason: string                  # Optional: why this is ignored
+    expires: date                   # Optional: ISO date (YYYY-MM-DD) when this ignore expires
+
 exclude:
   - string  # Global glob patterns (applies to all domains)
 
@@ -596,6 +603,57 @@ Support tool-native inline ignores:
 - ESLint: `// eslint-disable-next-line`
 - OpenGrep: `# nosemgrep`
 - Checkov: `# checkov:skip=CKV_AWS_1`
+
+#### 5.4.4 Issue Ignoring (`ignore_issues`)
+
+Ignore specific issues by rule ID across all domains. Ignored issues are **acknowledged** -- they still appear in scan output (tagged as ignored) but are excluded from `fail_on` threshold checks and do not affect the exit code.
+
+This is useful for:
+- Known CVEs that are not exploitable in your context
+- Accepted risks in non-production environments
+- False positives from security scanners
+- Linting rules that conflict with project conventions
+
+**Configuration:**
+
+```yaml
+ignore_issues:
+  # Simple form: just the rule ID
+  - E501
+  - CVE-2021-3807
+
+  # Structured form: with reason and/or expiry
+  - rule_id: CKV_AWS_18
+    reason: "Access logging not required for internal dev buckets"
+  - rule_id: CVE-2024-1234
+    reason: "Not exploitable -- we don't use the affected API"
+    expires: 2026-06-01
+```
+
+**Supported fields:**
+
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `rule_id` | yes | string | Native scanner rule ID (e.g., `E501`, `CVE-2021-3807`, `CKV_AWS_1`, `py/sql-injection`) |
+| `reason` | no | string | Why this issue is being ignored |
+| `expires` | no | date | ISO date (`YYYY-MM-DD`). After this date, the ignore stops working and a warning is emitted |
+
+**Behavior:**
+
+- Matched issues are tagged with `ignored: true` and `ignore_reason` in the output
+- Ignored issues appear in all output formats (`json`, `table`, `sarif`, `ai`) but are visually distinguished
+- Ignored issues are **excluded** from `fail_on` threshold checks (they do not affect the exit code)
+- **Expired ignores** stop suppressing issues -- the issue is reported normally and a warning is emitted about the expired ignore entry
+- **Unmatched rule IDs** (rule IDs that don't match any issue in the scan) produce a warning, helping catch typos and stale entries
+- Rule IDs are matched against the `rule_id` field of `UnifiedIssue`, which uses each tool's native identifier format
+
+**Comparison with other exclusion mechanisms:**
+
+| Mechanism | Scope | Effect |
+|-----------|-------|--------|
+| `exclude` / `.lucidsharkignore` | Files/directories | Entire files skipped by scanners |
+| Inline ignores (`# noqa`, `# nosemgrep`) | Single code location | Tool-native, per-line suppression |
+| `ignore_issues` | All occurrences of a rule | Acknowledged in output, excluded from fail thresholds |
 
 ### 5.5 Tool Management
 
@@ -1029,6 +1087,10 @@ class UnifiedIssue:
     # Domain-specific fields
     dependency: str | None         # For SCA (e.g., "lodash@4.17.20")
     iac_resource: str | None       # For IaC (e.g., "aws_s3_bucket.public")
+
+    # Ignore status
+    ignored: bool                  # Whether this issue is ignored via ignore_issues config
+    ignore_reason: str | None      # Reason from the ignore_issues entry
 
     # Extensibility
     metadata: dict[str, Any]       # Tool-specific data

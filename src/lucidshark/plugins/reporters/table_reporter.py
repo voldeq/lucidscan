@@ -80,7 +80,10 @@ class TableReporter(ReporterPlugin):
         lines.append("")
         lines.append("-" * 100)
         if result.summary:
-            lines.append(f"Total: {result.summary.total} issues")
+            total_line = f"Total: {result.summary.total} issues"
+            if result.summary.ignored_total > 0:
+                total_line += f" ({result.summary.ignored_total} ignored)"
+            lines.append(total_line)
             sev_parts = [
                 f"{sev}: {count}"
                 for sev, count in result.summary.by_severity.items()
@@ -111,13 +114,16 @@ class TableReporter(ReporterPlugin):
 
         for issue in issues:
             sev = issue.severity.value.upper()
+            if issue.ignored:
+                sev = f"{sev}*"
             location = issue.file_path.as_posix() if issue.file_path else ""
             if issue.line_start is not None:
                 location = f"{location}:{issue.line_start}"
             location = location[:35]
             rule = (issue.rule_id or "")[:20]
             title = issue.title[:60] if len(issue.title) > 60 else issue.title
-            lines.append(f"{sev:<10} {location:<35} {rule:<20} {title}")
+            ignored_tag = " [ignored]" if issue.ignored else ""
+            lines.append(f"{sev:<10} {location:<35} {rule:<20} {title}{ignored_tag}")
 
     def _render_dependency_table(
         self, issues: List[UnifiedIssue], lines: List[str]
@@ -128,8 +134,11 @@ class TableReporter(ReporterPlugin):
 
         for issue in issues:
             sev = issue.severity.value.upper()
+            if issue.ignored:
+                sev = f"{sev}*"
             rule_id = issue.rule_id or issue.metadata.get("vulnerability_id", issue.id)
             rule_id = rule_id[:20]
             dep = (issue.dependency or "")[:40]
             title = issue.title[:60] if len(issue.title) > 60 else issue.title
-            lines.append(f"{sev:<10} {rule_id:<20} {dep:<40} {title}")
+            ignored_tag = " [ignored]" if issue.ignored else ""
+            lines.append(f"{sev:<10} {rule_id:<20} {dep:<40} {title}{ignored_tag}")

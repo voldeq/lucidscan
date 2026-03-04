@@ -29,6 +29,19 @@ SPECIAL_FAIL_ON_VALUES = {"error", "any", "none", "below_threshold", "above_thre
 
 
 @dataclass
+class IgnoreIssueEntry:
+    """A single ignore_issues entry.
+
+    Allows users to acknowledge specific rule IDs so they still appear
+    in output but don't affect exit codes.
+    """
+
+    rule_id: str
+    reason: Optional[str] = None
+    expires: Optional[str] = None  # ISO date string YYYY-MM-DD
+
+
+@dataclass
 class FailOnConfig:
     """Failure threshold configuration.
 
@@ -235,6 +248,7 @@ class LucidSharkConfig:
     # fail_on can be a string (legacy) or FailOnConfig (per-domain thresholds)
     fail_on: Optional[Union[str, FailOnConfig]] = None
     ignore: List[str] = field(default_factory=list)
+    ignore_issues: List[IgnoreIssueEntry] = field(default_factory=list)
     output: OutputConfig = field(default_factory=OutputConfig)
 
     # Scanner configs per domain (plugin-specific options passed through)
