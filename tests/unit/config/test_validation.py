@@ -707,6 +707,97 @@ class TestValidateConfigDuplication:
         assert any("must be a list" in w.message for w in warnings)
 
 
+class TestValidateConfigIgnoreIssues:
+    """Tests for ignore_issues validation."""
+
+    def test_ignore_issues_is_valid_top_level_key(self) -> None:
+        """ignore_issues should not trigger unknown key warning."""
+        data = {"ignore_issues": ["E501"]}
+        warnings = validate_config(data, source="test.yml")
+        assert not any("Unknown" in w.message for w in warnings)
+
+    def test_ignore_issues_must_be_list(self) -> None:
+        data = {"ignore_issues": "E501"}
+        warnings = validate_config(data, source="test.yml")
+        assert any("must be a list" in w.message for w in warnings)
+
+    def test_valid_string_entries(self) -> None:
+        data = {"ignore_issues": ["E501", "CVE-2021-1234"]}
+        warnings = validate_config(data, source="test.yml")
+        assert len(warnings) == 0
+
+    def test_warns_on_empty_string_entry(self) -> None:
+        data = {"ignore_issues": [""]}
+        warnings = validate_config(data, source="test.yml")
+        assert any("empty string" in w.message for w in warnings)
+
+    def test_valid_structured_entry(self) -> None:
+        data = {
+            "ignore_issues": [
+                {"rule_id": "E501", "reason": "accepted", "expires": "2026-12-31"}
+            ]
+        }
+        warnings = validate_config(data, source="test.yml")
+        assert len(warnings) == 0
+
+    def test_warns_on_missing_rule_id(self) -> None:
+        data = {"ignore_issues": [{"reason": "some reason"}]}
+        warnings = validate_config(data, source="test.yml")
+        assert any("rule_id" in w.message for w in warnings)
+
+    def test_warns_on_non_string_rule_id(self) -> None:
+        data = {"ignore_issues": [{"rule_id": 123}]}
+        warnings = validate_config(data, source="test.yml")
+        assert any("must be a string" in w.message for w in warnings)
+
+    def test_warns_on_non_string_reason(self) -> None:
+        data = {"ignore_issues": [{"rule_id": "E501", "reason": 123}]}
+        warnings = validate_config(data, source="test.yml")
+        assert any("reason" in w.message and "must be a string" in w.message for w in warnings)
+
+    def test_warns_on_non_string_expires(self) -> None:
+        data = {"ignore_issues": [{"rule_id": "E501", "expires": 20261231}]}
+        warnings = validate_config(data, source="test.yml")
+        assert any("expires" in w.message and "must be a string" in w.message for w in warnings)
+
+    def test_warns_on_invalid_expires_format(self) -> None:
+        data = {"ignore_issues": [{"rule_id": "E501", "expires": "12/31/2026"}]}
+        warnings = validate_config(data, source="test.yml")
+        assert any("YYYY-MM-DD" in w.message for w in warnings)
+
+    def test_warns_on_unknown_keys_in_structured_entry(self) -> None:
+        data = {"ignore_issues": [{"rule_id": "E501", "unknown_key": "value"}]}
+        warnings = validate_config(data, source="test.yml")
+        assert any("Unknown key" in w.message and "unknown_key" in w.message for w in warnings)
+
+    def test_warns_on_invalid_entry_type(self) -> None:
+        data = {"ignore_issues": [123]}
+        warnings = validate_config(data, source="test.yml")
+        assert any("must be a string or mapping" in w.message for w in warnings)
+
+    def test_mixed_valid_entries(self) -> None:
+        data = {
+            "ignore_issues": [
+                "E501",
+                {"rule_id": "CVE-2021-1234", "reason": "accepted"},
+            ]
+        }
+        warnings = validate_config(data, source="test.yml")
+        assert len(warnings) == 0
+
+    def test_pyyaml_date_object_is_accepted(self) -> None:
+        """PyYAML parses bare dates as datetime.date; validation should accept them."""
+        from datetime import date
+
+        data = {
+            "ignore_issues": [
+                {"rule_id": "E501", "expires": date(2026, 12, 31)}
+            ]
+        }
+        warnings = validate_config(data, source="test.yml")
+        assert len(warnings) == 0
+
+
 class TestValidateConfigExclude:
     """Tests for the exclude pattern system validation."""
 

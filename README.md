@@ -178,6 +178,10 @@ fail_on:
   linting: error
   security: high
   testing: any
+ignore_issues:
+  - rule_id: CVE-2021-3807
+    reason: "Not exploitable in our context"
+    expires: 2026-06-01
 exclude: ["**/node_modules/**", "**/.venv/**"]
 ```
 
@@ -208,7 +212,7 @@ pytest tests/
 
 - [Supported Languages](docs/languages/README.md) - Per-language tool coverage, detection, and configuration
 - [LLM Reference Documentation](docs/help.md) - For AI agents and detailed reference
-- [Exclude Patterns](docs/exclude-patterns.md) - Guide for exclude patterns and per-domain exclusions
+- [Exclude Patterns & Issue Ignoring](docs/exclude-patterns.md) - File exclusions, per-domain excludes, and ignoring specific issues
 - [Full Specification](docs/main.md)
 
 ## License

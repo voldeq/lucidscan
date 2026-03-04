@@ -514,6 +514,78 @@ class TestParseDomainPipelineConfigCommand:
         assert config.pipeline.testing.post_command == "rm -rf .pytest_cache"
 
 
+class TestDictToConfigIgnoreIssues:
+    """Tests for dict_to_config handling of ignore_issues."""
+
+    def test_parses_simple_string_entries(self) -> None:
+        data = {"ignore_issues": ["E501", "CVE-2021-1234"]}
+        config = dict_to_config(data)
+        assert len(config.ignore_issues) == 2
+        assert config.ignore_issues[0].rule_id == "E501"
+        assert config.ignore_issues[0].reason is None
+        assert config.ignore_issues[1].rule_id == "CVE-2021-1234"
+
+    def test_parses_structured_entries(self) -> None:
+        data = {
+            "ignore_issues": [
+                {
+                    "rule_id": "CVE-2021-1234",
+                    "reason": "Accepted risk",
+                    "expires": "2026-12-31",
+                }
+            ]
+        }
+        config = dict_to_config(data)
+        assert len(config.ignore_issues) == 1
+        entry = config.ignore_issues[0]
+        assert entry.rule_id == "CVE-2021-1234"
+        assert entry.reason == "Accepted risk"
+        assert entry.expires == "2026-12-31"
+
+    def test_parses_mixed_entries(self) -> None:
+        data = {
+            "ignore_issues": [
+                "E501",
+                {"rule_id": "CVE-2021-1234", "reason": "accepted"},
+            ]
+        }
+        config = dict_to_config(data)
+        assert len(config.ignore_issues) == 2
+        assert config.ignore_issues[0].rule_id == "E501"
+        assert config.ignore_issues[1].rule_id == "CVE-2021-1234"
+        assert config.ignore_issues[1].reason == "accepted"
+
+    def test_empty_ignore_issues(self) -> None:
+        data: dict = {"ignore_issues": []}
+        config = dict_to_config(data)
+        assert config.ignore_issues == []
+
+    def test_no_ignore_issues_key(self) -> None:
+        config = dict_to_config({})
+        assert config.ignore_issues == []
+
+    def test_structured_entry_without_optional_fields(self) -> None:
+        data = {"ignore_issues": [{"rule_id": "E501"}]}
+        config = dict_to_config(data)
+        assert len(config.ignore_issues) == 1
+        assert config.ignore_issues[0].rule_id == "E501"
+        assert config.ignore_issues[0].reason is None
+        assert config.ignore_issues[0].expires is None
+
+    def test_pyyaml_date_object_normalised_to_string(self) -> None:
+        """PyYAML parses bare dates as datetime.date objects; loader should normalise."""
+        from datetime import date
+
+        data = {
+            "ignore_issues": [
+                {"rule_id": "CVE-2021-1234", "expires": date(2026, 6, 1)}
+            ]
+        }
+        config = dict_to_config(data)
+        assert config.ignore_issues[0].expires == "2026-06-01"
+        assert isinstance(config.ignore_issues[0].expires, str)
+
+
 class TestParseCoveragePipelineConfigExclude:
     """Tests for _parse_coverage_pipeline_config handling of exclude."""
 

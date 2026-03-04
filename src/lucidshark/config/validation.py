@@ -58,6 +58,7 @@ VALID_TOP_LEVEL_KEYS: Set[str] = {
     "fail_on",
     "ignore",
     "exclude",  # Alias for ignore
+    "ignore_issues",
     "output",
     "scanners",
     "enrichers",
@@ -323,6 +324,80 @@ def validate_config(
                 source=source,
                 key="exclude",
             ))
+
+    # Validate ignore_issues
+    ignore_issues = data.get("ignore_issues")
+    if ignore_issues is not None:
+        if not isinstance(ignore_issues, list):
+            warnings.append(ConfigValidationWarning(
+                message=f"'ignore_issues' must be a list, got {type(ignore_issues).__name__}",
+                source=source,
+                key="ignore_issues",
+            ))
+        else:
+            _VALID_IGNORE_ISSUE_KEYS = {"rule_id", "reason", "expires"}
+            for i, entry in enumerate(ignore_issues):
+                if isinstance(entry, str):
+                    if not entry.strip():
+                        warnings.append(ConfigValidationWarning(
+                            message=f"'ignore_issues[{i}]' is an empty string",
+                            source=source,
+                            key=f"ignore_issues[{i}]",
+                        ))
+                elif isinstance(entry, dict):
+                    if "rule_id" not in entry:
+                        warnings.append(ConfigValidationWarning(
+                            message=f"'ignore_issues[{i}]' must have a 'rule_id' field",
+                            source=source,
+                            key=f"ignore_issues[{i}].rule_id",
+                        ))
+                    elif not isinstance(entry["rule_id"], str):
+                        warnings.append(ConfigValidationWarning(
+                            message=f"'ignore_issues[{i}].rule_id' must be a string",
+                            source=source,
+                            key=f"ignore_issues[{i}].rule_id",
+                        ))
+                    reason = entry.get("reason")
+                    if reason is not None and not isinstance(reason, str):
+                        warnings.append(ConfigValidationWarning(
+                            message=f"'ignore_issues[{i}].reason' must be a string",
+                            source=source,
+                            key=f"ignore_issues[{i}].reason",
+                        ))
+                    expires = entry.get("expires")
+                    if expires is not None:
+                        import datetime as _dt
+                        # PyYAML auto-converts bare dates to datetime.date;
+                        # accept those as valid alongside strings.
+                        if isinstance(expires, _dt.date):
+                            pass  # valid date object
+                        elif not isinstance(expires, str):
+                            warnings.append(ConfigValidationWarning(
+                                message=f"'ignore_issues[{i}].expires' must be a string (YYYY-MM-DD)",
+                                source=source,
+                                key=f"ignore_issues[{i}].expires",
+                            ))
+                        else:
+                            import re
+                            if not re.match(r"^\d{4}-\d{2}-\d{2}$", expires):
+                                warnings.append(ConfigValidationWarning(
+                                    message=f"'ignore_issues[{i}].expires' must be YYYY-MM-DD format, got '{expires}'",
+                                    source=source,
+                                    key=f"ignore_issues[{i}].expires",
+                                ))
+                    for key in entry:
+                        if key not in _VALID_IGNORE_ISSUE_KEYS:
+                            warnings.append(ConfigValidationWarning(
+                                message=f"Unknown key 'ignore_issues[{i}].{key}'",
+                                source=source,
+                                key=f"ignore_issues[{i}].{key}",
+                            ))
+                else:
+                    warnings.append(ConfigValidationWarning(
+                        message=f"'ignore_issues[{i}]' must be a string or mapping, got {type(entry).__name__}",
+                        source=source,
+                        key=f"ignore_issues[{i}]",
+                    ))
 
     # Validate output section
     output = data.get("output")

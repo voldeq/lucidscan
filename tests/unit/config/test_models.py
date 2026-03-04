@@ -7,6 +7,7 @@ from lucidshark.config.models import (
     CoveragePipelineConfig,
     DEFAULT_PLUGINS,
     DomainPipelineConfig,
+    IgnoreIssueEntry,
     LucidSharkConfig,
     OutputConfig,
     ScannerDomainConfig,
@@ -213,3 +214,42 @@ class TestLucidSharkConfigGetScannerOptions:
         options = config.get_scanner_options("sca")
         assert options["ignore_unfixed"] is True
         assert options["severity"] == ["HIGH"]
+
+
+class TestIgnoreIssueEntry:
+    """Tests for IgnoreIssueEntry dataclass."""
+
+    def test_simple_rule_id(self) -> None:
+        entry = IgnoreIssueEntry(rule_id="E501")
+        assert entry.rule_id == "E501"
+        assert entry.reason is None
+        assert entry.expires is None
+
+    def test_with_reason_and_expires(self) -> None:
+        entry = IgnoreIssueEntry(
+            rule_id="CVE-2021-1234",
+            reason="Accepted risk",
+            expires="2026-12-31",
+        )
+        assert entry.rule_id == "CVE-2021-1234"
+        assert entry.reason == "Accepted risk"
+        assert entry.expires == "2026-12-31"
+
+
+class TestLucidSharkConfigIgnoreIssues:
+    """Tests for ignore_issues field on LucidSharkConfig."""
+
+    def test_default_ignore_issues_is_empty(self) -> None:
+        config = LucidSharkConfig()
+        assert config.ignore_issues == []
+
+    def test_custom_ignore_issues(self) -> None:
+        config = LucidSharkConfig(
+            ignore_issues=[
+                IgnoreIssueEntry(rule_id="E501"),
+                IgnoreIssueEntry(rule_id="CVE-2021-1234", reason="accepted"),
+            ]
+        )
+        assert len(config.ignore_issues) == 2
+        assert config.ignore_issues[0].rule_id == "E501"
+        assert config.ignore_issues[1].reason == "accepted"

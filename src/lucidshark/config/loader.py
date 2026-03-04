@@ -21,6 +21,7 @@ from lucidshark.config.models import (
     DomainPipelineConfig,
     DuplicationPipelineConfig,
     FailOnConfig,
+    IgnoreIssueEntry,
     LucidSharkConfig,
     OutputConfig,
     PipelineConfig,
@@ -465,10 +466,30 @@ def dict_to_config(data: Dict[str, Any]) -> LucidSharkConfig:
                 duplication=fail_on_data.get("duplication"),
             )
 
+    # Parse ignore_issues
+    ignore_issues: list[IgnoreIssueEntry] = []
+    ignore_issues_data = data.get("ignore_issues", [])
+    if isinstance(ignore_issues_data, list):
+        for item in ignore_issues_data:
+            if isinstance(item, str):
+                ignore_issues.append(IgnoreIssueEntry(rule_id=item))
+            elif isinstance(item, dict):
+                # PyYAML auto-converts bare dates (e.g. 2026-06-01) to
+                # datetime.date objects; normalise to string.
+                raw_expires = item.get("expires")
+                if raw_expires is not None and not isinstance(raw_expires, str):
+                    raw_expires = str(raw_expires)
+                ignore_issues.append(IgnoreIssueEntry(
+                    rule_id=item.get("rule_id", ""),
+                    reason=item.get("reason"),
+                    expires=raw_expires,
+                ))
+
     return LucidSharkConfig(
         project=project,
         fail_on=fail_on,
         ignore=data.get("exclude", data.get("ignore", [])),
+        ignore_issues=ignore_issues,
         output=output,
         scanners=scanners,
         enrichers=enrichers,

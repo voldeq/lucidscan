@@ -78,5 +78,7 @@ class JSONReporter(ReporterPlugin):
             "suggested_fix": issue.suggested_fix,
             "dependency": issue.dependency,
             "iac_resource": issue.iac_resource,
+            "ignored": issue.ignored,
+            "ignore_reason": issue.ignore_reason,
             "metadata": issue.metadata,
         }

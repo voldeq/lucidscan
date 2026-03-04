@@ -83,18 +83,21 @@ class InstructionFormatter:
             - instructions: Sorted list of fix instructions
             - recommended_action: Suggested next step
         """
-        instructions = [self._issue_to_instruction(issue) for issue in issues]
+        # Separate active vs ignored issues
+        active_issues = [i for i in issues if not i.ignored]
+
+        instructions = [self._issue_to_instruction(issue) for issue in active_issues]
 
         # Sort by priority
         instructions.sort(key=lambda x: x.priority)
 
-        # Count by severity
+        # Count by severity (active issues only)
         severity_counts: dict[str, int] = {}
-        for issue in issues:
+        for issue in active_issues:
             sev_name = issue.severity.value if issue.severity else "unknown"
             severity_counts[sev_name] = severity_counts.get(sev_name, 0) + 1
 
-        # Group issues by domain
+        # Group issues by domain (all issues, including ignored — they carry the tag)
         issues_by_domain: Dict[str, List[Dict[str, Any]]] = {}
         for issue in issues:
             domain_name = issue.domain.value if issue.domain else "unknown"
@@ -105,6 +108,7 @@ class InstructionFormatter:
             )
 
         # Build domain status (pass/fail for each checked domain)
+        # Only active (non-ignored) issues count toward pass/fail
         domain_status: Dict[str, Dict[str, Any]] = {}
         if checked_domains:
             for domain in checked_domains:
@@ -124,8 +128,9 @@ class InstructionFormatter:
                     continue
 
                 domain_issues = issues_by_domain.get(domain, [])
-                issue_count = len(domain_issues)
-                fixable_count = sum(1 for i in domain_issues if i.get("fixable", False))
+                active_domain_issues = [i for i in domain_issues if not i.get("ignored", False)]
+                issue_count = len(active_domain_issues)
+                fixable_count = sum(1 for i in active_domain_issues if i.get("fixable", False))
 
                 if issue_count == 0:
                     status = "pass"
@@ -146,11 +151,11 @@ class InstructionFormatter:
 
         # Generate recommended action
         recommended_action = self._generate_recommended_action(
-            issues, severity_counts, domain_status
+            active_issues, severity_counts, domain_status
         )
 
         return {
-            "total_issues": len(issues),
+            "total_issues": len(active_issues),
             "blocking": any(i.priority <= 2 for i in instructions),
             "summary": self._generate_summary(issues, severity_counts),
             "severity_counts": severity_counts,
@@ -471,13 +476,18 @@ class InstructionFormatter:
         if issue.line_start:
             location = f"{file_path}:{issue.line_start}"
 
-        return {
+        brief: Dict[str, Any] = {
             "id": issue.id,
             "location": location,
             "severity": issue.severity.value if issue.severity else "unknown",
             "title": issue.title or "",
             "fixable": issue.fixable,
         }
+        if issue.ignored:
+            brief["ignored"] = True
+            if issue.ignore_reason:
+                brief["ignore_reason"] = issue.ignore_reason
+        return brief
 
     def _generate_recommended_action(
         self,

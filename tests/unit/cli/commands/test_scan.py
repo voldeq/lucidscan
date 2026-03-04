@@ -1010,3 +1010,71 @@ class TestDryRun:
         captured = capsys.readouterr()
         assert "ruff" in captured.out
         assert "Tools that would run:" in captured.out
+
+
+class TestIgnoreIssuesIntegration:
+    """Tests for ignore_issues integration in scan command."""
+
+    @patch.object(ScanCommand, "_run_scan")
+    @patch("lucidshark.cli.commands.scan.get_reporter_plugin")
+    def test_ignored_issues_dont_affect_cli_fail_on(
+        self, mock_get_reporter, mock_run_scan, tmp_path: Path
+    ) -> None:
+        """Ignored issues should not trigger --fail-on exit code."""
+        issue = _make_issue(severity=Severity.HIGH)
+        issue.ignored = True
+        mock_run_scan.return_value = ScanResult(issues=[issue])
+        mock_get_reporter.return_value = MagicMock()
+
+        cmd = ScanCommand(version="1.0.0")
+        config = _make_config()
+        args = _make_args(tmp_path, fail_on="high")
+
+        result = cmd.execute(args, config)
+
+        assert result == EXIT_SUCCESS
+
+    @patch.object(ScanCommand, "_run_scan")
+    @patch("lucidshark.cli.commands.scan.get_reporter_plugin")
+    def test_non_ignored_issues_still_trigger_fail_on(
+        self, mock_get_reporter, mock_run_scan, tmp_path: Path
+    ) -> None:
+        """Non-ignored issues should still trigger --fail-on."""
+        issue = _make_issue(severity=Severity.HIGH)
+        # issue.ignored is False by default
+        mock_run_scan.return_value = ScanResult(issues=[issue])
+        mock_get_reporter.return_value = MagicMock()
+
+        cmd = ScanCommand(version="1.0.0")
+        config = _make_config()
+        args = _make_args(tmp_path, fail_on="high")
+
+        result = cmd.execute(args, config)
+
+        assert result == EXIT_ISSUES_FOUND
+
+    def test_ignored_issues_excluded_from_domain_thresholds(self) -> None:
+        """Ignored issues should not count in domain threshold checks."""
+        config = _make_config(
+            fail_on=FailOnConfig(linting="any")
+        )
+        issue = _make_issue(domain=ToolDomain.LINTING)
+        issue.ignored = True
+        result = ScanResult(issues=[issue])
+
+        cmd = ScanCommand(version="1.0.0")
+        # Only ignored issues -> should not trigger threshold
+        assert cmd._check_domain_thresholds(result, config) is False
+
+    def test_mixed_ignored_and_active_in_domain_thresholds(self) -> None:
+        """Mix of ignored and active issues - only active should trigger."""
+        config = _make_config(
+            fail_on=FailOnConfig(linting="any")
+        )
+        ignored_issue = _make_issue(domain=ToolDomain.LINTING)
+        ignored_issue.ignored = True
+        active_issue = _make_issue(domain=ToolDomain.LINTING)
+        result = ScanResult(issues=[ignored_issue, active_issue])
+
+        cmd = ScanCommand(version="1.0.0")
+        assert cmd._check_domain_thresholds(result, config) is True
