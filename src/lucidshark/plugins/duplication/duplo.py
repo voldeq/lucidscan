@@ -9,10 +9,8 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
-import sys
 import tarfile
 import tempfile
-import zipfile
 from pathlib import Path
 from typing import List, Optional
 import pathspec
@@ -128,9 +126,7 @@ class DuploPlugin(DuplicationPlugin):
             Path to Duplo binary.
         """
         binary_dir = self._paths.plugin_bin_dir(self.name, self._version)
-        is_windows = sys.platform == "win32"
-        binary_name = "lucidshark-duplo.exe" if is_windows else "lucidshark-duplo"
-        binary_path = binary_dir / binary_name
+        binary_path = binary_dir / "lucidshark-duplo"
 
         if binary_path.exists():
             LOGGER.debug(f"Duplo binary found at {binary_path}")
@@ -436,19 +432,16 @@ class DuploPlugin(DuplicationPlugin):
             dest_dir: Directory to download and extract to.
         """
         platform_info = get_platform_info()
-        is_windows = platform_info.os == "windows"
 
         # Map platform to Duplo release naming
-        # Format: lucidshark-duplo-{os}-{arch}.{ext}
+        # Format: lucidshark-duplo-{os}-{arch}.tar.gz
         # Examples:
         #   lucidshark-duplo-macos-x86_64.tar.gz
         #   lucidshark-duplo-macos-aarch64.tar.gz
         #   lucidshark-duplo-linux-x86_64.tar.gz
-        #   lucidshark-duplo-windows-x86_64.zip
         os_name = {
             "darwin": "macos",
             "linux": "linux",
-            "windows": "windows",
         }.get(platform_info.os)
 
         arch_name = {
@@ -462,8 +455,7 @@ class DuploPlugin(DuplicationPlugin):
             )
 
         # Construct download URL
-        extension = ".zip" if is_windows else ".tar.gz"
-        filename = f"lucidshark-duplo-{os_name}-{arch_name}{extension}"
+        filename = f"lucidshark-duplo-{os_name}-{arch_name}.tar.gz"
         url = f"https://github.com/toniantunovi/lucidshark-duplo/releases/download/v{self._version}/{filename}"
 
         LOGGER.debug(f"Downloading from {url}")
@@ -476,50 +468,31 @@ class DuploPlugin(DuplicationPlugin):
             raise ValueError(f"Invalid download URL: {url}")
 
         # Download and extract
-        # Use delete=False and manually clean up to avoid Windows file locking issues
-        tmp_file = tempfile.NamedTemporaryFile(suffix=extension, delete=False)
+        binary_name = "lucidshark-duplo"
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".tar.gz", delete=False)
         tmp_path = Path(tmp_file.name)
-        binary_name = "lucidshark-duplo.exe" if is_windows else "lucidshark-duplo"
 
         try:
             with secure_urlopen(url) as response:  # nosec B310 nosemgrep
                 tmp_file.write(response.read())
-            # Close the file before extracting (required on Windows)
             tmp_file.close()
 
-            if is_windows:
-                # Extract zip file safely (prevent path traversal)
-                with zipfile.ZipFile(tmp_path, "r") as zf:
-                    for zip_member in zf.namelist():
-                        # Validate each member path to prevent traversal attacks
-                        member_path = (dest_dir / zip_member).resolve()
-                        if not member_path.is_relative_to(dest_dir.resolve()):
-                            raise ValueError(f"Path traversal detected: {zip_member}")
-                        # Extract only the binary
-                        if zip_member.endswith(binary_name) or zip_member == binary_name:
-                            zf.extract(zip_member, dest_dir)
-                            # Move from subdirectory if needed
-                            extracted = dest_dir / zip_member
-                            if extracted.parent != dest_dir:
-                                extracted.rename(dest_dir / binary_name)
-                            break
-            else:
-                # Extract tarball safely (prevent path traversal)
-                with tarfile.open(tmp_path, "r:gz") as tar:
-                    for tar_member in tar.getmembers():
-                        # Validate each member path to prevent traversal attacks
-                        member_path = (dest_dir / tar_member.name).resolve()
-                        if not member_path.is_relative_to(dest_dir.resolve()):
-                            raise ValueError(f"Path traversal detected: {tar_member.name}")
-                        # Extract only the binary
-                        if tar_member.name.endswith(binary_name) or tar_member.name == binary_name:
-                            tar_member.name = binary_name
-                            tar.extract(tar_member, path=dest_dir)
-                            break
+            # Extract tarball safely (prevent path traversal)
+            with tarfile.open(tmp_path, "r:gz") as tar:
+                for tar_member in tar.getmembers():
+                    # Validate each member path to prevent traversal attacks
+                    member_path = (dest_dir / tar_member.name).resolve()
+                    if not member_path.is_relative_to(dest_dir.resolve()):
+                        raise ValueError(f"Path traversal detected: {tar_member.name}")
+                    # Extract only the binary
+                    if tar_member.name.endswith(binary_name) or tar_member.name == binary_name:
+                        tar_member.name = binary_name
+                        tar.extract(tar_member, path=dest_dir)
+                        break
 
-            # Make binary executable (on Unix)
+            # Make binary executable
             binary_path = dest_dir / binary_name
-            if binary_path.exists() and not is_windows:
+            if binary_path.exists():
                 binary_path.chmod(0o755)
             LOGGER.info(f"lucidshark-duplo v{self._version} installed to {binary_path}")
 

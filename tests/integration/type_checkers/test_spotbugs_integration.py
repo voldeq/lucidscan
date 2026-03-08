@@ -9,17 +9,13 @@ Run with: pytest tests/integration/type_checkers/test_spotbugs_integration.py -v
 from __future__ import annotations
 
 import shutil
-import sys
 from pathlib import Path
 
 from lucidshark.core.models import ScanContext, ToolDomain
 from lucidshark.plugins.type_checkers.spotbugs import SpotBugsChecker
 from tests.integration.conftest import spotbugs_available, maven_available
 
-# Resolve mvn path for cross-platform subprocess calls (mvn.cmd on Windows)
 _MVN_CMD = shutil.which("mvn") or "mvn"
-# On Windows, .cmd/.bat files must be run via cmd.exe (shell=True)
-_IS_WINDOWS = sys.platform == "win32"
 
 
 class TestSpotBugsAvailability:
@@ -61,7 +57,7 @@ class TestSpotBugsTypeChecking:
             capture_output=True,
             text=True,
             timeout=120,
-            shell=_IS_WINDOWS,
+            shell=False,
         )
 
         if result.returncode != 0:
@@ -99,7 +95,7 @@ class TestSpotBugsTypeChecking:
             capture_output=True,
             text=True,
             timeout=120,
-            shell=_IS_WINDOWS,
+            shell=False,
         )
 
         if result.returncode != 0:
@@ -134,7 +130,7 @@ class TestSpotBugsIssueGeneration:
             capture_output=True,
             text=True,
             timeout=120,
-            shell=_IS_WINDOWS,
+            shell=False,
         )
 
         if result.returncode != 0:

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import subprocess
-import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -18,8 +17,7 @@ from lucidshark.plugins.duplication.duplo import (
     SUPPORTED_EXTENSIONS,
 )
 
-_IS_WINDOWS = sys.platform == "win32"
-_DUPLO_BINARY = "lucidshark-duplo.exe" if _IS_WINDOWS else "lucidshark-duplo"
+_DUPLO_BINARY = "lucidshark-duplo"
 
 
 def make_completed_process(returncode: int, stdout: str, stderr: str = "") -> subprocess.CompletedProcess:

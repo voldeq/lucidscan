@@ -26,10 +26,6 @@ class TestDetectOS:
         with patch("platform.system", return_value="Linux"):
             assert detect_os() == "linux"
 
-    def test_detect_os_windows(self) -> None:
-        with patch("platform.system", return_value="Windows"):
-            assert detect_os() == "windows"
-
     def test_detect_os_unknown_raises(self) -> None:
         with patch("platform.system", return_value="UnknownOS"):
             with pytest.raises(ValueError, match="Unsupported operating system"):

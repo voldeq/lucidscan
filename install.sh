@@ -35,7 +35,7 @@ detect_os() {
     case "$os" in
         darwin) echo "darwin" ;;
         linux) echo "linux" ;;
-        *) error "Unsupported operating system: $os. Use Windows PowerShell installer for Windows." ;;
+        *) error "Unsupported operating system: $os. Only Linux and macOS are supported." ;;
     esac
 }
 

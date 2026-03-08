@@ -158,7 +158,6 @@ class SpotBugsChecker(TypeCheckerPlugin):
         - apt/yum (Linux): /usr/share/spotbugs/lib/spotbugs.jar
         - Manual download: standard lib/spotbugs.jar layout
         - SDKMAN: ~/.sdkman/candidates/spotbugs/current/
-        - Chocolatey/Scoop (Windows): standard layout
 
         Returns:
             Path to SpotBugs directory containing the lib folder with spotbugs.jar.
@@ -220,10 +219,6 @@ class SpotBugsChecker(TypeCheckerPlugin):
             # macOS Homebrew (Intel and Apple Silicon)
             Path("/usr/local/opt/spotbugs/libexec"),
             Path("/opt/homebrew/opt/spotbugs/libexec"),
-            # Windows Chocolatey
-            Path("C:/ProgramData/chocolatey/lib/spotbugs/tools"),
-            # Windows Scoop
-            Path.home() / "scoop" / "apps" / "spotbugs" / "current",
         ]
 
         for base_path in common_paths:
@@ -245,7 +240,6 @@ class SpotBugsChecker(TypeCheckerPlugin):
             "SpotBugs is not installed or not found. Install it with:\n"
             "  brew install spotbugs  (macOS)\n"
             "  apt install spotbugs   (Debian/Ubuntu)\n"
-            "  choco install spotbugs (Windows)\n"
             "  sdk install spotbugs   (SDKMAN)\n"
             "  OR download from https://spotbugs.github.io/ and set SPOTBUGS_HOME"
         )

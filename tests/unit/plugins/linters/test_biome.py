@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import platform
 import subprocess
 import tempfile
 from pathlib import Path
@@ -16,7 +15,7 @@ from lucidshark.plugins.linters.biome import (
     SEVERITY_MAP,
 )
 
-_BIOME_BINARY = "biome.exe" if platform.system() == "Windows" else "biome"
+_BIOME_BINARY = "biome"
 
 
 def make_completed_process(returncode: int, stdout: str, stderr: str = "") -> subprocess.CompletedProcess:

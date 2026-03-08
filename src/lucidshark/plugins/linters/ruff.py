@@ -168,7 +168,6 @@ class RuffLinter(LinterPlugin):
 
         # Filter and add paths to check
         # Only include Python files; also drop any path that matches ignore patterns
-        # (defensive so ignored paths are never passed to Ruff, including on Windows)
         if context.paths:
             paths_to_use = context.paths
             if context.ignore_patterns is not None:
@@ -300,11 +299,7 @@ class RuffLinter(LinterPlugin):
 
     @staticmethod
     def _simplify_exclude_pattern(pattern: str) -> str:
-        """Simplify a gitignore-style glob into a form Ruff handles on all platforms.
-
-        Ruff's CLI ``--extend-exclude`` uses globset for matching.  On Windows,
-        patterns containing ``**`` and forward slashes may fail to match paths
-        discovered with native backslash separators (known Ruff issue).
+        """Simplify a gitignore-style glob into a form Ruff handles reliably.
 
         In gitignore semantics a bare name (e.g. ``.lucidshark``) matches that
         name at **any depth**, which is equivalent to ``**/.lucidshark/**``.
@@ -374,11 +369,10 @@ class RuffLinter(LinterPlugin):
         for path in paths:
             if path.is_dir():
                 # Directories are passed through - Ruff will find Python files
-                # Use as_posix() for Windows compatibility (forward slashes)
-                filtered.append(path.as_posix())
+                filtered.append(str(path))
             elif path.suffix.lower() in PYTHON_EXTENSIONS:
                 # Only include files with Python extensions
-                filtered.append(path.as_posix())
+                filtered.append(str(path))
             else:
                 LOGGER.debug(f"Skipping non-Python file: {path}")
         return filtered

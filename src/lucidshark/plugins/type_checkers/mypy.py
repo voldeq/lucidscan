@@ -136,7 +136,7 @@ class MypyChecker(TypeCheckerPlugin):
         """Ensure mypy is available.
 
         Checks for mypy in:
-        1. Project's .venv (bin/mypy on Unix, Scripts/mypy.exe on Windows)
+        1. Project's .venv/bin/mypy
         2. System PATH
 
         Returns:
@@ -145,14 +145,9 @@ class MypyChecker(TypeCheckerPlugin):
         Raises:
             FileNotFoundError: If mypy is not installed.
         """
-        import sys
-
         # Check project venv first
         if self._project_root:
-            if sys.platform == "win32":
-                venv_mypy = self._project_root / ".venv" / "Scripts" / "mypy.exe"
-            else:
-                venv_mypy = self._project_root / ".venv" / "bin" / "mypy"
+            venv_mypy = self._project_root / ".venv" / "bin" / "mypy"
             if venv_mypy.exists():
                 return venv_mypy
 

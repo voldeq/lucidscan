@@ -8,9 +8,7 @@ Usage: pyinstaller lucidshark.spec
 import sys
 from pathlib import Path
 
-# Determine if we're on Windows for executable extension
-is_windows = sys.platform == 'win32'
-exe_name = 'lucidshark.exe' if is_windows else 'lucidshark'
+exe_name = 'lucidshark'
 
 # Path to the source package
 src_path = Path('src')

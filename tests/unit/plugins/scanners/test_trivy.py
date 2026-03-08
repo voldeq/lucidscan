@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import subprocess
-import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -13,7 +12,7 @@ import pytest
 from lucidshark.core.models import ScanContext, ScanDomain, Severity
 from lucidshark.plugins.scanners.trivy import TrivyScanner, TRIVY_SEVERITY_MAP
 
-_TRIVY_BINARY = "trivy.exe" if sys.platform == "win32" else "trivy"
+_TRIVY_BINARY = "trivy"
 
 
 def _make_completed_process(

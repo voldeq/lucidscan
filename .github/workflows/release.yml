@@ -62,10 +62,6 @@ jobs:
             target: darwin-arm64
             artifact_name: lucidshark
             asset_name: lucidshark-darwin-arm64
-          - os: windows-latest
-            target: windows-amd64
-            artifact_name: lucidshark.exe
-            asset_name: lucidshark-windows-amd64.exe
 
     runs-on: ${{ matrix.os }}
 
@@ -162,7 +158,6 @@ jobs:
             binaries/lucidshark-linux-arm64
             binaries/lucidshark-darwin-amd64
             binaries/lucidshark-darwin-arm64
-            binaries/lucidshark-windows-amd64.exe
           body: |
             ## LucidShark - The Trust Layer for AI-Assisted Development
 
@@ -180,11 +175,6 @@ jobs:
             **Linux/macOS:**
             ```bash
             curl -fsSL https://raw.githubusercontent.com/toniantunovi/lucidshark/main/install.sh | bash
-            ```
-
-            **Windows (PowerShell):**
-            ```powershell
-            irm https://raw.githubusercontent.com/toniantunovi/lucidshark/main/install.ps1 | iex
             ```
 
             **Manual download:** See the assets below for pre-built binaries for your platform.

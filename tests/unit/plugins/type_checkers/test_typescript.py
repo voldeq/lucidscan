@@ -301,14 +301,6 @@ class TestTscErrorPattern:
         assert match is not None
         assert match.group(4) == "warning"
 
-    def test_matches_windows_path(self) -> None:
-        """Test pattern matches Windows-style paths."""
-        line = "C:\\project\\src\\test.ts(10,5): error TS2322: Type error."
-        match = TSC_ERROR_PATTERN.match(line)
-
-        assert match is not None
-        assert match.group(1) == "C:\\project\\src\\test.ts"
-
     def test_no_match_invalid_format(self) -> None:
         """Test pattern doesn't match invalid format."""
         invalid_lines = [

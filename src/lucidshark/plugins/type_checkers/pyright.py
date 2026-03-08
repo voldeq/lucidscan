@@ -124,8 +124,7 @@ class PyrightChecker(TypeCheckerPlugin):
         ]
 
         # Add paths to check
-        # Use as_posix() for Windows compatibility (forward slashes)
-        paths = [p.as_posix() for p in context.paths] if context.paths else ["."]
+        paths = [str(p) for p in context.paths] if context.paths else ["."]
         cmd.extend(paths)
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")

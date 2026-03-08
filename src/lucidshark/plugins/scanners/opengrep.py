@@ -88,9 +88,6 @@ class OpenGrepScanner(ScannerPlugin):
 
     def _get_binary_name(self) -> str:
         """Get the binary name for the current platform."""
-        platform_info = get_platform_info()
-        if platform_info.os == "windows":
-            return "opengrep.exe"
         return "opengrep"
 
     def _download_binary(self, dest_dir: Path) -> None:
@@ -107,8 +104,6 @@ class OpenGrepScanner(ScannerPlugin):
             os_name = "osx"
             arch_name = "x86" if platform_info.arch == "amd64" else "arm64"
             filename = f"opengrep_{os_name}_{arch_name}"
-        elif platform_info.os == "windows":
-            filename = "opengrep_windows_x86.exe"
         else:
             raise RuntimeError(
                 f"Unsupported platform: {platform_info.os}-{platform_info.arch}"
@@ -135,9 +130,7 @@ class OpenGrepScanner(ScannerPlugin):
             with secure_urlopen(url) as response:  # nosec B310 nosemgrep
                 binary_path.write_bytes(response.read())
 
-            # Make binary executable (not needed on Windows)
-            if platform_info.os != "windows":
-                binary_path.chmod(0o755)
+            binary_path.chmod(0o755)
 
             LOGGER.info(f"OpenGrep v{self._version} installed to {binary_path}")
 
@@ -209,8 +202,7 @@ class OpenGrepScanner(ScannerPlugin):
             cmd.extend(["--exclude", pattern])
 
         # Add target path
-        # Use as_posix() for Windows compatibility (forward slashes)
-        cmd.append(context.project_root.as_posix())
+        cmd.append(str(context.project_root))
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 

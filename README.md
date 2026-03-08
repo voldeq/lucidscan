@@ -37,10 +37,7 @@ AI writes code → LucidShark checks → AI fixes → repeat
 pip install lucidshark
 
 # Option B: Standalone binary (no Python required)
-# Linux/macOS:
 curl -fsSL https://raw.githubusercontent.com/toniantunovi/lucidshark/main/install.sh | bash
-# Windows (PowerShell):
-irm https://raw.githubusercontent.com/toniantunovi/lucidshark/main/install.ps1 | iex
 
 # 2. Set up Claude Code
 lucidshark init
@@ -57,11 +54,10 @@ That's it! Your AI assistant will analyze your codebase, ask you a few questions
 |--------|---------|-------|
 | **pip** | `pip install lucidshark` | Requires Python 3.10+ |
 | **Binary (Linux/macOS)** | `curl -fsSL .../install.sh \| bash` | No Python required |
-| **Binary (Windows)** | `irm .../install.ps1 \| iex` | No Python required |
 | **Manual** | Download from [Releases](https://github.com/toniantunovi/lucidshark/releases) | Pre-built binaries |
 
 The install scripts will prompt you to choose:
-- **Global install** (`~/.local/bin` or `%LOCALAPPDATA%\Programs\lucidshark`) - available system-wide
+- **Global install** (`~/.local/bin`) - available system-wide
 - **Project-local install** (current directory) - project-specific, keeps the binary in your project root
 
 ### Running Scans

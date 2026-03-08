@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sys
 from argparse import Namespace
 from pathlib import Path
 from unittest.mock import patch
@@ -393,16 +392,9 @@ class TestFindLucidsharkPath:
         """Test finding lucidshark in venv bin directory."""
         cmd = InitCommand(version="1.0.0")
         # Create a fake lucidshark in the venv with platform-appropriate paths
-        if sys.platform == "win32":
-            # Windows uses Scripts directory and .exe extension
-            venv_bin = tmp_path / "venv" / "Scripts"
-            venv_bin.mkdir(parents=True)
-            lucidshark_exe = venv_bin / "lucidshark.exe"
-        else:
-            # Unix uses bin directory
-            venv_bin = tmp_path / "venv" / "bin"
-            venv_bin.mkdir(parents=True)
-            lucidshark_exe = venv_bin / "lucidshark"
+        venv_bin = tmp_path / "venv" / "bin"
+        venv_bin.mkdir(parents=True)
+        lucidshark_exe = venv_bin / "lucidshark"
         lucidshark_exe.touch()
 
         with patch("shutil.which", return_value=None):

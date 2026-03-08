@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import subprocess
-import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -17,7 +16,7 @@ from lucidshark.plugins.scanners.checkov import (
     _glob_to_regex,
 )
 
-_CHECKOV_BINARY = "checkov.exe" if sys.platform == "win32" else "checkov"
+_CHECKOV_BINARY = "checkov"
 
 
 def _make_completed_process(

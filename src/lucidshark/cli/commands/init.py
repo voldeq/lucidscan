@@ -305,7 +305,6 @@ class InitCommand(Command):
         1. Local binary in project root (./lucidshark) - for standalone installs
         2. PATH via shutil.which (only if not portable)
         3. Same directory as current Python interpreter (for venv installs)
-        4. Scripts directory on Windows
 
         Args:
             portable: If True, return a relative path suitable for version control.
@@ -316,14 +315,11 @@ class InitCommand(Command):
         cwd = Path.cwd()
 
         # First check for local binary in project root (standalone install)
-        if sys.platform == "win32":
-            local_binary = cwd / "lucidshark.exe"
-        else:
-            local_binary = cwd / "lucidshark"
+        local_binary = cwd / "lucidshark"
 
         if local_binary.exists() and local_binary.is_file():
             # For local binary, always return relative path
-            return "./lucidshark.exe" if sys.platform == "win32" else "./lucidshark"
+            return "./lucidshark"
 
         # Then try PATH (only if not looking for portable path)
         if not portable:
@@ -335,17 +331,9 @@ class InitCommand(Command):
         # This handles venv installations where lucidshark isn't in global PATH
         python_dir = Path(sys.executable).parent
 
-        if sys.platform == "win32":
-            # On Windows, check both Scripts and the python directory
-            candidates = [
-                python_dir / "lucidshark.exe",
-                python_dir / "Scripts" / "lucidshark.exe",
-            ]
-        else:
-            # On Unix-like systems
-            candidates = [
-                python_dir / "lucidshark",
-            ]
+        candidates = [
+            python_dir / "lucidshark",
+        ]
 
         for candidate in candidates:
             if candidate.exists():

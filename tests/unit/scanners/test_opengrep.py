@@ -102,15 +102,6 @@ class TestOpenGrepScannerBinaryNaming:
             mock_platform.return_value = MagicMock(os="darwin", arch="arm64")
             assert scanner._get_binary_name() == "opengrep"
 
-    def test_binary_name_windows(self) -> None:
-        """Test binary name on Windows."""
-        scanner = OpenGrepScanner()
-
-        with patch("lucidshark.plugins.scanners.opengrep.get_platform_info") as mock_platform:
-            mock_platform.return_value = MagicMock(os="windows", arch="amd64")
-            assert scanner._get_binary_name() == "opengrep.exe"
-
-
 class TestOpenGrepScannerDownloadUrl:
     """Tests for OpenGrep download URL construction."""
 
