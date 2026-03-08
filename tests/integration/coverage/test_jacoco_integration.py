@@ -19,12 +19,15 @@ from lucidshark.plugins.coverage.jacoco import JaCoCoPlugin
 from tests.integration.conftest import maven_available
 
 
-@pytest.fixture(scope="module")
-def _run_maven_tests(java_webapp_project: Path) -> None:
+_JAVA_WEBAPP_PROJECT = Path(__file__).parent.parent / "projects" / "java-webapp"
+
+
+@pytest.fixture(scope="session")
+def _run_maven_tests() -> None:
     """Run mvn test once to generate JaCoCo coverage reports."""
     subprocess.run(
         ["mvn", "test", "-q"],
-        cwd=java_webapp_project,
+        cwd=_JAVA_WEBAPP_PROJECT,
         capture_output=True,
         timeout=120,
     )
