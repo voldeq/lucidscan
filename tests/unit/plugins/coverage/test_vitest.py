@@ -132,7 +132,7 @@ class TestVitestMeasureCoverage:
 
 
 class TestVitestSummaryReportParsing:
-    """Tests for coverage-summary.json parsing."""
+    """Tests for coverage-summary.json parsing via base class."""
 
     def test_parse_summary_report(self) -> None:
         plugin = VitestCoveragePlugin()
@@ -158,13 +158,7 @@ class TestVitestSummaryReportParsing:
             },
         }
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            report_file = Path(tmpdir) / "coverage-summary.json"
-            report_file.write_text(json.dumps(report))
-
-            result = plugin._parse_summary_report(
-                report_file, Path("/project"), threshold=80.0
-            )
+        result = plugin._parse_istanbul_summary(report, Path("/project"), threshold=80.0)
 
         assert result.total_lines == 100
         assert result.covered_lines == 80
@@ -186,13 +180,7 @@ class TestVitestSummaryReportParsing:
             },
         }
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            report_file = Path(tmpdir) / "coverage-summary.json"
-            report_file.write_text(json.dumps(report))
-
-            result = plugin._parse_summary_report(
-                report_file, Path("/project"), threshold=80.0
-            )
+        result = plugin._parse_istanbul_summary(report, Path("/project"), threshold=80.0)
 
         assert result.percentage == 60.0
         assert result.passed is False
@@ -203,23 +191,9 @@ class TestVitestSummaryReportParsing:
         assert "60.0%" in issue.title
         assert "80.0%" in issue.title
 
-    def test_parse_summary_invalid_json(self) -> None:
-        plugin = VitestCoveragePlugin()
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            report_file = Path(tmpdir) / "coverage-summary.json"
-            report_file.write_text("not json")
-
-            result = plugin._parse_summary_report(
-                report_file, Path("/project"), threshold=80.0
-            )
-
-        assert result.total_lines == 0
-        assert result.tool == "vitest_coverage"
-
 
 class TestVitestFinalReportParsing:
-    """Tests for coverage-final.json parsing."""
+    """Tests for coverage-final.json parsing via base class."""
 
     def test_parse_final_report(self) -> None:
         plugin = VitestCoveragePlugin()
@@ -233,13 +207,7 @@ class TestVitestFinalReportParsing:
             },
         }
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            report_file = Path(tmpdir) / "coverage-final.json"
-            report_file.write_text(json.dumps(report))
-
-            result = plugin._parse_final_report(
-                report_file, Path("/project"), threshold=80.0
-            )
+        result = plugin._parse_istanbul_final(report, Path("/project"), threshold=80.0)
 
         assert result.total_lines == 6  # 4 + 2
         assert result.covered_lines == 4  # 3 covered + 1 covered
@@ -255,31 +223,12 @@ class TestVitestFinalReportParsing:
             },
         }
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            report_file = Path(tmpdir) / "coverage-final.json"
-            report_file.write_text(json.dumps(report))
-
-            result = plugin._parse_final_report(
-                report_file, Path("/project"), threshold=80.0
-            )
+        result = plugin._parse_istanbul_final(report, Path("/project"), threshold=80.0)
 
         file_cov = result.files["src/index.ts"]
         assert file_cov.covered_lines == 2
         assert file_cov.total_lines == 4
         assert sorted(file_cov.missing_lines) == [1, 2]
-
-    def test_parse_final_report_invalid_json(self) -> None:
-        plugin = VitestCoveragePlugin()
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            report_file = Path(tmpdir) / "coverage-final.json"
-            report_file.write_text("broken")
-
-            result = plugin._parse_final_report(
-                report_file, Path("/project"), threshold=80.0
-            )
-
-        assert result.total_lines == 0
 
 
 class TestVitestFindAndParseReport:
@@ -335,7 +284,7 @@ class TestVitestFindAndParseReport:
 
 
 class TestVitestCoverageIssue:
-    """Tests for coverage issue creation."""
+    """Tests for coverage issue creation (base class method)."""
 
     def test_high_severity_below_50(self) -> None:
         plugin = VitestCoveragePlugin()
@@ -382,7 +331,7 @@ class TestVitestCoverageIssue:
         issue1 = plugin._create_coverage_issue(60.0, 80.0, 100, 60)
         issue2 = plugin._create_coverage_issue(60.0, 80.0, 100, 60)
         assert issue1.id == issue2.id
-        assert issue1.id.startswith("vitest-cov-")
+        assert issue1.id.startswith("vitest_coverage-cov-")
 
     def test_issue_id_differs_for_different_coverage(self) -> None:
         plugin = VitestCoveragePlugin()

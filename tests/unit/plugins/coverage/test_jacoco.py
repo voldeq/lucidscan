@@ -434,7 +434,6 @@ class TestJaCoCoCoverageIssue:
             threshold=80.0,
             total_lines=100,
             covered_lines=30,
-            missing_lines=70,
         )
 
         assert issue.severity == Severity.HIGH
@@ -450,7 +449,6 @@ class TestJaCoCoCoverageIssue:
             threshold=80.0,
             total_lines=100,
             covered_lines=60,
-            missing_lines=40,
         )
 
         assert issue.severity == Severity.MEDIUM
@@ -464,7 +462,6 @@ class TestJaCoCoCoverageIssue:
             threshold=80.0,
             total_lines=100,
             covered_lines=75,
-            missing_lines=25,
         )
 
         assert issue.severity == Severity.LOW

@@ -12,13 +12,13 @@ from typing import List, Optional, Tuple
 import defusedxml.ElementTree as ET  # type: ignore[import-untyped]
 
 from lucidshark.core.logging import get_logger
-from lucidshark.core.models import ScanContext, Severity, ToolDomain, UnifiedIssue
+from lucidshark.core.models import ScanContext
 from lucidshark.plugins.coverage.base import (
     CoveragePlugin,
     CoverageResult,
     FileCoverage,
 )
-from lucidshark.plugins.utils import find_java_build_tool, create_coverage_threshold_issue
+from lucidshark.plugins.utils import find_java_build_tool
 
 LOGGER = get_logger(__name__)
 
@@ -299,7 +299,7 @@ class JaCoCoPlugin(CoveragePlugin):
         # Generate issue if below threshold
         if percentage < threshold:
             issue = self._create_coverage_issue(
-                percentage, threshold, total_lines, covered_lines, missed_lines
+                percentage, threshold, total_lines, covered_lines
             )
             result.issues.append(issue)
 
@@ -339,37 +339,4 @@ class JaCoCoPlugin(CoveragePlugin):
         # Return best guess
         return project_root / "src" / "main" / "java" / relative_path
 
-    def _create_coverage_issue(
-        self,
-        percentage: float,
-        threshold: float,
-        total_lines: int,
-        covered_lines: int,
-        missing_lines: int,
-    ) -> UnifiedIssue:
-        """Create a UnifiedIssue for coverage below threshold."""
-        return create_coverage_threshold_issue(
-            source_tool="jacoco",
-            percentage=percentage,
-            threshold=threshold,
-            total_lines=total_lines,
-            covered_lines=covered_lines,
-            missing_lines=missing_lines,
-        )
 
-    def _create_no_data_issue(self) -> UnifiedIssue:
-        """Create a UnifiedIssue when no coverage data is found."""
-        return UnifiedIssue(
-            id="no-coverage-data-jacoco",
-            domain=ToolDomain.COVERAGE,
-            source_tool="jacoco",
-            severity=Severity.HIGH,
-            rule_id="no_coverage_data",
-            title="No coverage data found",
-            description=(
-                "No coverage data found for jacoco. "
-                "Ensure the testing domain is active and has run before coverage analysis. "
-                "Test runners generate coverage data automatically when they execute."
-            ),
-            fixable=False,
-        )

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from lucidshark.core.logging import get_logger
-from lucidshark.core.models import ScanContext, Severity, ToolDomain, UnifiedIssue
+from lucidshark.core.models import ScanContext
 from lucidshark.core.subprocess_runner import run_with_streaming
 from lucidshark.plugins.coverage.base import (
     CoveragePlugin,
@@ -22,7 +22,6 @@ from lucidshark.plugins.coverage.base import (
 from lucidshark.plugins.utils import (
     ensure_python_binary,
     get_cli_version,
-    create_coverage_threshold_issue,
     detect_source_directory,
 )
 
@@ -239,7 +238,7 @@ class CoveragePyPlugin(CoveragePlugin):
         # Generate issue if below threshold
         if percent_covered < threshold:
             issue = self._create_coverage_issue(
-                percent_covered, threshold, total_lines, covered_lines, missing_lines
+                percent_covered, threshold, total_lines, covered_lines
             )
             result.issues.append(issue)
 
@@ -250,37 +249,4 @@ class CoveragePyPlugin(CoveragePlugin):
 
         return result
 
-    def _create_coverage_issue(
-        self,
-        percentage: float,
-        threshold: float,
-        total_lines: int,
-        covered_lines: int,
-        missing_lines: int,
-    ) -> UnifiedIssue:
-        """Create a UnifiedIssue for coverage below threshold."""
-        return create_coverage_threshold_issue(
-            source_tool="coverage.py",
-            percentage=percentage,
-            threshold=threshold,
-            total_lines=total_lines,
-            covered_lines=covered_lines,
-            missing_lines=missing_lines,
-        )
 
-    def _create_no_data_issue(self) -> UnifiedIssue:
-        """Create a UnifiedIssue when no coverage data is found."""
-        return UnifiedIssue(
-            id="no-coverage-data-coverage_py",
-            domain=ToolDomain.COVERAGE,
-            source_tool="coverage_py",
-            severity=Severity.HIGH,
-            rule_id="no_coverage_data",
-            title="No coverage data found",
-            description=(
-                "No coverage data found for coverage.py. "
-                "Ensure the testing domain is active and has run before coverage analysis. "
-                "Test runners generate coverage data automatically when they execute."
-            ),
-            fixable=False,
-        )

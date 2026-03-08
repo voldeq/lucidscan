@@ -332,7 +332,7 @@ class TestIstanbulGenerateAndParseReport:
 
 
 class TestIstanbulJsonParsing:
-    """Tests for JSON report parsing."""
+    """Tests for JSON report parsing via base class."""
 
     def test_parse_json_report_below_threshold(self) -> None:
         """Test parsing JSON report when below threshold."""
@@ -350,24 +350,19 @@ class TestIstanbulJsonParsing:
             },
         }
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            report_file = project_root / "coverage-summary.json"
-            report_file.write_text(json.dumps(report))
+        result = plugin._parse_istanbul_summary(report, Path("/tmp/project"), threshold=80.0)
 
-            result = plugin._parse_json_report(report_file, project_root, threshold=80.0)
+        assert result.total_lines == 100
+        assert result.covered_lines == 70
+        assert result.percentage == 70.0
+        assert result.passed is False
+        assert len(result.issues) == 1
 
-            assert result.total_lines == 100
-            assert result.covered_lines == 70
-            assert result.percentage == 70.0
-            assert result.passed is False
-            assert len(result.issues) == 1
-
-            issue = result.issues[0]
-            assert "70.0%" in issue.title
-            assert "80.0%" in issue.title
-            assert issue.domain == ToolDomain.COVERAGE
-            assert issue.source_tool == "istanbul"
+        issue = result.issues[0]
+        assert "70.0%" in issue.title
+        assert "80.0%" in issue.title
+        assert issue.domain == ToolDomain.COVERAGE
+        assert issue.source_tool == "istanbul"
 
     def test_parse_json_report_above_threshold(self) -> None:
         """Test parsing JSON report when above threshold."""
@@ -382,16 +377,11 @@ class TestIstanbulJsonParsing:
             },
         }
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            report_file = project_root / "coverage-summary.json"
-            report_file.write_text(json.dumps(report))
+        result = plugin._parse_istanbul_summary(report, Path("/tmp/project"), threshold=80.0)
 
-            result = plugin._parse_json_report(report_file, project_root, threshold=80.0)
-
-            assert result.percentage == 90.0
-            assert result.passed is True
-            assert len(result.issues) == 0
+        assert result.percentage == 90.0
+        assert result.passed is True
+        assert len(result.issues) == 0
 
     def test_parse_json_report_with_per_file(self) -> None:
         """Test parsing JSON report with per-file coverage."""
@@ -412,33 +402,15 @@ class TestIstanbulJsonParsing:
             },
         }
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            report_file = project_root / "coverage-summary.json"
-            report_file.write_text(json.dumps(report))
+        result = plugin._parse_istanbul_summary(report, Path("/tmp/project"), threshold=80.0)
 
-            result = plugin._parse_json_report(report_file, project_root, threshold=80.0)
-
-            assert len(result.files) == 2
-            assert "src/app.js" in result.files
-            assert "src/utils.js" in result.files
-
-    def test_parse_json_report_invalid_file(self) -> None:
-        """Test parsing invalid JSON report file."""
-        plugin = IstanbulPlugin()
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            report_file = project_root / "coverage-summary.json"
-            report_file.write_text("invalid json")
-
-            result = plugin._parse_json_report(report_file, project_root, threshold=80.0)
-            assert result.threshold == 80.0
-            assert result.total_lines == 0
+        assert len(result.files) == 2
+        assert "src/app.js" in result.files
+        assert "src/utils.js" in result.files
 
 
 class TestIstanbulFinalReportParsing:
-    """Tests for _parse_final_report (coverage-final.json)."""
+    """Tests for _parse_istanbul_final (coverage-final.json)."""
 
     def test_parse_final_report_basic(self) -> None:
         """Test parsing a basic coverage-final.json file."""
@@ -462,10 +434,8 @@ class TestIstanbulFinalReportParsing:
                     "b": {},
                 },
             }
-            report_file = project_root / "coverage-final.json"
-            report_file.write_text(json.dumps(report))
 
-            result = plugin._parse_final_report(report_file, project_root, threshold=80.0)
+            result = plugin._parse_istanbul_final(report, project_root, threshold=80.0)
 
             assert result.total_lines == 4
             assert result.covered_lines == 2
@@ -496,10 +466,8 @@ class TestIstanbulFinalReportParsing:
                     "s": {"0": 0},
                 },
             }
-            report_file = project_root / "coverage-final.json"
-            report_file.write_text(json.dumps(report))
 
-            result = plugin._parse_final_report(report_file, project_root, threshold=80.0)
+            result = plugin._parse_istanbul_final(report, project_root, threshold=80.0)
 
             assert result.total_lines == 2
             assert result.covered_lines == 1
@@ -521,46 +489,28 @@ class TestIstanbulFinalReportParsing:
                     "s": {"0": 5},
                 },
             }
-            report_file = project_root / "coverage-final.json"
-            report_file.write_text(json.dumps(report))
 
-            result = plugin._parse_final_report(report_file, project_root, threshold=80.0)
+            result = plugin._parse_istanbul_final(report, project_root, threshold=80.0)
             assert result.total_lines == 1
             assert result.covered_lines == 1
             assert len(result.issues) == 0
 
-    def test_parse_final_report_invalid_json(self) -> None:
-        """Test parsing invalid coverage-final.json."""
-        plugin = IstanbulPlugin()
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            report_file = project_root / "coverage-final.json"
-            report_file.write_text("not valid json")
-
-            result = plugin._parse_final_report(report_file, project_root, threshold=80.0)
-            assert result.total_lines == 0
-            assert result.tool == "istanbul"
-
 
 class TestIstanbulCoverageIssueCreation:
-    """Tests for coverage issue creation."""
+    """Tests for coverage issue creation (base class method)."""
 
     def test_create_issue_high_severity(self) -> None:
         """Test creating issue with HIGH severity (< 50%)."""
         plugin = IstanbulPlugin()
-
         issue = plugin._create_coverage_issue(
             percentage=40.0,
             threshold=80.0,
             total_lines=100,
             covered_lines=40,
-            missing_lines=60,
             statements={"total": 100, "covered": 40, "pct": 40.0},
             branches={"total": 50, "covered": 20, "pct": 40.0},
             functions={"total": 20, "covered": 8, "pct": 40.0},
         )
-
         assert issue.severity == Severity.HIGH
         assert "40.0%" in issue.title
         assert "80.0%" in issue.title
@@ -568,52 +518,43 @@ class TestIstanbulCoverageIssueCreation:
     def test_create_issue_medium_severity(self) -> None:
         """Test creating issue with MEDIUM severity."""
         plugin = IstanbulPlugin()
-
         issue = plugin._create_coverage_issue(
             percentage=65.0,
             threshold=80.0,
             total_lines=100,
             covered_lines=65,
-            missing_lines=35,
             statements={"total": 100, "covered": 65, "pct": 65.0},
             branches={"total": 50, "covered": 32, "pct": 65.0},
             functions={"total": 20, "covered": 13, "pct": 65.0},
         )
-
         assert issue.severity == Severity.MEDIUM
 
     def test_create_issue_low_severity(self) -> None:
         """Test creating issue with LOW severity (close to threshold)."""
         plugin = IstanbulPlugin()
-
         issue = plugin._create_coverage_issue(
             percentage=75.0,
             threshold=80.0,
             total_lines=100,
             covered_lines=75,
-            missing_lines=25,
             statements={"total": 100, "covered": 75, "pct": 75.0},
             branches={"total": 50, "covered": 37, "pct": 75.0},
             functions={"total": 20, "covered": 15, "pct": 75.0},
         )
-
         assert issue.severity == Severity.LOW
 
     def test_create_issue_includes_all_metrics(self) -> None:
         """Test issue description includes all coverage metrics."""
         plugin = IstanbulPlugin()
-
         issue = plugin._create_coverage_issue(
             percentage=70.0,
             threshold=80.0,
             total_lines=100,
             covered_lines=70,
-            missing_lines=30,
             statements={"total": 100, "covered": 70, "pct": 70.0},
             branches={"total": 50, "covered": 35, "pct": 70.0},
             functions={"total": 20, "covered": 14, "pct": 70.0},
         )
-
         desc = issue.description
         assert "Lines:" in desc or "Statements:" in desc
         assert issue.recommendation is not None
@@ -621,18 +562,15 @@ class TestIstanbulCoverageIssueCreation:
     def test_create_issue_metadata(self) -> None:
         """Test issue metadata contains all relevant data."""
         plugin = IstanbulPlugin()
-
         issue = plugin._create_coverage_issue(
             percentage=60.0,
             threshold=80.0,
             total_lines=100,
             covered_lines=60,
-            missing_lines=40,
             statements={"total": 100, "covered": 60, "pct": 60.0},
             branches={"total": 50, "covered": 30, "pct": 60.0},
             functions={"total": 20, "covered": 12, "pct": 60.0},
         )
-
         metadata = issue.metadata
         assert metadata["coverage_percentage"] == 60.0
         assert metadata["threshold"] == 80.0
@@ -646,28 +584,22 @@ class TestIstanbulIssueIdGeneration:
     def test_same_input_same_id(self) -> None:
         """Test same input produces same ID."""
         plugin = IstanbulPlugin()
-
-        id1 = plugin._generate_issue_id(75.0, 80.0)
-        id2 = plugin._generate_issue_id(75.0, 80.0)
-
+        id1 = plugin._generate_coverage_issue_id(75.0, 80.0)
+        id2 = plugin._generate_coverage_issue_id(75.0, 80.0)
         assert id1 == id2
 
     def test_different_input_different_id(self) -> None:
         """Test different input produces different ID."""
         plugin = IstanbulPlugin()
-
-        id1 = plugin._generate_issue_id(75.0, 80.0)
-        id2 = plugin._generate_issue_id(60.0, 80.0)
-
+        id1 = plugin._generate_coverage_issue_id(75.0, 80.0)
+        id2 = plugin._generate_coverage_issue_id(60.0, 80.0)
         assert id1 != id2
 
     def test_id_format(self) -> None:
-        """Test ID format starts with istanbul-."""
+        """Test ID format starts with istanbul-cov-."""
         plugin = IstanbulPlugin()
-
-        issue_id = plugin._generate_issue_id(75.0, 80.0)
-
-        assert issue_id.startswith("istanbul-")
+        issue_id = plugin._generate_coverage_issue_id(75.0, 80.0)
+        assert issue_id.startswith("istanbul-cov-")
 
 
 class TestIstanbulNoDataIssue:

@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from lucidshark.core.logging import get_logger
-from lucidshark.core.models import ScanContext, Severity, ToolDomain, UnifiedIssue
+from lucidshark.core.models import ScanContext
 from lucidshark.plugins.coverage.base import (
     CoveragePlugin,
     CoverageResult,
@@ -21,7 +21,6 @@ from lucidshark.plugins.rust_utils import (
     ensure_cargo_subcommand,
     get_cargo_version,
 )
-from lucidshark.plugins.utils import create_coverage_threshold_issue
 
 LOGGER = get_logger(__name__)
 
@@ -186,13 +185,8 @@ class TarpaulinPlugin(CoveragePlugin):
         # Generate issue if below threshold
         percentage = result.percentage
         if percentage < threshold:
-            issue = create_coverage_threshold_issue(
-                source_tool="tarpaulin",
-                percentage=percentage,
-                threshold=threshold,
-                total_lines=total_coverable,
-                covered_lines=total_covered,
-                missing_lines=total_coverable - total_covered,
+            issue = self._create_coverage_issue(
+                percentage, threshold, total_coverable, total_covered
             )
             result.issues.append(issue)
 
@@ -203,19 +197,3 @@ class TarpaulinPlugin(CoveragePlugin):
 
         return result
 
-    def _create_no_data_issue(self) -> UnifiedIssue:
-        """Create a UnifiedIssue when no coverage data is found."""
-        return UnifiedIssue(
-            id="no-coverage-data-tarpaulin",
-            domain=ToolDomain.COVERAGE,
-            source_tool="tarpaulin",
-            severity=Severity.HIGH,
-            rule_id="no_coverage_data",
-            title="No coverage data found",
-            description=(
-                "No coverage data found for tarpaulin. "
-                "Ensure the testing domain is active and has run before coverage analysis. "
-                "Test runners generate coverage data automatically when they execute."
-            ),
-            fixable=False,
-        )

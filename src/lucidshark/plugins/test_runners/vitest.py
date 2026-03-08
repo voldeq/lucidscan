@@ -6,20 +6,13 @@ https://vitest.dev/
 
 from __future__ import annotations
 
-import hashlib
-import json
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from lucidshark.core.logging import get_logger
-from lucidshark.core.models import (
-    ScanContext,
-    Severity,
-    ToolDomain,
-    UnifiedIssue,
-)
+from lucidshark.core.models import ScanContext
 from lucidshark.plugins.test_runners.base import TestRunnerPlugin, TestResult
 from lucidshark.plugins.utils import ensure_node_binary, get_cli_version
 
@@ -95,7 +88,6 @@ class VitestRunner(TestRunnerPlugin):
                 "--coverage",  # Always generate coverage data
             ]
 
-            # Add paths to test if specified
             if context.paths:
                 paths = [str(p) for p in context.paths]
                 cmd.extend(paths)
@@ -110,7 +102,7 @@ class VitestRunner(TestRunnerPlugin):
                     encoding="utf-8",
                     errors="replace",
                     cwd=str(context.project_root),
-                    timeout=600,  # 10 minute timeout for test runs
+                    timeout=600,
                 )
             except subprocess.TimeoutExpired:
                 LOGGER.warning("Vitest timed out after 600 seconds")
@@ -119,11 +111,9 @@ class VitestRunner(TestRunnerPlugin):
                 LOGGER.error(f"Failed to run Vitest: {e}")
                 return TestResult()
 
-            # Parse JSON report
             if report_file.exists():
                 return self._parse_json_report(report_file, context.project_root)
             else:
-                # Vitest might output JSON to stdout
                 return self._parse_json_output(result.stdout, context.project_root)
 
     def _parse_json_report(
@@ -133,226 +123,14 @@ class VitestRunner(TestRunnerPlugin):
     ) -> TestResult:
         """Parse Vitest JSON report file.
 
-        Args:
-            report_file: Path to JSON report file.
-            project_root: Project root directory.
-
-        Returns:
-            TestResult with parsed data.
+        Delegates to base class _parse_json_report_file.
         """
-        try:
-            with open(report_file) as f:
-                report = json.load(f)
-        except Exception as e:
-            LOGGER.error(f"Failed to parse Vitest JSON report: {e}")
-            return TestResult()
-
-        return self._process_report(report, project_root)
-
-    def _parse_json_output(
-        self,
-        output: str,
-        project_root: Path,
-    ) -> TestResult:
-        """Parse Vitest JSON output from stdout.
-
-        Args:
-            output: JSON output from Vitest.
-            project_root: Project root directory.
-
-        Returns:
-            TestResult with parsed data.
-        """
-        if not output.strip():
-            return TestResult()
-
-        try:
-            report = json.loads(output)
-        except json.JSONDecodeError as e:
-            LOGGER.warning(f"Failed to parse Vitest JSON output: {e}")
-            return TestResult()
-
-        return self._process_report(report, project_root)
+        return self._parse_json_report_file(report_file, project_root)
 
     def _process_report(
         self,
-        report: Dict[str, Any],
-        project_root: Path,
+        report,
+        project_root,
     ) -> TestResult:
-        """Process Vitest JSON report.
-
-        Vitest uses a Jest-compatible JSON format.
-
-        Args:
-            report: Parsed JSON report.
-            project_root: Project root directory.
-
-        Returns:
-            TestResult with processed data.
-        """
-        # Extract summary statistics
-        num_passed = report.get("numPassedTests", 0)
-        num_failed = report.get("numFailedTests", 0)
-        num_pending = report.get("numPendingTests", 0)
-        num_todo = report.get("numTodoTests", 0)
-
-        # Calculate duration from individual test results
-        test_results = report.get("testResults", [])
-        duration_ms = 0
-        for test_result in test_results:
-            duration_ms += test_result.get("endTime", 0) - test_result.get(
-                "startTime", 0
-            )
-
-        result = TestResult(
-            passed=num_passed,
-            failed=num_failed,
-            skipped=num_pending + num_todo,
-            errors=0,
-            duration_ms=duration_ms,
-        )
-
-        # Convert failures to issues
-        for test_file in test_results:
-            status = test_file.get("status", "")
-            if status == "failed":
-                for assertion in test_file.get("assertionResults", []):
-                    if assertion.get("status") == "failed":
-                        issue = self._assertion_to_issue(
-                            assertion, test_file, project_root
-                        )
-                        if issue:
-                            result.issues.append(issue)
-
-        LOGGER.info(
-            f"Vitest: {result.passed} passed, {result.failed} failed, "
-            f"{result.skipped} skipped"
-        )
-        return result
-
-    def _assertion_to_issue(
-        self,
-        assertion: Dict[str, Any],
-        test_file: Dict[str, Any],
-        project_root: Path,
-    ) -> Optional[UnifiedIssue]:
-        """Convert Vitest assertion failure to UnifiedIssue.
-
-        Args:
-            assertion: Assertion result dict.
-            test_file: Test file result dict.
-            project_root: Project root directory.
-
-        Returns:
-            UnifiedIssue or None.
-        """
-        try:
-            # Get test information
-            full_name = assertion.get("fullName", "")
-            title_parts = assertion.get("ancestorTitles", [])
-            test_name = assertion.get("title", "")
-            failure_messages = assertion.get("failureMessages", [])
-            location = assertion.get("location", {})
-
-            # Build file path
-            file_name = test_file.get("name", "")
-            file_path = Path(file_name)
-            if not file_path.is_absolute():
-                file_path = project_root / file_path
-
-            # Get line number if available
-            line_number = location.get("line") if location else None
-
-            # Build test name with ancestors
-            if title_parts:
-                display_name = " > ".join(title_parts + [test_name])
-            else:
-                display_name = test_name
-
-            # Get failure message
-            message = failure_messages[0] if failure_messages else "Test failed"
-            # Extract assertion from message
-            assertion_text = self._extract_assertion(message)
-
-            # Generate deterministic ID
-            issue_id = self._generate_issue_id(full_name, assertion_text)
-
-            # Build title
-            title = (
-                f"{display_name}: {assertion_text}"
-                if assertion_text
-                else f"{display_name} failed"
-            )
-
-            return UnifiedIssue(
-                id=issue_id,
-                domain=ToolDomain.TESTING,
-                source_tool="vitest",
-                severity=Severity.HIGH,
-                rule_id="failed",
-                title=title,
-                description=message,
-                file_path=file_path,
-                line_start=line_number,
-                line_end=line_number,
-                fixable=False,
-                metadata={
-                    "full_name": full_name,
-                    "test_name": test_name,
-                    "ancestor_titles": title_parts,
-                    "failure_messages": failure_messages,
-                    "assertion": assertion_text,
-                },
-            )
-        except Exception as e:
-            LOGGER.warning(f"Failed to parse Vitest assertion failure: {e}")
-            return None
-
-    def _extract_assertion(self, message: str) -> str:
-        """Extract assertion from Vitest failure message.
-
-        Args:
-            message: Failure message from Vitest.
-
-        Returns:
-            Extracted assertion or truncated message.
-        """
-        if not message:
-            return ""
-
-        lines = message.strip().split("\n")
-
-        # Look for expect/received patterns
-        for line in lines:
-            line = line.strip()
-            if line.startswith("expect("):
-                return line[:100]
-            if line.startswith("Expected:"):
-                # Find the corresponding Received line
-                idx = lines.index(line) if line in lines else -1
-                if idx >= 0 and idx + 1 < len(lines):
-                    received = lines[idx + 1].strip()
-                    return f"{line} {received}"[:100]
-                return line[:100]
-
-        # Return first meaningful line
-        for line in lines:
-            line = line.strip()
-            if line and not line.startswith("at ") and len(line) > 5:
-                return line[:100]
-
-        return message[:100]
-
-    def _generate_issue_id(self, full_name: str, assertion: str) -> str:
-        """Generate deterministic issue ID.
-
-        Args:
-            full_name: Full test name with ancestors.
-            assertion: Assertion message.
-
-        Returns:
-            Unique issue ID.
-        """
-        content = f"{full_name}:{assertion}"
-        hash_val = hashlib.sha256(content.encode()).hexdigest()[:12]
-        return f"vitest-{hash_val}"
+        """Process Vitest JSON report (Jest-compatible format)."""
+        return self._process_jest_report(report, project_root)

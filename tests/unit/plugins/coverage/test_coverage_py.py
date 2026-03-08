@@ -349,7 +349,7 @@ class TestCoveragePyJsonParsing:
             assert "80.0%" in issue.title
             assert issue.severity in [Severity.LOW, Severity.MEDIUM, Severity.HIGH]
             assert issue.domain == ToolDomain.COVERAGE
-            assert issue.source_tool == "coverage.py"
+            assert issue.source_tool == "coverage_py"
 
     def test_parse_json_report_above_threshold(self) -> None:
         """Test parsing JSON report when above threshold."""
@@ -446,7 +446,6 @@ class TestCoveragePyCoverageIssueCreation:
             threshold=80.0,
             total_lines=100,
             covered_lines=40,
-            missing_lines=60,
         )
 
         assert issue.severity == Severity.HIGH
@@ -462,7 +461,6 @@ class TestCoveragePyCoverageIssueCreation:
             threshold=80.0,
             total_lines=100,
             covered_lines=65,
-            missing_lines=35,
         )
 
         assert issue.severity == Severity.MEDIUM
@@ -476,7 +474,6 @@ class TestCoveragePyCoverageIssueCreation:
             threshold=80.0,
             total_lines=100,
             covered_lines=78,
-            missing_lines=22,
         )
 
         assert issue.severity == Severity.LOW
@@ -490,7 +487,6 @@ class TestCoveragePyCoverageIssueCreation:
             threshold=80.0,
             total_lines=200,
             covered_lines=150,
-            missing_lines=50,
         )
 
         metadata = issue.metadata
@@ -920,4 +916,4 @@ class TestCoveragePyNoDataIssue:
         assert issue.source_tool == "coverage_py"
         assert issue.severity == Severity.HIGH
         assert issue.domain == ToolDomain.COVERAGE
-        assert "coverage.py" in issue.description.lower()
+        assert "coverage_py" in issue.description.lower()
