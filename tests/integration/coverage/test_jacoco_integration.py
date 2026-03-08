@@ -30,7 +30,7 @@ class TestJaCoCoFunctional:
         )
 
         result = jacoco_plugin.measure_coverage(
-            context, threshold=50.0, run_tests=True
+            context, threshold=50.0
         )
 
         # Should have some coverage data
@@ -50,7 +50,7 @@ class TestJaCoCoFunctional:
         )
 
         result = jacoco_plugin.measure_coverage(
-            context, threshold=0.0, run_tests=True
+            context, threshold=0.0
         )
 
         # Check CoverageResult fields
@@ -73,7 +73,7 @@ class TestJaCoCoFunctional:
         )
 
         result = jacoco_plugin.measure_coverage(
-            context, threshold=0.0, run_tests=True
+            context, threshold=0.0
         )
 
         # After running, JaCoCo report should exist
@@ -104,7 +104,7 @@ class TestJaCoCoCoverageThresholds:
 
         # Set a very high threshold to ensure failure
         result = jacoco_plugin.measure_coverage(
-            context, threshold=99.0, run_tests=True
+            context, threshold=99.0
         )
 
         # Should fail the threshold check
@@ -131,7 +131,7 @@ class TestJaCoCoCoverageThresholds:
 
         # Set a very low threshold
         result = jacoco_plugin.measure_coverage(
-            context, threshold=1.0, run_tests=True
+            context, threshold=1.0
         )
 
         # Should pass the threshold check if we have any coverage
@@ -155,7 +155,7 @@ class TestJaCoCoIssueGeneration:
 
         # Use high threshold to ensure we get an issue
         result = jacoco_plugin.measure_coverage(
-            context, threshold=99.0, run_tests=True
+            context, threshold=99.0
         )
 
         # Should generate an issue due to low coverage
