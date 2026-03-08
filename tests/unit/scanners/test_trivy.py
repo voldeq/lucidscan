@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -54,7 +53,7 @@ class TestTrivyScannerBinaryManagement:
             binary_dir = tmp_path / "bin" / "trivy" / DEFAULT_VERSION
             binary_dir.mkdir(parents=True)
             # Use platform-correct binary name
-            binary_name = "trivy.exe" if sys.platform == "win32" else "trivy"
+            binary_name = "trivy"
             binary_path = binary_dir / binary_name
             binary_path.write_text("#!/bin/bash\necho trivy")
 
@@ -73,7 +72,7 @@ class TestTrivyScannerBinaryManagement:
                 binary_dir = tmp_path / "bin" / "trivy" / DEFAULT_VERSION
                 binary_dir.mkdir(parents=True)
                 # Use platform-correct binary name
-                binary_name = "trivy.exe" if sys.platform == "win32" else "trivy"
+                binary_name = "trivy"
                 binary_path = binary_dir / binary_name
                 binary_path.write_text("#!/bin/bash\necho trivy")
 

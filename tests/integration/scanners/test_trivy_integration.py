@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import json
 import subprocess
-import sys
 from pathlib import Path
 from typing import List
 
@@ -42,7 +41,7 @@ class TestTrivyBinaryDownload:
         binary_path = trivy_scanner.ensure_binary()
 
         assert binary_path.exists()
-        expected_name = "trivy.exe" if sys.platform == "win32" else "trivy"
+        expected_name = "trivy"
         assert binary_path.name == expected_name
 
     def test_trivy_binary_is_executable(
@@ -496,6 +495,7 @@ class TestTrivyCLIIntegration:
         """Test CLI --fail-on flag with high severity threshold."""
         import lucidshark.cli as cli
         import io
+        import sys
 
         # Create requirements with known high/critical vulnerabilities
         requirements = tmp_path / "requirements.txt"

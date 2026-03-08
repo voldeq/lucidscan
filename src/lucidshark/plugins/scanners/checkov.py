@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
-import sys
 import tempfile
 import zipfile
 from pathlib import Path
@@ -118,8 +117,7 @@ class CheckovScanner(ScannerPlugin):
     def ensure_binary(self) -> Path:
         """Ensure the Checkov binary is available, downloading from GitHub if needed."""
         binary_dir = self._paths.plugin_bin_dir(self.name, self._version)
-        binary_name = "checkov.exe" if sys.platform == "win32" else "checkov"
-        binary_path = binary_dir / binary_name
+        binary_path = binary_dir / "checkov"
 
         if binary_path.exists():
             LOGGER.debug(f"Checkov binary found at {binary_path}")
@@ -142,7 +140,6 @@ class CheckovScanner(ScannerPlugin):
         On darwin/arm64 (Apple Silicon), request X86_64 so the binary runs under Rosetta 2.
         """
         platform_info = get_platform_info()
-        is_windows = platform_info.os == "windows"
 
         # Map to Checkov release asset naming (checkov_linux_X86_64.zip, etc.)
         # Apple Silicon: no darwin_arm64 asset; use darwin_X86_64 (runs under Rosetta 2)
@@ -175,20 +172,19 @@ class CheckovScanner(ScannerPlugin):
                         raise ValueError(f"Path traversal detected: {zip_member}")
                 zf.extractall(dest_dir)
 
-            binary_name = "checkov.exe" if is_windows else "checkov"
-            binary_path = dest_dir / binary_name
+            binary_path = dest_dir / "checkov"
             # Archives may put binary in a subdir or with different name; normalize
             if not binary_path.exists():
-                for p in dest_dir.rglob(binary_name):
+                for p in dest_dir.rglob("checkov"):
                     if p.is_file():
                         p.rename(binary_path)
                         break
                 else:
                     for p in dest_dir.rglob("checkov*"):
-                        if p.is_file() and p.suffix in ("", ".exe"):
+                        if p.is_file() and p.suffix == "":
                             p.rename(binary_path)
                             break
-            if binary_path.exists() and not is_windows:
+            if binary_path.exists():
                 binary_path.chmod(0o755)
             LOGGER.info(f"Checkov v{self._version} installed to {binary_path}")
 
@@ -227,11 +223,9 @@ class CheckovScanner(ScannerPlugin):
         # Get IaC-specific config options
         iac_config = context.get_scanner_options("iac")
 
-        # Build command (binary is checkov.exe on Windows, checkov on Unix)
-        # Use as_posix() for Windows compatibility (forward slashes)
         cmd = [
             str(binary),
-            "--directory", context.project_root.as_posix(),
+            "--directory", str(context.project_root),
             "--output", "json",
             "--quiet",
             "--compact",

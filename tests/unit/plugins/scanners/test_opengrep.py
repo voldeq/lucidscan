@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import subprocess
-import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -16,8 +15,7 @@ from lucidshark.plugins.scanners.opengrep import (
     OPENGREP_SEVERITY_MAP,
 )
 
-_IS_WINDOWS = sys.platform == "win32"
-_OPENGREP_BINARY = "opengrep.exe" if _IS_WINDOWS else "opengrep"
+_OPENGREP_BINARY = "opengrep"
 
 
 def _make_completed_process(
@@ -136,13 +134,6 @@ class TestOpenGrepBinaryName:
         ) as mock_pi:
             mock_pi.return_value = MagicMock(os="linux", arch="amd64")
             assert scanner._get_binary_name() == "opengrep"
-
-    def test_windows(self, scanner: OpenGrepScanner) -> None:
-        with patch(
-            "lucidshark.plugins.scanners.opengrep.get_platform_info"
-        ) as mock_pi:
-            mock_pi.return_value = MagicMock(os="windows", arch="amd64")
-            assert scanner._get_binary_name() == "opengrep.exe"
 
 
 # --- _download_binary ---

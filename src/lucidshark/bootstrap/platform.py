@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 # Supported operating systems (lowercase)
-SUPPORTED_OS = frozenset({"darwin", "linux", "windows"})
+SUPPORTED_OS = frozenset({"darwin", "linux"})
 
 # Supported architectures (normalized)
 SUPPORTED_ARCH = frozenset({"amd64", "arm64"})
@@ -40,7 +40,7 @@ def detect_os() -> str:
     """Detect the current operating system.
 
     Returns:
-        Lowercase OS name (darwin, linux, windows).
+        Lowercase OS name (darwin, linux).
 
     Raises:
         ValueError: If the OS is not supported.
@@ -78,7 +78,7 @@ class PlatformInfo:
     """Information about the current platform.
 
     Attributes:
-        os: Operating system (darwin, linux, windows).
+        os: Operating system (darwin, linux).
         arch: CPU architecture (amd64, arm64).
     """
 

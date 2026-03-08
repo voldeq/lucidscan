@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 
 from lucidshark.core.paths import determine_scan_paths, resolve_node_bin
 
@@ -139,36 +137,3 @@ class TestResolveNodeBin:
 
             assert result is None
 
-    @pytest.mark.skipif(sys.platform != "win32", reason="Windows-specific test")
-    def test_prefers_cmd_on_windows(self) -> None:
-        """Test that .cmd files are preferred on Windows."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            bin_dir = project_root / "node_modules" / ".bin"
-            bin_dir.mkdir(parents=True)
-
-            # Create both plain and .cmd versions
-            plain_bin = bin_dir / "eslint"
-            cmd_bin = bin_dir / "eslint.cmd"
-            plain_bin.touch()
-            cmd_bin.touch()
-
-            result = resolve_node_bin(project_root, "eslint")
-
-            # On Windows, should prefer .cmd
-            assert result == cmd_bin
-
-    def test_windows_cmd_resolution_mocked(self) -> None:
-        """Test Windows .cmd resolution with platform mocking."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            bin_dir = project_root / "node_modules" / ".bin"
-            bin_dir.mkdir(parents=True)
-            cmd_bin = bin_dir / "eslint.cmd"
-            cmd_bin.touch()
-
-            # Mock sys.platform to simulate Windows
-            with patch.object(sys, "platform", "win32"):
-                result = resolve_node_bin(project_root, "eslint")
-
-            assert result == cmd_bin

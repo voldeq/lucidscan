@@ -134,10 +134,7 @@ def run_lucidshark(
 
     # Find lucidshark: same dir as Python (venv Scripts/bin) or PATH, or run as module
     exe_dir = Path(sys.executable).parent
-    if sys.platform == "win32":
-        lucidshark_bin = exe_dir / "lucidshark.exe"
-    else:
-        lucidshark_bin = exe_dir / "lucidshark"
+    lucidshark_bin = exe_dir / "lucidshark"
     if not lucidshark_bin.exists():
         which = shutil.which("lucidshark")
         if which:
@@ -241,13 +238,9 @@ def _setup_python_venv(project_path: Path) -> Path:
         capture_output=True,
     )
 
-    # Determine pip path (Windows: pip.exe in Scripts)
-    if sys.platform == "win32":
-        pip = venv_path / "Scripts" / "pip.exe"
-    else:
-        pip = venv_path / "bin" / "pip"
+    pip = venv_path / "bin" / "pip"
 
-    # Upgrade pip (best-effort; can fail on Windows with file locking)
+    # Upgrade pip (best-effort)
     subprocess.run(
         [str(pip), "install", "--upgrade", "pip"],
         capture_output=True,
@@ -299,8 +292,6 @@ def _setup_node_modules(project_path: Path) -> Path:
 
     print(f"\n[Setup] Running npm install in {project_path}...")
 
-    # Use shutil.which to resolve the full path to npm (needed on Windows
-    # where npm is a .cmd file and subprocess.run won't find it without shell=True)
     npm_bin = shutil.which("npm")
     if not npm_bin:
         pytest.skip("npm not found in PATH")
@@ -355,7 +346,7 @@ def _setup_java_project(project_path: Path) -> Path:
         capture_output=True,
         text=True,
         timeout=120,
-        shell=sys.platform == "win32",
+        shell=False,
     )
 
     if result.returncode != 0:
@@ -386,7 +377,7 @@ def _run_java_tests(project_path: Path) -> Path:
         capture_output=True,
         text=True,
         timeout=180,
-        shell=sys.platform == "win32",
+        shell=False,
     )
 
     # Tests might fail, but we still want the reports

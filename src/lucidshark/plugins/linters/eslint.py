@@ -251,11 +251,10 @@ class ESLintLinter(LinterPlugin):
         for path in paths:
             if path.is_dir():
                 # Directories are passed through - ESLint handles file discovery
-                # Use as_posix() for Windows compatibility (forward slashes)
-                filtered.append(path.as_posix())
+                filtered.append(str(path))
             elif path.suffix.lower() in ESLINT_EXTENSIONS:
                 # Only include files with supported extensions
-                filtered.append(path.as_posix())
+                filtered.append(str(path))
             else:
                 LOGGER.debug(f"Skipping non-JS/TS file: {path}")
         return filtered

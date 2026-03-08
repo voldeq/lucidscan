@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from unittest.mock import patch
 
@@ -51,7 +50,7 @@ class TestCheckovScannerBinaryManagement:
         with patch.object(scanner, "_paths") as mock_paths:
             binary_dir = tmp_path / "bin" / "checkov" / DEFAULT_VERSION
             binary_dir.mkdir(parents=True)
-            binary_name = "checkov.exe" if sys.platform == "win32" else "checkov"
+            binary_name = "checkov"
             binary_path = binary_dir / binary_name
             binary_path.write_text("#!/bin/bash\necho checkov")
 
@@ -69,7 +68,7 @@ class TestCheckovScannerBinaryManagement:
             with patch.object(scanner, "_download_binary") as mock_download:
                 binary_dir = tmp_path / "bin" / "checkov" / DEFAULT_VERSION
                 binary_dir.mkdir(parents=True)
-                binary_name = "checkov.exe" if sys.platform == "win32" else "checkov"
+                binary_name = "checkov"
                 binary_path = binary_dir / binary_name
                 binary_path.write_text("#!/bin/bash\necho checkov")
 
