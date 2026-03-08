@@ -75,7 +75,7 @@ class TestJestGetVersion:
             jest_bin.chmod(0o755)
 
             runner = JestRunner(project_root=project_root)
-            with patch("lucidshark.plugins.test_runners.jest.get_cli_version", return_value="29.7.0"):
+            with patch("lucidshark.plugins.test_runners.base.get_cli_version", return_value="29.7.0"):
                 version = runner.get_version()
                 assert version == "29.7.0"
 

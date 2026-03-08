@@ -76,7 +76,7 @@ class TestVitestGetVersion:
 
             runner = VitestRunner(project_root=project_root)
             with patch(
-                "lucidshark.plugins.test_runners.vitest.get_cli_version",
+                "lucidshark.plugins.test_runners.base.get_cli_version",
                 return_value="3.0.4",
             ):
                 version = runner.get_version()

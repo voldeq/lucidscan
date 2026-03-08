@@ -75,7 +75,7 @@ class TestVitestCoverageGetVersion:
 
             plugin = VitestCoveragePlugin(project_root=project_root)
             with patch(
-                "lucidshark.plugins.coverage.vitest.get_cli_version",
+                "lucidshark.plugins.coverage.base.get_cli_version",
                 return_value="3.0.4",
             ):
                 assert plugin.get_version() == "3.0.4"

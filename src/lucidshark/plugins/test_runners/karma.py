@@ -22,7 +22,7 @@ from lucidshark.core.models import (
     UnifiedIssue,
 )
 from lucidshark.plugins.test_runners.base import TestRunnerPlugin, TestResult
-from lucidshark.plugins.utils import ensure_node_binary, get_cli_version
+from lucidshark.plugins.utils import ensure_node_binary
 
 LOGGER = get_logger(__name__)
 
@@ -47,14 +47,6 @@ class KarmaRunner(TestRunnerPlugin):
     def languages(self) -> List[str]:
         """Supported languages."""
         return ["javascript", "typescript"]
-
-    def get_version(self) -> str:
-        """Get Karma version."""
-        try:
-            binary = self.ensure_binary()
-            return get_cli_version(binary)
-        except FileNotFoundError:
-            return "unknown"
 
     def ensure_binary(self) -> Path:
         """Ensure Karma is available."""

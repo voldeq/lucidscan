@@ -20,6 +20,7 @@ from lucidshark.core.models import (
     ToolDomain,
     UnifiedIssue,
 )
+from lucidshark.plugins.utils import get_cli_version
 
 LOGGER = get_logger(__name__)
 
@@ -211,13 +212,21 @@ class CoveragePlugin(ABC):
         """
         return ToolDomain.COVERAGE
 
-    @abstractmethod
     def get_version(self) -> str:
         """Get the version of the underlying coverage tool.
 
+        Default implementation calls ``ensure_binary()`` and parses the
+        CLI output via ``get_cli_version``.  Subclasses that need custom
+        parsing (e.g. coverage_py, jacoco) should override this method.
+
         Returns:
-            Version string.
+            Version string, or ``"unknown"`` on failure.
         """
+        try:
+            binary = self.ensure_binary()
+            return get_cli_version(binary)
+        except FileNotFoundError:
+            return "unknown"
 
     @abstractmethod
     def ensure_binary(self) -> Path:

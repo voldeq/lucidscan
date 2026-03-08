@@ -14,7 +14,7 @@ from typing import List, Optional
 from lucidshark.core.logging import get_logger
 from lucidshark.core.models import ScanContext
 from lucidshark.plugins.test_runners.base import TestRunnerPlugin, TestResult
-from lucidshark.plugins.utils import ensure_node_binary, get_cli_version
+from lucidshark.plugins.utils import ensure_node_binary
 
 LOGGER = get_logger(__name__)
 
@@ -39,14 +39,6 @@ class VitestRunner(TestRunnerPlugin):
     def languages(self) -> List[str]:
         """Supported languages."""
         return ["javascript", "typescript"]
-
-    def get_version(self) -> str:
-        """Get Vitest version."""
-        try:
-            binary = self.ensure_binary()
-            return get_cli_version(binary)
-        except FileNotFoundError:
-            return "unknown"
 
     def ensure_binary(self) -> Path:
         """Ensure Vitest is available."""

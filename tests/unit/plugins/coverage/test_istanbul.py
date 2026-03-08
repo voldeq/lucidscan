@@ -87,7 +87,7 @@ class TestIstanbulGetVersion:
 
             plugin = IstanbulPlugin(project_root=project_root)
 
-            with patch("lucidshark.plugins.coverage.istanbul.get_cli_version", return_value="15.1.0"):
+            with patch("lucidshark.plugins.coverage.base.get_cli_version", return_value="15.1.0"):
                 version = plugin.get_version()
                 assert version == "15.1.0"
 

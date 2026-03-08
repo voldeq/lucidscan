@@ -1,18 +1,33 @@
 """Integration tests for JaCoCo coverage plugin.
 
-These tests actually run Maven with JaCoCo against real Java targets.
-They require Java and Maven to be installed.
+These tests require Java and Maven to be installed.
+The JaCoCo coverage plugin now parses existing reports, so tests
+must first run Maven to generate JaCoCo XML data.
 
 Run with: pytest tests/integration/coverage/test_jacoco_integration.py -v
 """
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
+
+import pytest
 
 from lucidshark.core.models import ScanContext, ToolDomain
 from lucidshark.plugins.coverage.jacoco import JaCoCoPlugin
 from tests.integration.conftest import maven_available
+
+
+@pytest.fixture(scope="module")
+def _run_maven_tests(java_webapp_project: Path) -> None:
+    """Run mvn test once to generate JaCoCo coverage reports."""
+    subprocess.run(
+        ["mvn", "test", "-q"],
+        cwd=java_webapp_project,
+        capture_output=True,
+        timeout=120,
+    )
 
 
 @maven_available
@@ -20,7 +35,8 @@ class TestJaCoCoFunctional:
     """Functional integration tests for JaCoCo plugin."""
 
     def test_measure_coverage_java_webapp(
-        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path
+        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path,
+        _run_maven_tests: None,
     ) -> None:
         """Test measuring coverage in the java-webapp project."""
         context = ScanContext(
@@ -40,7 +56,8 @@ class TestJaCoCoFunctional:
         assert result.tool == "jacoco"
 
     def test_measure_coverage_returns_coverage_result(
-        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path
+        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path,
+        _run_maven_tests: None,
     ) -> None:
         """Test that measure_coverage returns proper CoverageResult."""
         context = ScanContext(
@@ -63,7 +80,8 @@ class TestJaCoCoFunctional:
         assert isinstance(result.issues, list)
 
     def test_jacoco_reports_generated(
-        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path
+        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path,
+        _run_maven_tests: None,
     ) -> None:
         """Test that JaCoCo generates coverage reports."""
         context = ScanContext(
@@ -93,7 +111,8 @@ class TestJaCoCoCoverageThresholds:
     """Tests for JaCoCo coverage threshold checks."""
 
     def test_coverage_below_threshold_generates_issue(
-        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path
+        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path,
+        _run_maven_tests: None,
     ) -> None:
         """Test that coverage below threshold generates an issue."""
         context = ScanContext(
@@ -120,7 +139,8 @@ class TestJaCoCoCoverageThresholds:
                 assert issue.source_tool == "jacoco"
 
     def test_coverage_above_threshold_passes(
-        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path
+        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path,
+        _run_maven_tests: None,
     ) -> None:
         """Test that coverage above threshold passes."""
         context = ScanContext(
@@ -144,7 +164,8 @@ class TestJaCoCoIssueGeneration:
     """Tests for JaCoCo issue generation."""
 
     def test_issue_has_correct_metadata(
-        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path
+        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path,
+        _run_maven_tests: None,
     ) -> None:
         """Test that coverage issues have correct metadata."""
         context = ScanContext(
