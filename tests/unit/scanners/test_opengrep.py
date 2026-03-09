@@ -90,7 +90,9 @@ class TestOpenGrepScannerBinaryNaming:
         """Test binary name on Linux."""
         scanner = OpenGrepScanner()
 
-        with patch("lucidshark.plugins.scanners.opengrep.get_platform_info") as mock_platform:
+        with patch(
+            "lucidshark.plugins.scanners.opengrep.get_platform_info"
+        ) as mock_platform:
             mock_platform.return_value = MagicMock(os="linux", arch="amd64")
             assert scanner._get_binary_name() == "opengrep"
 
@@ -98,9 +100,12 @@ class TestOpenGrepScannerBinaryNaming:
         """Test binary name on macOS."""
         scanner = OpenGrepScanner()
 
-        with patch("lucidshark.plugins.scanners.opengrep.get_platform_info") as mock_platform:
+        with patch(
+            "lucidshark.plugins.scanners.opengrep.get_platform_info"
+        ) as mock_platform:
             mock_platform.return_value = MagicMock(os="darwin", arch="arm64")
             assert scanner._get_binary_name() == "opengrep"
+
 
 class TestOpenGrepScannerDownloadUrl:
     """Tests for OpenGrep download URL construction."""
@@ -109,7 +114,9 @@ class TestOpenGrepScannerDownloadUrl:
         """Test download URL for Linux amd64."""
         scanner = OpenGrepScanner(version="1.12.1")
 
-        with patch("lucidshark.plugins.scanners.opengrep.get_platform_info") as mock_platform:
+        with patch(
+            "lucidshark.plugins.scanners.opengrep.get_platform_info"
+        ) as mock_platform:
             mock_platform.return_value = MagicMock(os="linux", arch="amd64")
 
             # Verify the method exists and platform mapping works
@@ -119,7 +126,9 @@ class TestOpenGrepScannerDownloadUrl:
         """Test download URL for macOS arm64."""
         scanner = OpenGrepScanner(version="1.12.1")
 
-        with patch("lucidshark.plugins.scanners.opengrep.get_platform_info") as mock_platform:
+        with patch(
+            "lucidshark.plugins.scanners.opengrep.get_platform_info"
+        ) as mock_platform:
             mock_platform.return_value = MagicMock(os="darwin", arch="arm64")
 
             assert hasattr(scanner, "_download_binary")
@@ -166,7 +175,9 @@ class TestOpenGrepScannerTitleFormatting:
         """Test basic title formatting."""
         scanner = OpenGrepScanner()
 
-        title = scanner._format_title("python.security.hardcoded-password", "Found hardcoded password")
+        title = scanner._format_title(
+            "python.security.hardcoded-password", "Found hardcoded password"
+        )
 
         assert "python.security.hardcoded-password" in title
         assert "Found hardcoded password" in title
@@ -208,7 +219,7 @@ class TestOpenGrepScannerJsonParsing:
         """Test parsing a basic OpenGrep result."""
         scanner = OpenGrepScanner()
 
-        json_output = '''{
+        json_output = """{
             "results": [
                 {
                     "check_id": "python.security.test-rule",
@@ -223,7 +234,7 @@ class TestOpenGrepScannerJsonParsing:
                 }
             ],
             "errors": []
-        }'''
+        }"""
 
         issues = scanner._parse_opengrep_json(json_output, Path("/project"))
 
@@ -240,7 +251,7 @@ class TestOpenGrepScannerJsonParsing:
         """Test parsing result with metadata including CWE."""
         scanner = OpenGrepScanner()
 
-        json_output = '''{
+        json_output = """{
             "results": [
                 {
                     "check_id": "python.security.hardcoded-password",
@@ -261,7 +272,7 @@ class TestOpenGrepScannerJsonParsing:
                 }
             ],
             "errors": []
-        }'''
+        }"""
 
         issues = scanner._parse_opengrep_json(json_output, Path("/project"))
 
@@ -269,6 +280,7 @@ class TestOpenGrepScannerJsonParsing:
         issue = issues[0]
         # Metadata severity should override extra.severity
         from lucidshark.core.models import Severity
+
         assert issue.severity == Severity.HIGH
         assert "cwe" in issue.metadata.get("metadata", {})
 
@@ -276,7 +288,7 @@ class TestOpenGrepScannerJsonParsing:
         """Test parsing multiple results."""
         scanner = OpenGrepScanner()
 
-        json_output = '''{
+        json_output = """{
             "results": [
                 {
                     "check_id": "rule1",
@@ -294,7 +306,7 @@ class TestOpenGrepScannerJsonParsing:
                 }
             ],
             "errors": []
-        }'''
+        }"""
 
         issues = scanner._parse_opengrep_json(json_output, Path("/project"))
 

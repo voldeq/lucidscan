@@ -110,7 +110,7 @@ class TestLoadPyprojectVersions:
                     "tools": {},  # Empty tools section
                     "scanners": {
                         "trivy": "1.0.0",  # Legacy section
-                    }
+                    },
                 }
             }
         }
@@ -140,7 +140,7 @@ class TestLoadPyprojectVersions:
                     },
                     "scanners": {
                         "trivy": "1.0.0",  # Should be ignored
-                    }
+                    },
                 }
             }
         }
@@ -266,7 +266,9 @@ class TestFallbackVersions:
         """Test that fallback versions look like version strings."""
         for tool, version in _FALLBACK_VERSIONS.items():
             # Versions should have at least one dot (e.g., "1.0" or "1.0.0")
-            assert "." in version, f"{tool} version '{version}' doesn't look like a version"
+            assert "." in version, (
+                f"{tool} version '{version}' doesn't look like a version"
+            )
 
     def test_expected_tools_in_fallback(self) -> None:
         """Test that expected tools are in fallback versions.

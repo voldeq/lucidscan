@@ -56,6 +56,7 @@ class TestListScannersCommand:
 
     def test_execute_with_plugin_error(self, capsys) -> None:
         """Test execute when a plugin raises an error during instantiation."""
+
         def raise_error():
             raise RuntimeError("Plugin initialization failed")
 

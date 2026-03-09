@@ -38,7 +38,9 @@ class TestInitCommand:
         claude_config = tmp_path / ".mcp.json"
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            with patch.object(cmd, "_get_claude_code_config_path", return_value=claude_config):
+            with patch.object(
+                cmd, "_get_claude_code_config_path", return_value=claude_config
+            ):
                 exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
@@ -59,7 +61,9 @@ class TestInitCommand:
         claude_config = tmp_path / ".mcp.json"
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            with patch.object(cmd, "_get_claude_code_config_path", return_value=claude_config):
+            with patch.object(
+                cmd, "_get_claude_code_config_path", return_value=claude_config
+            ):
                 exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
@@ -84,8 +88,14 @@ class TestSetupClaudeCode:
         )
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
-                with patch.object(cmd, "_find_lucidshark_path", return_value="/usr/local/bin/lucidshark"):
+            with patch.object(
+                cmd, "_get_claude_code_config_path", return_value=config_path
+            ):
+                with patch.object(
+                    cmd,
+                    "_find_lucidshark_path",
+                    return_value="/usr/local/bin/lucidshark",
+                ):
                     exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
@@ -95,7 +105,9 @@ class TestSetupClaudeCode:
         assert "mcpServers" in config
         assert "lucidshark" in config["mcpServers"]
         # Check that the full path is used in the config
-        assert config["mcpServers"]["lucidshark"]["command"] == "/usr/local/bin/lucidshark"
+        assert (
+            config["mcpServers"]["lucidshark"]["command"] == "/usr/local/bin/lucidshark"
+        )
         assert config["mcpServers"]["lucidshark"]["args"] == LUCIDSHARK_MCP_ARGS
 
     def test_preserves_existing_mcp_servers(self, tmp_path: Path) -> None:
@@ -123,8 +135,14 @@ class TestSetupClaudeCode:
         )
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
-                with patch.object(cmd, "_find_lucidshark_path", return_value="/usr/local/bin/lucidshark"):
+            with patch.object(
+                cmd, "_get_claude_code_config_path", return_value=config_path
+            ):
+                with patch.object(
+                    cmd,
+                    "_find_lucidshark_path",
+                    return_value="/usr/local/bin/lucidshark",
+                ):
                     exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
@@ -158,8 +176,14 @@ class TestSetupClaudeCode:
         )
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
-                with patch.object(cmd, "_find_lucidshark_path", return_value="/usr/local/bin/lucidshark"):
+            with patch.object(
+                cmd, "_get_claude_code_config_path", return_value=config_path
+            ):
+                with patch.object(
+                    cmd,
+                    "_find_lucidshark_path",
+                    return_value="/usr/local/bin/lucidshark",
+                ):
                     exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
@@ -191,14 +215,22 @@ class TestSetupClaudeCode:
         )
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
-                with patch.object(cmd, "_find_lucidshark_path", return_value="/usr/local/bin/lucidshark"):
+            with patch.object(
+                cmd, "_get_claude_code_config_path", return_value=config_path
+            ):
+                with patch.object(
+                    cmd,
+                    "_find_lucidshark_path",
+                    return_value="/usr/local/bin/lucidshark",
+                ):
                     exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
 
         config = json.loads(config_path.read_text())
-        assert config["mcpServers"]["lucidshark"]["command"] == "/usr/local/bin/lucidshark"
+        assert (
+            config["mcpServers"]["lucidshark"]["command"] == "/usr/local/bin/lucidshark"
+        )
         assert config["mcpServers"]["lucidshark"]["args"] == LUCIDSHARK_MCP_ARGS
 
     def test_dry_run_does_not_write(self, tmp_path: Path, capsys) -> None:
@@ -215,8 +247,14 @@ class TestSetupClaudeCode:
         )
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
-                with patch.object(cmd, "_find_lucidshark_path", return_value="/usr/local/bin/lucidshark"):
+            with patch.object(
+                cmd, "_get_claude_code_config_path", return_value=config_path
+            ):
+                with patch.object(
+                    cmd,
+                    "_find_lucidshark_path",
+                    return_value="/usr/local/bin/lucidshark",
+                ):
                     exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
@@ -251,7 +289,9 @@ class TestSetupClaudeCode:
         )
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
+            with patch.object(
+                cmd, "_get_claude_code_config_path", return_value=config_path
+            ):
                 exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
@@ -285,7 +325,9 @@ class TestSetupClaudeCode:
         )
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
+            with patch.object(
+                cmd, "_get_claude_code_config_path", return_value=config_path
+            ):
                 exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
@@ -302,7 +344,9 @@ class TestConfigureClaudeSkill:
         skill_path = tmp_path / ".claude" / "skills" / "lucidshark" / "SKILL.md"
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            success = cmd._configure_claude_skill(dry_run=False, force=False, remove=False)
+            success = cmd._configure_claude_skill(
+                dry_run=False, force=False, remove=False
+            )
 
         assert success
         assert skill_path.exists()
@@ -317,7 +361,9 @@ class TestConfigureClaudeSkill:
         skill_path.write_text(LUCIDSHARK_SKILL_CONTENT, encoding="utf-8")
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            success = cmd._configure_claude_skill(dry_run=False, force=False, remove=False)
+            success = cmd._configure_claude_skill(
+                dry_run=False, force=False, remove=False
+            )
 
         assert success
         captured = capsys.readouterr()
@@ -331,7 +377,9 @@ class TestConfigureClaudeSkill:
         skill_path.write_text("Old skill content")
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            success = cmd._configure_claude_skill(dry_run=False, force=True, remove=False)
+            success = cmd._configure_claude_skill(
+                dry_run=False, force=True, remove=False
+            )
 
         assert success
         content = skill_path.read_text(encoding="utf-8")
@@ -344,7 +392,9 @@ class TestConfigureClaudeSkill:
         skill_path = tmp_path / ".claude" / "skills" / "lucidshark" / "SKILL.md"
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            success = cmd._configure_claude_skill(dry_run=True, force=False, remove=False)
+            success = cmd._configure_claude_skill(
+                dry_run=True, force=False, remove=False
+            )
 
         assert success
         assert not skill_path.exists()
@@ -359,7 +409,9 @@ class TestConfigureClaudeSkill:
         skill_path.write_text(LUCIDSHARK_SKILL_CONTENT, encoding="utf-8")
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            success = cmd._configure_claude_skill(dry_run=False, force=False, remove=True)
+            success = cmd._configure_claude_skill(
+                dry_run=False, force=False, remove=True
+            )
 
         assert success
         assert not skill_path.exists()
@@ -371,7 +423,9 @@ class TestConfigureClaudeSkill:
         cmd = InitCommand(version="1.0.0")
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            success = cmd._configure_claude_skill(dry_run=False, force=False, remove=True)
+            success = cmd._configure_claude_skill(
+                dry_run=False, force=False, remove=True
+            )
 
         assert success
         captured = capsys.readouterr()
@@ -424,7 +478,9 @@ class TestFindLucidsharkPath:
         )
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
+            with patch.object(
+                cmd, "_get_claude_code_config_path", return_value=config_path
+            ):
                 with patch.object(cmd, "_find_lucidshark_path", return_value=None):
                     exit_code = cmd.execute(args)
 
@@ -597,7 +653,9 @@ class TestConfigureClaudeHooks:
         cmd = InitCommand(version="1.0.0")
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            success = cmd._configure_claude_hooks(dry_run=False, force=False, remove=False)
+            success = cmd._configure_claude_hooks(
+                dry_run=False, force=False, remove=False
+            )
 
         assert success
         settings_path = tmp_path / ".claude" / "settings.json"
@@ -615,11 +673,16 @@ class TestConfigureClaudeHooks:
         cmd = InitCommand(version="1.0.0")
         settings_path = tmp_path / ".claude" / "settings.json"
         settings_path.parent.mkdir(parents=True)
-        existing = {"other_setting": "value", "hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": []}]}}
+        existing = {
+            "other_setting": "value",
+            "hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": []}]},
+        }
         settings_path.write_text(json.dumps(existing), encoding="utf-8")
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            success = cmd._configure_claude_hooks(dry_run=False, force=False, remove=False)
+            success = cmd._configure_claude_hooks(
+                dry_run=False, force=False, remove=False
+            )
 
         assert success
         settings = json.loads(settings_path.read_text(encoding="utf-8"))
@@ -637,7 +700,9 @@ class TestConfigureClaudeHooks:
         settings_path.write_text(json.dumps(LUCIDSHARK_HOOKS_CONFIG), encoding="utf-8")
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            success = cmd._configure_claude_hooks(dry_run=False, force=False, remove=False)
+            success = cmd._configure_claude_hooks(
+                dry_run=False, force=False, remove=False
+            )
 
         assert success
         captured = capsys.readouterr()
@@ -655,7 +720,10 @@ class TestConfigureClaudeHooks:
                     {
                         "matcher": "Edit|Write|NotebookEdit",
                         "hooks": [
-                            {"type": "command", "command": "echo '[LucidShark] old message'"}
+                            {
+                                "type": "command",
+                                "command": "echo '[LucidShark] old message'",
+                            }
                         ],
                     }
                 ]
@@ -664,7 +732,9 @@ class TestConfigureClaudeHooks:
         settings_path.write_text(json.dumps(old_hooks), encoding="utf-8")
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            success = cmd._configure_claude_hooks(dry_run=False, force=True, remove=False)
+            success = cmd._configure_claude_hooks(
+                dry_run=False, force=True, remove=False
+            )
 
         assert success
         settings = json.loads(settings_path.read_text(encoding="utf-8"))
@@ -700,7 +770,10 @@ class TestConfigureClaudeHooks:
                     {
                         "matcher": "Edit|Write|NotebookEdit",
                         "hooks": [
-                            {"type": "command", "command": "echo '[LucidShark] old message'"}
+                            {
+                                "type": "command",
+                                "command": "echo '[LucidShark] old message'",
+                            }
                         ],
                     },
                 ],
@@ -709,7 +782,9 @@ class TestConfigureClaudeHooks:
         settings_path.write_text(json.dumps(mixed_hooks), encoding="utf-8")
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            success = cmd._configure_claude_hooks(dry_run=False, force=True, remove=False)
+            success = cmd._configure_claude_hooks(
+                dry_run=False, force=True, remove=False
+            )
 
         assert success
         settings = json.loads(settings_path.read_text(encoding="utf-8"))
@@ -726,7 +801,9 @@ class TestConfigureClaudeHooks:
         assert len(custom) == 1
         assert "custom post-hook" in custom[0]["hooks"][0]["command"]
         # LucidShark hook updated
-        ls_hooks = [h for h in post_hooks if "LucidShark" in h["hooks"][0].get("command", "")]
+        ls_hooks = [
+            h for h in post_hooks if "LucidShark" in h["hooks"][0].get("command", "")
+        ]
         assert len(ls_hooks) == 1
         assert "scan before completing" in ls_hooks[0]["hooks"][0]["command"]
 
@@ -735,7 +812,9 @@ class TestConfigureClaudeHooks:
         cmd = InitCommand(version="1.0.0")
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            success = cmd._configure_claude_hooks(dry_run=True, force=False, remove=False)
+            success = cmd._configure_claude_hooks(
+                dry_run=True, force=False, remove=False
+            )
 
         assert success
         assert not (tmp_path / ".claude" / "settings.json").exists()
@@ -752,7 +831,9 @@ class TestConfigureClaudeHooks:
         settings_path.write_text(json.dumps(settings), encoding="utf-8")
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            success = cmd._configure_claude_hooks(dry_run=False, force=False, remove=True)
+            success = cmd._configure_claude_hooks(
+                dry_run=False, force=False, remove=True
+            )
 
         assert success
         assert settings_path.exists()
@@ -770,7 +851,9 @@ class TestConfigureClaudeHooks:
         settings_path.write_text(json.dumps(LUCIDSHARK_HOOKS_CONFIG), encoding="utf-8")
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            success = cmd._configure_claude_hooks(dry_run=False, force=False, remove=True)
+            success = cmd._configure_claude_hooks(
+                dry_run=False, force=False, remove=True
+            )
 
         assert success
         assert not settings_path.exists()
@@ -782,7 +865,9 @@ class TestConfigureClaudeHooks:
         cmd = InitCommand(version="1.0.0")
 
         with patch.object(Path, "cwd", return_value=tmp_path):
-            success = cmd._configure_claude_hooks(dry_run=False, force=False, remove=True)
+            success = cmd._configure_claude_hooks(
+                dry_run=False, force=False, remove=True
+            )
 
         assert success
         captured = capsys.readouterr()
@@ -818,9 +903,7 @@ class TestManagedSectionHelpers:
             "after"
         )
         new_section = (
-            "<!-- lucidshark:start - managed -->\n"
-            "new content\n"
-            "<!-- lucidshark:end -->"
+            "<!-- lucidshark:start - managed -->\nnew content\n<!-- lucidshark:end -->"
         )
         result = InitCommand._replace_managed_section(
             content, "<!-- lucidshark:start", "<!-- lucidshark:end -->", new_section

@@ -2,7 +2,7 @@
 
 **Support tier: Full**
 
-Python has the deepest tool coverage in LucidShark, with dedicated tools across all six quality domains.
+Python has the deepest tool coverage in LucidShark, with dedicated tools across all quality domains including formatting.
 
 ## Detection
 
@@ -17,6 +17,7 @@ Python has the deepest tool coverage in LucidShark, with dedicated tools across 
 | Domain | Tool | Auto-Fix | Notes |
 |--------|------|----------|-------|
 | **Linting** | Ruff | Yes | Fast Rust-based linter with 100+ rule categories |
+| **Formatting** | Ruff Format | Yes | Fast Rust-based formatter, shares config with Ruff linter |
 | **Type Checking** | mypy | -- | Strict mode available |
 | **Type Checking** | Pyright | -- | Strict mode available |
 | **Security (SAST)** | OpenGrep | -- | Python-specific vulnerability rules |
@@ -41,6 +42,24 @@ pipeline:
     enabled: true
     tools:
       - name: ruff
+```
+
+## Formatting
+
+**Tool: [Ruff Format](https://docs.astral.sh/ruff/formatter/)**
+
+Ruff's built-in formatter, an extremely fast Python code formatter written in Rust. Designed as a drop-in replacement for Black.
+
+- Supports auto-fix via `ruff format`
+- Check-only mode via `ruff format --check`
+- Configurable via `ruff.toml`, `pyproject.toml [tool.ruff.format]`, or `.ruff.toml`
+
+```yaml
+pipeline:
+  formatting:
+    enabled: true
+    tools:
+      - name: ruff_format
 ```
 
 ## Type Checking
@@ -145,6 +164,9 @@ pipeline:
   linting:
     enabled: true
     tools: [{ name: ruff }]
+  formatting:
+    enabled: true
+    tools: [{ name: ruff_format }]
   type_checking:
     enabled: true
     tools: [{ name: mypy, strict: true }]

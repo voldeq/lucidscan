@@ -105,7 +105,9 @@ class JaCoCoPlugin(CoveragePlugin):
         LOGGER.info("Using existing JaCoCo report...")
 
         # Parse JaCoCo report
-        result = self._parse_jacoco_report(context.project_root, threshold, build_system, context)
+        result = self._parse_jacoco_report(
+            context.project_root, threshold, build_system, context
+        )
 
         return result
 
@@ -127,7 +129,12 @@ class JaCoCoPlugin(CoveragePlugin):
             ]
         else:
             paths = [
-                project_root / "build" / "reports" / "jacoco" / "test" / "jacocoTestReport.xml",
+                project_root
+                / "build"
+                / "reports"
+                / "jacoco"
+                / "test"
+                / "jacocoTestReport.xml",
                 project_root / "build" / "jacoco" / "test.xml",
             ]
 
@@ -165,7 +172,12 @@ class JaCoCoPlugin(CoveragePlugin):
             ]
         else:  # gradle
             report_paths = [
-                project_root / "build" / "reports" / "jacoco" / "test" / "jacocoTestReport.xml",
+                project_root
+                / "build"
+                / "reports"
+                / "jacoco"
+                / "test"
+                / "jacocoTestReport.xml",
                 project_root / "build" / "jacoco" / "test.xml",
             ]
 
@@ -173,9 +185,18 @@ class JaCoCoPlugin(CoveragePlugin):
         for child in project_root.iterdir():
             if child.is_dir() and not child.name.startswith("."):
                 if build_system == "maven":
-                    report_paths.append(child / "target" / "site" / "jacoco" / "jacoco.xml")
+                    report_paths.append(
+                        child / "target" / "site" / "jacoco" / "jacoco.xml"
+                    )
                 else:
-                    report_paths.append(child / "build" / "reports" / "jacoco" / "test" / "jacocoTestReport.xml")
+                    report_paths.append(
+                        child
+                        / "build"
+                        / "reports"
+                        / "jacoco"
+                        / "test"
+                        / "jacocoTestReport.xml"
+                    )
 
         # Find existing report
         report_file = None
@@ -303,7 +324,9 @@ class JaCoCoPlugin(CoveragePlugin):
             )
             result.issues.append(issue)
 
-        exclude_msg = f" ({excluded_count} files excluded)" if excluded_count > 0 else ""
+        exclude_msg = (
+            f" ({excluded_count} files excluded)" if excluded_count > 0 else ""
+        )
         LOGGER.info(
             f"JaCoCo coverage: {percentage:.1f}% ({covered_lines}/{total_lines} lines) "
             f"- threshold: {threshold}%{exclude_msg}"
@@ -338,5 +361,3 @@ class JaCoCoPlugin(CoveragePlugin):
 
         # Return best guess
         return project_root / "src" / "main" / "java" / relative_path
-
-

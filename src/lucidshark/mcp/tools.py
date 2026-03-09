@@ -79,7 +79,9 @@ class MCPToolExecutor:
         for scanner_name in scanners_to_bootstrap:
             try:
                 LOGGER.info(f"Bootstrapping {scanner_name}...")
-                scanner = get_scanner_plugin(scanner_name, project_root=self.project_root)
+                scanner = get_scanner_plugin(
+                    scanner_name, project_root=self.project_root
+                )
                 if scanner:
                     scanner.ensure_binary()
                     LOGGER.debug(f"{scanner_name} ready")
@@ -99,7 +101,9 @@ class MCPToolExecutor:
         linting_threshold_scope: Optional[str] = None,
         type_checking_threshold_scope: Optional[str] = None,
         duplication_threshold_scope: Optional[str] = None,
-        on_progress: Optional[Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]] = None,
+        on_progress: Optional[
+            Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]
+        ] = None,
     ) -> Dict[str, Any]:
         """Execute scan and return AI-formatted results.
 
@@ -136,7 +140,11 @@ class MCPToolExecutor:
 
         # Coverage requires testing to be enabled - testing produces the coverage files
         from lucidshark.core.models import ToolDomain
-        if ToolDomain.COVERAGE in enabled_domains and ToolDomain.TESTING not in enabled_domains:
+
+        if (
+            ToolDomain.COVERAGE in enabled_domains
+            and ToolDomain.TESTING not in enabled_domains
+        ):
             return {
                 "error": (
                     "Coverage requires testing to be enabled. Testing produces the coverage "
@@ -155,14 +163,18 @@ class MCPToolExecutor:
         security_domains = [d for d in enabled_domains if isinstance(d, ScanDomain)]
         if security_domains and not self._tools_bootstrapped:
             if on_progress:
-                await on_progress({
-                    "tool": "lucidshark",
-                    "content": "Downloading security tools...",
-                    "progress": 0,
-                    "total": None,
-                })
+                await on_progress(
+                    {
+                        "tool": "lucidshark",
+                        "content": "Downloading security tools...",
+                        "progress": 0,
+                        "total": None,
+                    }
+                )
             loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, self._bootstrap_security_tools, security_domains)
+            await loop.run_in_executor(
+                None, self._bootstrap_security_tools, security_domains
+            )
 
         # Create stream handler for progress output
         stream_handler: Optional[StreamHandler] = None
@@ -196,16 +208,26 @@ class MCPToolExecutor:
         tasks_with_names: List[tuple[str, Coroutine]] = []
         if ToolDomain.LINTING in enabled_domains:
             tasks_with_names.append(("linting", self._run_linting(context, fix)))
+        if ToolDomain.FORMATTING in enabled_domains:
+            tasks_with_names.append(("formatting", self._run_formatting(context, fix)))
         if ToolDomain.TYPE_CHECKING in enabled_domains:
             tasks_with_names.append(("type_checking", self._run_type_checking(context)))
         if ScanDomain.SAST in enabled_domains:
-            tasks_with_names.append(("sast", self._run_security(context, ScanDomain.SAST)))
+            tasks_with_names.append(
+                ("sast", self._run_security(context, ScanDomain.SAST))
+            )
         if ScanDomain.SCA in enabled_domains:
-            tasks_with_names.append(("sca", self._run_security(context, ScanDomain.SCA)))
+            tasks_with_names.append(
+                ("sca", self._run_security(context, ScanDomain.SCA))
+            )
         if ScanDomain.IAC in enabled_domains:
-            tasks_with_names.append(("iac", self._run_security(context, ScanDomain.IAC)))
+            tasks_with_names.append(
+                ("iac", self._run_security(context, ScanDomain.IAC))
+            )
         if ScanDomain.CONTAINER in enabled_domains:
-            tasks_with_names.append(("container", self._run_security(context, ScanDomain.CONTAINER)))
+            tasks_with_names.append(
+                ("container", self._run_security(context, ScanDomain.CONTAINER))
+            )
 
         # Check if both testing and coverage are enabled
         testing_enabled = ToolDomain.TESTING in enabled_domains
@@ -220,6 +242,7 @@ class MCPToolExecutor:
         # sequential coroutine so they execute in order while still running
         # concurrently with other domains (linting, security, etc.).
         if testing_enabled and coverage_enabled:
+
             async def _testing_then_coverage() -> List[UnifiedIssue]:
                 """Run testing then coverage sequentially."""
                 issues: List[UnifiedIssue] = []
@@ -233,32 +256,31 @@ class MCPToolExecutor:
                     issues.extend(coverage_issues)
                 return issues
 
-            tasks_with_names.append(
-                ("testing+coverage", _testing_then_coverage())
-            )
+            tasks_with_names.append(("testing+coverage", _testing_then_coverage()))
         elif testing_enabled:
             # Testing only (still generates coverage data as side effect)
-            tasks_with_names.append(
-                ("testing", self._run_testing(context))
-            )
+            tasks_with_names.append(("testing", self._run_testing(context)))
         elif coverage_enabled:
             # Coverage without testing is an error — tests must run to
             # produce coverage data
             from lucidshark.core.models import Severity
-            all_issues.append(UnifiedIssue(
-                id="coverage-requires-testing",
-                domain=ToolDomain.COVERAGE,
-                source_tool="lucidshark",
-                severity=Severity.HIGH,
-                rule_id="coverage-requires-testing",
-                title="Coverage requires testing to be enabled",
-                description=(
-                    "Coverage analysis requires test execution to produce "
-                    "coverage data. Enable the testing domain alongside "
-                    "coverage, or remove the coverage domain."
-                ),
-                fixable=False,
-            ))
+
+            all_issues.append(
+                UnifiedIssue(
+                    id="coverage-requires-testing",
+                    domain=ToolDomain.COVERAGE,
+                    source_tool="lucidshark",
+                    severity=Severity.HIGH,
+                    rule_id="coverage-requires-testing",
+                    title="Coverage requires testing to be enabled",
+                    description=(
+                        "Coverage analysis requires test execution to produce "
+                        "coverage data. Enable the testing domain alongside "
+                        "coverage, or remove the coverage domain."
+                    ),
+                    fixable=False,
+                )
+            )
 
         # Check if duplication detection is enabled
         duplication_enabled = ToolDomain.DUPLICATION in enabled_domains
@@ -271,12 +293,14 @@ class MCPToolExecutor:
             # Send initial progress notification
             if on_progress and total_domains > 0:
                 domain_names = [name for name, _ in tasks_with_names]
-                await on_progress({
-                    "tool": "lucidshark",
-                    "content": f"Scanning {total_domains} domain(s): {', '.join(domain_names)}",
-                    "progress": 0,
-                    "total": total_domains,
-                })
+                await on_progress(
+                    {
+                        "tool": "lucidshark",
+                        "content": f"Scanning {total_domains} domain(s): {', '.join(domain_names)}",
+                        "progress": 0,
+                        "total": total_domains,
+                    }
+                )
 
             # Wrap each task to report progress on completion
             completed_count = 0
@@ -287,31 +311,37 @@ class MCPToolExecutor:
                 nonlocal completed_count
                 try:
                     if on_progress:
-                        await on_progress({
-                            "tool": domain_name,
-                            "content": "started",
-                            "progress": completed_count,
-                            "total": total_domains,
-                        })
+                        await on_progress(
+                            {
+                                "tool": domain_name,
+                                "content": "started",
+                                "progress": completed_count,
+                                "total": total_domains,
+                            }
+                        )
                     result = await coro
                     completed_count += 1
                     if on_progress:
-                        await on_progress({
-                            "tool": domain_name,
-                            "content": "completed",
-                            "progress": completed_count,
-                            "total": total_domains,
-                        })
+                        await on_progress(
+                            {
+                                "tool": domain_name,
+                                "content": "completed",
+                                "progress": completed_count,
+                                "total": total_domains,
+                            }
+                        )
                     return result if result is not None else []
                 except Exception as e:
                     completed_count += 1
                     if on_progress:
-                        await on_progress({
-                            "tool": domain_name,
-                            "content": f"failed: {e}",
-                            "progress": completed_count,
-                            "total": total_domains,
-                        })
+                        await on_progress(
+                            {
+                                "tool": domain_name,
+                                "content": f"failed: {e}",
+                                "progress": completed_count,
+                                "total": total_domains,
+                            }
+                        )
                     raise
 
             # Run all tasks with progress tracking
@@ -424,8 +454,7 @@ class MCPToolExecutor:
                     effective_passed = full_coverage_result.passed
                 else:  # "both"
                     effective_passed = (
-                        context.coverage_result.passed
-                        and full_coverage_result.passed
+                        context.coverage_result.passed and full_coverage_result.passed
                     )
 
                 LOGGER.debug(
@@ -474,7 +503,9 @@ class MCPToolExecutor:
                 duplication_dict["threshold_scope"] = scope
                 formatted_result["duplication_summary"] = duplication_dict
             else:
-                formatted_result["duplication_summary"] = context.duplication_result.to_dict()
+                formatted_result["duplication_summary"] = (
+                    context.duplication_result.to_dict()
+                )
 
         return formatted_result
 
@@ -586,7 +617,9 @@ class MCPToolExecutor:
             "format": "markdown",
         }
 
-    async def validate_config(self, config_path: Optional[str] = None) -> Dict[str, Any]:
+    async def validate_config(
+        self, config_path: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Validate a configuration file.
 
         Args:
@@ -775,7 +808,13 @@ class MCPToolExecutor:
                     ),
                     "tools_by_language": {
                         "python": {
-                            "tools": ["ruff", "mypy", "pytest", "coverage", "pytest-cov"],
+                            "tools": [
+                                "ruff",
+                                "mypy",
+                                "pytest",
+                                "coverage",
+                                "pytest-cov",
+                            ],
                             "check_command": "pip list | grep -iE '^(ruff|mypy|pytest|coverage) '",
                             "install_command": "pip install {missing_tools}",
                             "add_to_file": {
@@ -803,7 +842,11 @@ class MCPToolExecutor:
                             },
                         },
                         "java_kotlin": {
-                            "tools": ["checkstyle", "spotbugs", "jacoco (all via Maven/Gradle plugins)"],
+                            "tools": [
+                                "checkstyle",
+                                "spotbugs",
+                                "jacoco (all via Maven/Gradle plugins)",
+                            ],
                             "note": (
                                 "Java/Kotlin tools are configured via Maven/Gradle plugins, not installed separately. "
                                 "Verify pom.xml or build.gradle has the required plugins configured."
@@ -986,7 +1029,7 @@ class MCPToolExecutor:
                         "ask_when": "Java project with integration tests (*IT.java files) or Docker dependencies",
                         "question": "Skip integration tests during coverage? (Recommended if tests need Docker/databases)",
                         "options": {
-                            "skip": "Add extra_args: [\"-DskipITs\", \"-Ddocker.skip=true\"] to skip integration tests",
+                            "skip": 'Add extra_args: ["-DskipITs", "-Ddocker.skip=true"] to skip integration tests',
                             "include": "Run all tests including integration tests (requires Docker running)",
                         },
                         "how_to_detect": (
@@ -1120,12 +1163,13 @@ class MCPToolExecutor:
                 },
                 "java_kotlin": {
                     "linter": "checkstyle",
+                    "formatter": "google_java_format",
                     "type_checker": "spotbugs (bug detection via static analysis)",
                     "test_runner": "maven (runs JUnit/TestNG tests)",
                     "coverage": "jacoco (Maven/Gradle plugin)",
                     "note": (
                         "For Java projects with integration tests requiring Docker or external services, "
-                        "use extra_args to skip them: extra_args: [\"-DskipITs\", \"-Ddocker.skip=true\"]"
+                        'use extra_args to skip them: extra_args: ["-DskipITs", "-Ddocker.skip=true"]'
                     ),
                 },
                 "rust": {
@@ -1396,16 +1440,30 @@ ignore:
             # Include tool domains based on pipeline config
             # If explicitly configured, respect the enabled flag
             # If not configured (None), enable by default for "all"
-            if self.config.pipeline.linting is None or self.config.pipeline.linting.enabled:
+            if (
+                self.config.pipeline.linting is None
+                or self.config.pipeline.linting.enabled
+            ):
                 result.append(ToolDomain.LINTING)
-            if self.config.pipeline.type_checking is None or self.config.pipeline.type_checking.enabled:
+            if (
+                self.config.pipeline.type_checking is None
+                or self.config.pipeline.type_checking.enabled
+            ):
                 result.append(ToolDomain.TYPE_CHECKING)
             if self.config.pipeline.testing and self.config.pipeline.testing.enabled:
                 result.append(ToolDomain.TESTING)
             if self.config.pipeline.coverage and self.config.pipeline.coverage.enabled:
                 result.append(ToolDomain.COVERAGE)
-            if self.config.pipeline.duplication and self.config.pipeline.duplication.enabled:
+            if (
+                self.config.pipeline.duplication
+                and self.config.pipeline.duplication.enabled
+            ):
                 result.append(ToolDomain.DUPLICATION)
+            if (
+                self.config.pipeline.formatting
+                and self.config.pipeline.formatting.enabled
+            ):
+                result.append(ToolDomain.FORMATTING)
 
             # Include security domains based on config (both legacy and pipeline)
             # Only run security domains that are explicitly configured
@@ -1486,11 +1544,49 @@ ignore:
             linting_pre_command = self.config.pipeline.linting.pre_command
             linting_post_command = self.config.pipeline.linting.post_command
         run_fn = functools.partial(
-            self._runner.run_linting, context, fix,
+            self._runner.run_linting,
+            context,
+            fix,
             exclude_patterns=linting_exclude,
             command=linting_command,
             pre_command=linting_pre_command,
             post_command=linting_post_command,
+        )
+        return await loop.run_in_executor(None, run_fn)
+
+    async def _run_formatting(
+        self,
+        context: ScanContext,
+        fix: bool = False,
+    ) -> List[UnifiedIssue]:
+        """Run formatting checks asynchronously.
+
+        Args:
+            context: Scan context.
+            fix: Whether to apply fixes.
+
+        Returns:
+            List of formatting issues.
+        """
+        loop = asyncio.get_event_loop()
+        formatting_exclude = None
+        formatting_command = None
+        formatting_pre_command = None
+        formatting_post_command = None
+        if self.config.pipeline.formatting:
+            if self.config.pipeline.formatting.exclude:
+                formatting_exclude = self.config.pipeline.formatting.exclude
+            formatting_command = self.config.pipeline.formatting.command
+            formatting_pre_command = self.config.pipeline.formatting.pre_command
+            formatting_post_command = self.config.pipeline.formatting.post_command
+        run_fn = functools.partial(
+            self._runner.run_formatting,
+            context,
+            fix,
+            exclude_patterns=formatting_exclude,
+            command=formatting_command,
+            pre_command=formatting_pre_command,
+            post_command=formatting_post_command,
         )
         return await loop.run_in_executor(None, run_fn)
 
@@ -1515,7 +1611,8 @@ ignore:
             tc_pre_command = self.config.pipeline.type_checking.pre_command
             tc_post_command = self.config.pipeline.type_checking.post_command
         run_fn = functools.partial(
-            self._runner.run_type_checking, context,
+            self._runner.run_type_checking,
+            context,
             exclude_patterns=tc_exclude,
             command=tc_command,
             pre_command=tc_pre_command,
@@ -1547,7 +1644,8 @@ ignore:
             testing_pre_command = self.config.pipeline.testing.pre_command
             testing_post_command = self.config.pipeline.testing.post_command
         run_fn = functools.partial(
-            self._runner.run_tests, context,
+            self._runner.run_tests,
+            context,
             exclude_patterns=testing_exclude,
             command=testing_command,
             pre_command=testing_pre_command,
@@ -1617,7 +1715,10 @@ ignore:
         if self.config.pipeline.security and self.config.pipeline.security.exclude:
             security_exclude = self.config.pipeline.security.exclude
         run_fn = functools.partial(
-            self._runner.run_security, context, domain, exclude_patterns=security_exclude
+            self._runner.run_security,
+            context,
+            domain,
+            exclude_patterns=security_exclude,
         )
         return await loop.run_in_executor(None, run_fn)
 
@@ -1690,6 +1791,8 @@ ignore:
                 domain_names.append("coverage")
             elif domain == ToolDomain.DUPLICATION:
                 domain_names.append("duplication")
+            elif domain == ToolDomain.FORMATTING:
+                domain_names.append("formatting")
             # Security domains (ScanDomain) don't need tool validation
             # because security tools are auto-downloaded
 

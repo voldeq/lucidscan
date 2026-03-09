@@ -20,11 +20,18 @@ class InitChoices:
     """User choices made during initialization."""
 
     # Linting
-    linter: Optional[str] = None  # "ruff", "eslint", "biome", "checkstyle", or None
+    linter: Optional[str] = None  # "ruff", "eslint", "biome", or None
     linter_config: Optional[str] = None  # Path to existing config or None
 
+    # Formatting
+    formatter: Optional[str] = (
+        None  # "ruff_format", "prettier", "rustfmt", "google_java_format", or None
+    )
+
     # Type checking
-    type_checker: Optional[str] = None  # "mypy", "pyright", "typescript", "spotbugs", or None
+    type_checker: Optional[str] = (
+        None  # "mypy", "pyright", "typescript", "spotbugs", or None
+    )
     type_checker_strict: bool = False
 
     # Security
@@ -116,6 +123,10 @@ class ConfigGenerator:
         if choices.linter:
             pipeline["linting"] = self._build_linting_section(choices)
 
+        # Formatting
+        if choices.formatter:
+            pipeline["formatting"] = self._build_formatting_section(choices)
+
         # Type checking
         if choices.type_checker:
             pipeline["type_checking"] = self._build_type_checking_section(choices)
@@ -167,6 +178,18 @@ class ConfigGenerator:
         if choices.linter_config:
             tool["config"] = choices.linter_config
 
+        tools.append(tool)
+        return section
+
+    def _build_formatting_section(self, choices: InitChoices) -> dict:
+        """Build formatting pipeline section."""
+        tools: list[dict] = []
+        section = {
+            "enabled": True,
+            "tools": tools,
+        }
+
+        tool: dict = {"name": choices.formatter}
         tools.append(tool)
         return section
 
@@ -265,28 +288,34 @@ class ConfigGenerator:
 
         # Add language-specific patterns
         if context.has_python:
-            patterns.extend([
-                "**/*.egg-info/**",
-                "**/.pytest_cache/**",
-                "**/.mypy_cache/**",
-                "**/.ruff_cache/**",
-            ])
+            patterns.extend(
+                [
+                    "**/*.egg-info/**",
+                    "**/.pytest_cache/**",
+                    "**/.mypy_cache/**",
+                    "**/.ruff_cache/**",
+                ]
+            )
 
         if context.has_javascript:
-            patterns.extend([
-                "**/coverage/**",
-                "**/.next/**",
-                "**/.nuxt/**",
-            ])
+            patterns.extend(
+                [
+                    "**/coverage/**",
+                    "**/.next/**",
+                    "**/.nuxt/**",
+                ]
+            )
 
         if context.has_java or context.has_kotlin:
-            patterns.extend([
-                "**/target/**",
-                "**/build/**",
-                "**/.gradle/**",
-                "**/.idea/**",
-                "**/*.class",
-            ])
+            patterns.extend(
+                [
+                    "**/target/**",
+                    "**/build/**",
+                    "**/.gradle/**",
+                    "**/.idea/**",
+                    "**/*.class",
+                ]
+            )
 
         return patterns
 

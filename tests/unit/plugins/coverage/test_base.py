@@ -94,6 +94,7 @@ class TestCoverageResult:
         )
         assert result.passed is True
 
+
 class ConcreteCoveragePlugin(CoveragePlugin):
     """Concrete implementation of CoveragePlugin for testing."""
 
@@ -346,7 +347,23 @@ class TestCoverageResultFilterToChangedFiles:
                     file_path=Path("src/utils.py"),
                     total_lines=100,
                     covered_lines=70,
-                    missing_lines=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],  # 15 missing
+                    missing_lines=[
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6,
+                        7,
+                        8,
+                        9,
+                        10,
+                        11,
+                        12,
+                        13,
+                        14,
+                        15,
+                    ],  # 15 missing
                 ),
             },
         )

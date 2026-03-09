@@ -216,9 +216,7 @@ class TestDetectSourceDirectory:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             pyproject = project_root / "pyproject.toml"
-            pyproject.write_text(
-                '[tool.setuptools.packages.find]\nwhere = ["lib"]\n'
-            )
+            pyproject.write_text('[tool.setuptools.packages.find]\nwhere = ["lib"]\n')
 
             result = detect_source_directory(project_root)
 
@@ -260,9 +258,7 @@ class TestCoverageHasSourceConfig:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             pyproject = project_root / "pyproject.toml"
-            pyproject.write_text(
-                '[tool.coverage.run]\nsource = ["src/mypackage"]\n'
-            )
+            pyproject.write_text('[tool.coverage.run]\nsource = ["src/mypackage"]\n')
 
             assert coverage_has_source_config(project_root) is True
 

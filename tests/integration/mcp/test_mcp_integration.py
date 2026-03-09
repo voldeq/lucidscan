@@ -52,6 +52,7 @@ class TestMCPServerIntegration:
 
         # Test status - should work without any scans
         import asyncio
+
         result = asyncio.run(executor.get_status())
 
         assert result["project_root"] == str(project_root)
@@ -112,9 +113,7 @@ class TestFileWatcherIntegration:
         self, project_root: Path, config: LucidSharkConfig
     ) -> None:
         """Test watcher initialization with real project."""
-        watcher = LucidSharkFileWatcher(
-            project_root, config, debounce_ms=100
-        )
+        watcher = LucidSharkFileWatcher(project_root, config, debounce_ms=100)
 
         assert watcher.project_root == project_root
         assert watcher.debounce_ms == 100
@@ -148,6 +147,7 @@ class TestFileWatcherIntegration:
         watcher = LucidSharkFileWatcher(project_root, config)
 
         results = []
+
         def callback(result):
             results.append(result)
 
@@ -165,13 +165,13 @@ class TestMCPEndToEnd:
         # Create Python file with type issue
         src_dir = tmp_path / "src"
         src_dir.mkdir()
-        (src_dir / "app.py").write_text('''
+        (src_dir / "app.py").write_text("""
 def greet(name: str) -> str:
     return "Hello, " + name
 
 # Intentional issue: unused variable
 unused_var = 42
-''')
+""")
 
         return tmp_path
 

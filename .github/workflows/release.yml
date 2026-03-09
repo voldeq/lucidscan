@@ -184,7 +184,8 @@ jobs:
             ## Features
 
             - **Security Scanning**: Trivy (SCA), OpenGrep (SAST), Checkov (IaC)
-            - **Linting**: Ruff, ESLint, Biome, Checkstyle
+            - **Linting**: Ruff, ESLint, Biome, Clippy, Checkstyle
+            - **Formatting**: Ruff Format, Prettier, rustfmt, google-java-format
             - **Type Checking**: mypy, pyright, TypeScript
             - **Testing**: pytest, Jest
             - **Coverage**: coverage.py, Istanbul

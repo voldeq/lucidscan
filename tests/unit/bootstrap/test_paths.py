@@ -64,8 +64,14 @@ class TestLucidsharkPaths:
         paths = LucidsharkPaths(home)
 
         # Generic plugin bin dir works for any plugin name
-        assert paths.plugin_bin_dir("my_plugin", "1.0.0") == home / "bin" / "my_plugin" / "1.0.0"
-        assert paths.plugin_bin_dir("another", "2.5.3") == home / "bin" / "another" / "2.5.3"
+        assert (
+            paths.plugin_bin_dir("my_plugin", "1.0.0")
+            == home / "bin" / "my_plugin" / "1.0.0"
+        )
+        assert (
+            paths.plugin_bin_dir("another", "2.5.3")
+            == home / "bin" / "another" / "2.5.3"
+        )
 
     def test_plugin_cache_dir(self, tmp_path: Path) -> None:
         """Test plugin-specific cache directory."""

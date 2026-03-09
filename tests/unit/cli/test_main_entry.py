@@ -12,6 +12,7 @@ class TestMainEntry:
     def test_main_called(self, mock_main) -> None:
         """Verify main() is callable and returns exit code."""
         from lucidshark.cli import main
+
         result = main()
         assert result == 0
 
@@ -22,6 +23,7 @@ class TestMainEntry:
         mock_runner.run.return_value = 0
 
         from lucidshark.cli import main
+
         result = main()
 
         assert result == 0
@@ -34,6 +36,7 @@ class TestMainEntry:
         mock_runner.run.return_value = 1
 
         from lucidshark.cli import main
+
         result = main(["scan", "--all"])
 
         assert result == 1

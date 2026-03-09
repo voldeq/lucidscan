@@ -4,9 +4,9 @@ import json  # F401: unused import
 import re  # F401: unused import
 
 
-def calculate(x,y):  # E231: missing whitespace after comma
+def calculate(x, y):  # E231: missing whitespace after comma
     """Calculate with formatting issues."""
-    result=x+y  # E225: missing whitespace around operator
+    result = x + y  # E225: missing whitespace around operator
     return result
 
 

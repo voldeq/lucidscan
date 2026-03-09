@@ -41,9 +41,11 @@ class TestCheckstyleResolution:
 
 @java_available
 class TestCheckstyleLinting:
-    """Integration tests for Checkstyle linting."""
+    """Integration tests for Checkstyle linting checks."""
 
-    def test_lint_java_file_with_issues(self, checkstyle_linter: CheckstyleLinter) -> None:
+    def test_lint_java_file_with_issues(
+        self, checkstyle_linter: CheckstyleLinter
+    ) -> None:
         """Test linting a Java file with style issues."""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir_path = Path(tmpdir)

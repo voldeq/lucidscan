@@ -113,13 +113,9 @@ class VitestCoveragePlugin(CoveragePlugin):
                 if report is None:
                     return CoverageResult(threshold=threshold, tool=self.name)
                 if rel_path.endswith("coverage-summary.json"):
-                    return self._parse_istanbul_summary(
-                        report, project_root, threshold
-                    )
+                    return self._parse_istanbul_summary(report, project_root, threshold)
                 else:
-                    return self._parse_istanbul_final(
-                        report, project_root, threshold
-                    )
+                    return self._parse_istanbul_final(report, project_root, threshold)
 
         LOGGER.warning(
             "No Vitest coverage report found. Ensure a coverage provider is installed:\n"

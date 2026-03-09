@@ -28,14 +28,20 @@ LOGGER = get_logger(__name__)
 # ESLint severity mapping
 # ESLint uses: 1=warning, 2=error
 SEVERITY_MAP = {
-    2: Severity.HIGH,    # error
+    2: Severity.HIGH,  # error
     1: Severity.MEDIUM,  # warning
 }
 
 # Supported file extensions for ESLint
 ESLINT_EXTENSIONS = {
-    ".js", ".jsx", ".mjs", ".cjs",
-    ".ts", ".tsx", ".mts", ".cts",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cjs",
+    ".ts",
+    ".tsx",
+    ".mts",
+    ".cts",
 }
 
 
@@ -69,9 +75,7 @@ class ESLintLinter(LinterPlugin):
         """Get ESLint version."""
         try:
             binary = self.ensure_binary()
-            return get_cli_version(
-                binary, parser=lambda s: s.lstrip("v")
-            )
+            return get_cli_version(binary, parser=lambda s: s.lstrip("v"))
         except FileNotFoundError:
             return "unknown"
 
@@ -122,7 +126,8 @@ class ESLintLinter(LinterPlugin):
         # Build command
         cmd = [
             str(binary),
-            "--format", "json",
+            "--format",
+            "json",
         ]
 
         # Add paths to check - filter to only include JS/TS files
@@ -183,7 +188,8 @@ class ESLintLinter(LinterPlugin):
         cmd = [
             str(binary),
             "--fix",
-            "--format", "json",
+            "--format",
+            "json",
         ]
 
         paths = self._resolve_target_paths(context)
@@ -218,11 +224,11 @@ class ESLintLinter(LinterPlugin):
         post_issues = self._parse_output(result.stdout, context.project_root)
 
         # Calculate stats
-        files_modified = len(set(
-            str(issue.file_path)
-            for issue in pre_issues
-            if issue not in post_issues
-        ))
+        files_modified = len(
+            set(
+                str(issue.file_path) for issue in pre_issues if issue not in post_issues
+            )
+        )
 
         return FixResult(
             files_modified=files_modified,
@@ -342,7 +348,9 @@ class ESLintLinter(LinterPlugin):
                 rule_id=rule_id or "unknown",
                 title=title,
                 description=msg,
-                documentation_url=f"https://eslint.org/docs/rules/{rule_id}" if rule_id else None,
+                documentation_url=f"https://eslint.org/docs/rules/{rule_id}"
+                if rule_id
+                else None,
                 file_path=path,
                 line_start=line,
                 line_end=end_line or line,

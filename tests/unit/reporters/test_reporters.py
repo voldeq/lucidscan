@@ -605,7 +605,9 @@ class TestSARIFReporter:
         reporter.report(result, output)
 
         data = json.loads(output.getvalue())
-        assert data["runs"][0]["results"][0]["ruleId"] == "python.security.sql-injection"
+        assert (
+            data["runs"][0]["results"][0]["ruleId"] == "python.security.sql-injection"
+        )
 
     def test_duplicate_rules_deduplicated(self) -> None:
         """Test that duplicate rule IDs are deduplicated."""

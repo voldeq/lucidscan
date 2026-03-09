@@ -46,7 +46,8 @@ class LucidSharkMCPServer:
                     name="scan",
                     description=(
                         "Run comprehensive code quality checks. LucidShark is a unified pipeline "
-                        "for: LINTING (Ruff, ESLint, Biome, Checkstyle, Clippy - style issues, code smells); "
+                        "for: LINTING (Ruff, ESLint, Biome, Clippy, Checkstyle - style issues, code smells); "
+                        "FORMATTING (Ruff Format, Prettier, rustfmt, google-java-format - code formatting); "
                         "TYPE_CHECKING (mypy, Pyright, tsc, SpotBugs, cargo check - type errors); "
                         "SAST security (OpenGrep - code vulnerabilities); "
                         "SCA security (Trivy - dependency vulnerabilities); "
@@ -59,13 +60,13 @@ class LucidSharkMCPServer:
                         "Use all_files=true for full project scan. "
                         "WHEN TO CALL: Run proactively after editing/writing code files, "
                         "after fixing bugs, before reporting tasks as done, and before commits. "
-                        "Use fix=true to auto-fix linting issues. "
+                        "Use fix=true to auto-fix linting and formatting issues. "
                         "DOMAIN SELECTION: Pick domains based on files changed — "
-                        ".py/.js/.ts/.rs/.go/.java → [\"linting\", \"type_checking\"]; "
-                        "Dockerfile → [\"container\"]; Terraform/K8s → [\"iac\"]; "
-                        "dependency files → [\"sca\"]; security-sensitive code → [\"sast\"]; "
-                        "to run tests → [\"testing\"]; to check coverage → [\"coverage\"]; "
-                        "before commits or mixed changes → [\"all\"]. "
+                        '.py/.js/.ts/.rs/.go/.java → ["linting", "type_checking"]; '
+                        'Dockerfile → ["container"]; Terraform/K8s → ["iac"]; '
+                        'dependency files → ["sca"]; security-sensitive code → ["sast"]; '
+                        'to run tests → ["testing"]; to check coverage → ["coverage"]; '
+                        'before commits or mixed changes → ["all"]. '
                         "OUTPUT FORMAT: (1) Announce what you're checking. "
                         "(2) List ALL issues grouped by domain. "
                         "(3) Show pass/fail status for EVERY domain checked. "
@@ -308,10 +309,18 @@ class LucidSharkMCPServer:
                         all_files=arguments.get("all_files", False),
                         fix=arguments.get("fix", False),
                         base_branch=arguments.get("base_branch"),
-                        coverage_threshold_scope=arguments.get("coverage_threshold_scope"),
-                        linting_threshold_scope=arguments.get("linting_threshold_scope"),
-                        type_checking_threshold_scope=arguments.get("type_checking_threshold_scope"),
-                        duplication_threshold_scope=arguments.get("duplication_threshold_scope"),
+                        coverage_threshold_scope=arguments.get(
+                            "coverage_threshold_scope"
+                        ),
+                        linting_threshold_scope=arguments.get(
+                            "linting_threshold_scope"
+                        ),
+                        type_checking_threshold_scope=arguments.get(
+                            "type_checking_threshold_scope"
+                        ),
+                        duplication_threshold_scope=arguments.get(
+                            "duplication_threshold_scope"
+                        ),
                         on_progress=send_progress,
                     )
                 elif name == "check_file":
@@ -339,16 +348,20 @@ class LucidSharkMCPServer:
                 else:
                     result = {"error": f"Unknown tool: {name}"}
 
-                return [TextContent(
-                    type="text",
-                    text=json.dumps(result, indent=2, default=str),
-                )]
+                return [
+                    TextContent(
+                        type="text",
+                        text=json.dumps(result, indent=2, default=str),
+                    )
+                ]
             except Exception as e:
                 LOGGER.error(f"Tool {name} failed: {e}")
-                return [TextContent(
-                    type="text",
-                    text=json.dumps({"error": str(e)}),
-                )]
+                return [
+                    TextContent(
+                        type="text",
+                        text=json.dumps({"error": str(e)}),
+                    )
+                ]
 
     async def run(self):
         """Run the MCP server over stdio."""

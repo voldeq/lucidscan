@@ -16,7 +16,9 @@ from lucidshark.plugins.linters.checkstyle import (
 )
 
 
-def make_completed_process(returncode: int, stdout: str, stderr: str = "") -> subprocess.CompletedProcess:
+def make_completed_process(
+    returncode: int, stdout: str, stderr: str = ""
+) -> subprocess.CompletedProcess:
     """Create a CompletedProcess for testing."""
     return subprocess.CompletedProcess(
         args=[],
@@ -117,7 +119,9 @@ class TestCheckstyleEnsureBinary:
         """Test finds checkstyle in PATH."""
         linter = CheckstyleLinter()
 
-        with patch.object(linter, "_check_java_available", return_value=Path("/usr/bin/java")):
+        with patch.object(
+            linter, "_check_java_available", return_value=Path("/usr/bin/java")
+        ):
             with patch("shutil.which", return_value="/usr/bin/checkstyle"):
                 with tempfile.TemporaryDirectory() as tmpdir:
                     # Create a fake lib/spotbugs.jar structure
@@ -131,9 +135,13 @@ class TestCheckstyleEnsureBinary:
         """Test raises FileNotFoundError when checkstyle not found."""
         linter = CheckstyleLinter()
 
-        with patch.object(linter, "_check_java_available", return_value=Path("/usr/bin/java")):
+        with patch.object(
+            linter, "_check_java_available", return_value=Path("/usr/bin/java")
+        ):
             with patch("shutil.which", return_value=None):
-                with pytest.raises(FileNotFoundError, match="Checkstyle is not installed"):
+                with pytest.raises(
+                    FileNotFoundError, match="Checkstyle is not installed"
+                ):
                     linter.ensure_binary()
 
 
@@ -264,7 +272,9 @@ class TestCheckstyleLint:
                 enabled_domains=[],
             )
 
-            with patch.object(linter, "ensure_binary", side_effect=FileNotFoundError("no java")):
+            with patch.object(
+                linter, "ensure_binary", side_effect=FileNotFoundError("no java")
+            ):
                 issues = linter.lint(context)
                 assert issues == []
 
@@ -279,7 +289,11 @@ class TestCheckstyleLint:
                 enabled_domains=[],
             )
 
-            with patch.object(linter, "ensure_binary", return_value=(Path("/usr/bin/checkstyle"), "standalone")):
+            with patch.object(
+                linter,
+                "ensure_binary",
+                return_value=(Path("/usr/bin/checkstyle"), "standalone"),
+            ):
                 with patch.object(linter, "_check_java_available", return_value=None):
                     issues = linter.lint(context)
                     assert issues == []
@@ -295,8 +309,14 @@ class TestCheckstyleLint:
                 enabled_domains=[],
             )
 
-            with patch.object(linter, "ensure_binary", return_value=(Path("/usr/bin/checkstyle"), "standalone")):
-                with patch.object(linter, "_check_java_available", return_value=Path("/usr/bin/java")):
+            with patch.object(
+                linter,
+                "ensure_binary",
+                return_value=(Path("/usr/bin/checkstyle"), "standalone"),
+            ):
+                with patch.object(
+                    linter, "_check_java_available", return_value=Path("/usr/bin/java")
+                ):
                     issues = linter.lint(context)
                     assert issues == []
 
@@ -328,9 +348,18 @@ class TestCheckstyleLint:
 
             mock_result = make_completed_process(0, xml_output)
 
-            with patch.object(linter, "ensure_binary", return_value=(Path("/usr/bin/checkstyle"), "standalone")):
-                with patch.object(linter, "_check_java_available", return_value=Path("/usr/bin/java")):
-                    with patch("lucidshark.plugins.linters.checkstyle.run_with_streaming", return_value=mock_result):
+            with patch.object(
+                linter,
+                "ensure_binary",
+                return_value=(Path("/usr/bin/checkstyle"), "standalone"),
+            ):
+                with patch.object(
+                    linter, "_check_java_available", return_value=Path("/usr/bin/java")
+                ):
+                    with patch(
+                        "lucidshark.plugins.linters.checkstyle.run_with_streaming",
+                        return_value=mock_result,
+                    ):
                         issues = linter.lint(context)
 
                         assert len(issues) == 1
@@ -355,8 +384,14 @@ class TestCheckstyleLint:
                 enabled_domains=[],
             )
 
-            with patch.object(linter, "ensure_binary", return_value=(Path("/usr/bin/checkstyle"), "standalone")):
-                with patch.object(linter, "_check_java_available", return_value=Path("/usr/bin/java")):
+            with patch.object(
+                linter,
+                "ensure_binary",
+                return_value=(Path("/usr/bin/checkstyle"), "standalone"),
+            ):
+                with patch.object(
+                    linter, "_check_java_available", return_value=Path("/usr/bin/java")
+                ):
                     with patch(
                         "lucidshark.plugins.linters.checkstyle.run_with_streaming",
                         side_effect=subprocess.TimeoutExpired("java", 120),
@@ -380,8 +415,14 @@ class TestCheckstyleLint:
                 enabled_domains=[],
             )
 
-            with patch.object(linter, "ensure_binary", return_value=(Path("/usr/bin/checkstyle"), "standalone")):
-                with patch.object(linter, "_check_java_available", return_value=Path("/usr/bin/java")):
+            with patch.object(
+                linter,
+                "ensure_binary",
+                return_value=(Path("/usr/bin/checkstyle"), "standalone"),
+            ):
+                with patch.object(
+                    linter, "_check_java_available", return_value=Path("/usr/bin/java")
+                ):
                     with patch(
                         "lucidshark.plugins.linters.checkstyle.run_with_streaming",
                         side_effect=OSError("command failed"),
@@ -454,7 +495,9 @@ class TestCheckstyleErrorToIssue:
             'source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocMethodCheck"/>'
         )
 
-        issue = linter._error_to_issue(error_elem, "/project/Main.java", Path("/project"))
+        issue = linter._error_to_issue(
+            error_elem, "/project/Main.java", Path("/project")
+        )
 
         assert issue is not None
         assert issue.source_tool == "checkstyle"
@@ -513,7 +556,9 @@ class TestCheckstyleErrorToIssue:
             '<error line="1" severity="error" message="Error" source="com.Check"/>'
         )
 
-        issue = linter._error_to_issue(error_elem, "/abs/path/Main.java", Path("/project"))
+        issue = linter._error_to_issue(
+            error_elem, "/abs/path/Main.java", Path("/project")
+        )
         assert issue is not None
         assert issue.file_path == Path("/abs/path/Main.java")
 
@@ -566,5 +611,3 @@ class TestCheckstyleIssueIdGeneration:
         linter = CheckstyleLinter()
         issue_id = linter._generate_issue_id("Rule", "file.java", None, None, "msg")
         assert issue_id.startswith("checkstyle-Rule-")
-
-

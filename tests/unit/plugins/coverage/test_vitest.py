@@ -158,7 +158,9 @@ class TestVitestSummaryReportParsing:
             },
         }
 
-        result = plugin._parse_istanbul_summary(report, Path("/project"), threshold=80.0)
+        result = plugin._parse_istanbul_summary(
+            report, Path("/project"), threshold=80.0
+        )
 
         assert result.total_lines == 100
         assert result.covered_lines == 80
@@ -180,7 +182,9 @@ class TestVitestSummaryReportParsing:
             },
         }
 
-        result = plugin._parse_istanbul_summary(report, Path("/project"), threshold=80.0)
+        result = plugin._parse_istanbul_summary(
+            report, Path("/project"), threshold=80.0
+        )
 
         assert result.percentage == 60.0
         assert result.passed is False

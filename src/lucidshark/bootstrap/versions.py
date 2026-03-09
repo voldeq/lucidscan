@@ -58,7 +58,9 @@ def _load_pyproject_versions() -> Dict[str, str]:
         versions.update(tools_section)
 
         # Also read from legacy [tool.lucidshark.scanners] section for backwards compat
-        scanners_section = data.get("tool", {}).get("lucidshark", {}).get("scanners", {})
+        scanners_section = (
+            data.get("tool", {}).get("lucidshark", {}).get("scanners", {})
+        )
         for tool, version in scanners_section.items():
             if tool not in versions:
                 versions[tool] = version

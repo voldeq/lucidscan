@@ -2,7 +2,7 @@
 
 **Support tier: Full**
 
-JavaScript has full tool coverage in LucidShark across linting, testing, coverage, security, and duplication.
+JavaScript has full tool coverage in LucidShark across linting, formatting, testing, coverage, security, and duplication.
 
 ## Detection
 
@@ -17,6 +17,7 @@ JavaScript has full tool coverage in LucidShark across linting, testing, coverag
 |--------|------|----------|-------|
 | **Linting** | ESLint | Yes | Standard JS/TS linter |
 | **Linting** | Biome | Yes | Fast alternative, also lints JSON |
+| **Formatting** | Prettier | Yes | Opinionated formatter for JS, TS, CSS, JSON, Markdown |
 | **Security (SAST)** | OpenGrep | -- | JavaScript-specific vulnerability rules |
 | **Security (SCA)** | Trivy | -- | Scans `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` |
 | **Testing** | Jest | -- | JSON output, assertion extraction |
@@ -60,6 +61,25 @@ pipeline:
     enabled: true
     tools:
       - name: biome
+```
+
+## Formatting
+
+**Tool: [Prettier](https://prettier.io/)**
+
+Opinionated code formatter supporting JavaScript, TypeScript, CSS, JSON, and Markdown.
+
+- Supports auto-fix via `prettier --write`
+- Check-only mode via `prettier --check`
+- Requires Prettier installed in `node_modules` or system PATH
+- Configurable via `.prettierrc`, `.prettierrc.js`, `prettier.config.js`, or `package.json`
+
+```yaml
+pipeline:
+  formatting:
+    enabled: true
+    tools:
+      - name: prettier
 ```
 
 ## Testing
@@ -176,6 +196,9 @@ pipeline:
   linting:
     enabled: true
     tools: [{ name: eslint }]
+  formatting:
+    enabled: true
+    tools: [{ name: prettier }]
   security:
     enabled: true
     tools:

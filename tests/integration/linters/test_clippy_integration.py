@@ -52,7 +52,7 @@ class TestClippyLinting:
             (src_dir / "lib.rs").write_text(
                 "pub fn greet(name: &str) -> String {\n"
                 "    let owned = name.to_string().clone();\n"  # redundant_clone
-                "    return format!(\"Hello, {}!\", owned);\n"  # needless_return
+                '    return format!("Hello, {}!", owned);\n'  # needless_return
                 "}\n"
             )
 
@@ -119,6 +119,7 @@ class TestClippyLinting:
         project_path = Path(__file__).parent.parent / "projects" / "rust-cli"
         if not project_path.exists():
             import pytest
+
             pytest.skip("rust-cli sample project not found")
 
         context = ScanContext(
@@ -147,6 +148,7 @@ class TestClippyIssueGeneration:
         project_path = Path(__file__).parent.parent / "projects" / "rust-cli"
         if not project_path.exists():
             import pytest
+
             pytest.skip("rust-cli sample project not found")
 
         context = ScanContext(

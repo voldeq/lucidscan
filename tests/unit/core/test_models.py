@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from lucidshark.core.models import ScanContext, ScanDomain, ScanResult, Severity, UnifiedIssue
+from lucidshark.core.models import (
+    ScanContext,
+    ScanDomain,
+    ScanResult,
+    Severity,
+    UnifiedIssue,
+)
 
 
 def test_unified_issue_minimal_construction() -> None:
@@ -29,7 +35,9 @@ def test_scan_context_and_result_roundtrip() -> None:
     project_root = Path("/tmp/example")
     paths = [project_root / "src"]
 
-    context = ScanContext(project_root=project_root, paths=paths, enabled_domains=[ScanDomain.SCA])
+    context = ScanContext(
+        project_root=project_root, paths=paths, enabled_domains=[ScanDomain.SCA]
+    )
     issue = UnifiedIssue(
         id="issue-1",
         domain=ScanDomain.SCA,
@@ -45,4 +53,3 @@ def test_scan_context_and_result_roundtrip() -> None:
     assert context.enabled_domains == [ScanDomain.SCA]
     assert result.issues[0].id == "issue-1"
     assert result.schema_version.startswith("1.")
-

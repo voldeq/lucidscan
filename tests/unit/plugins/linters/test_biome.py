@@ -18,7 +18,9 @@ from lucidshark.plugins.linters.biome import (
 _BIOME_BINARY = "biome"
 
 
-def make_completed_process(returncode: int, stdout: str, stderr: str = "") -> subprocess.CompletedProcess:
+def make_completed_process(
+    returncode: int, stdout: str, stderr: str = ""
+) -> subprocess.CompletedProcess:
     """Create a CompletedProcess for testing."""
     return subprocess.CompletedProcess(
         args=[],
@@ -152,7 +154,9 @@ class TestBiomeEnsureBinary:
             linter = BiomeLinter(project_root=Path(tmpdir))
             node_biome = Path(tmpdir) / "node_modules" / ".bin" / "biome"
 
-            with patch("lucidshark.plugins.utils.resolve_node_bin", return_value=node_biome):
+            with patch(
+                "lucidshark.plugins.utils.resolve_node_bin", return_value=node_biome
+            ):
                 binary = linter.ensure_binary()
                 assert binary == node_biome
 
@@ -193,28 +197,35 @@ class TestBiomeLint:
                 enabled_domains=[],
             )
 
-            biome_output = json.dumps({
-                "diagnostics": [
-                    {
-                        "severity": "error",
-                        "message": "Avoid using var",
-                        "category": "lint/style/noVar",
-                        "location": {
-                            "path": {"file": "src/app.js"},
-                            "lineStart": 5,
-                            "lineEnd": 5,
-                            "columnStart": 1,
-                            "columnEnd": 10,
-                        },
-                        "fixable": True,
-                    }
-                ]
-            })
+            biome_output = json.dumps(
+                {
+                    "diagnostics": [
+                        {
+                            "severity": "error",
+                            "message": "Avoid using var",
+                            "category": "lint/style/noVar",
+                            "location": {
+                                "path": {"file": "src/app.js"},
+                                "lineStart": 5,
+                                "lineEnd": 5,
+                                "columnStart": 1,
+                                "columnEnd": 10,
+                            },
+                            "fixable": True,
+                        }
+                    ]
+                }
+            )
 
             mock_result = make_completed_process(1, biome_output)
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/biome")):
-                with patch("lucidshark.plugins.linters.biome.run_with_streaming", return_value=mock_result):
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/biome")
+            ):
+                with patch(
+                    "lucidshark.plugins.linters.biome.run_with_streaming",
+                    return_value=mock_result,
+                ):
                     issues = linter.lint(context)
 
                     assert len(issues) == 1
@@ -234,7 +245,9 @@ class TestBiomeLint:
                 enabled_domains=[],
             )
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/biome")):
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/biome")
+            ):
                 with patch(
                     "lucidshark.plugins.linters.biome.run_with_streaming",
                     side_effect=subprocess.TimeoutExpired("biome", 120),
@@ -253,7 +266,9 @@ class TestBiomeLint:
                 enabled_domains=[],
             )
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/biome")):
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/biome")
+            ):
                 with patch(
                     "lucidshark.plugins.linters.biome.run_with_streaming",
                     side_effect=OSError("command failed"),
@@ -279,29 +294,49 @@ class TestBiomeFix:
             )
 
             # Pre-fix lint: 2 issues
-            pre_output = json.dumps({
-                "diagnostics": [
-                    {"severity": "error", "message": "Issue 1", "category": "cat1",
-                     "location": {"path": {"file": "a.js"}, "lineStart": 1}},
-                    {"severity": "error", "message": "Issue 2", "category": "cat2",
-                     "location": {"path": {"file": "a.js"}, "lineStart": 2}},
-                ]
-            })
+            pre_output = json.dumps(
+                {
+                    "diagnostics": [
+                        {
+                            "severity": "error",
+                            "message": "Issue 1",
+                            "category": "cat1",
+                            "location": {"path": {"file": "a.js"}, "lineStart": 1},
+                        },
+                        {
+                            "severity": "error",
+                            "message": "Issue 2",
+                            "category": "cat2",
+                            "location": {"path": {"file": "a.js"}, "lineStart": 2},
+                        },
+                    ]
+                }
+            )
             # Fix run: no output needed
             fix_result = make_completed_process(0, "")
             # Post-fix lint: 1 issue remaining
-            post_output = json.dumps({
-                "diagnostics": [
-                    {"severity": "error", "message": "Issue 2", "category": "cat2",
-                     "location": {"path": {"file": "a.js"}, "lineStart": 2}},
-                ]
-            })
+            post_output = json.dumps(
+                {
+                    "diagnostics": [
+                        {
+                            "severity": "error",
+                            "message": "Issue 2",
+                            "category": "cat2",
+                            "location": {"path": {"file": "a.js"}, "lineStart": 2},
+                        },
+                    ]
+                }
+            )
 
             pre_result = make_completed_process(1, pre_output)
             post_result = make_completed_process(1, post_output)
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/biome")):
-                with patch("lucidshark.plugins.linters.biome.run_with_streaming") as mock_run:
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/biome")
+            ):
+                with patch(
+                    "lucidshark.plugins.linters.biome.run_with_streaming"
+                ) as mock_run:
                     # lint(pre) -> fix -> lint(post)
                     mock_run.side_effect = [pre_result, fix_result, post_result]
                     result = linter.fix(context)
@@ -319,16 +354,26 @@ class TestBiomeFix:
                 enabled_domains=[],
             )
 
-            pre_output = json.dumps({
-                "diagnostics": [
-                    {"severity": "error", "message": "Issue", "category": "cat",
-                     "location": {"path": {"file": "a.js"}, "lineStart": 1}},
-                ]
-            })
+            pre_output = json.dumps(
+                {
+                    "diagnostics": [
+                        {
+                            "severity": "error",
+                            "message": "Issue",
+                            "category": "cat",
+                            "location": {"path": {"file": "a.js"}, "lineStart": 1},
+                        },
+                    ]
+                }
+            )
             pre_result = make_completed_process(1, pre_output)
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/biome")):
-                with patch("lucidshark.plugins.linters.biome.run_with_streaming") as mock_run:
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/biome")
+            ):
+                with patch(
+                    "lucidshark.plugins.linters.biome.run_with_streaming"
+                ) as mock_run:
                     mock_run.side_effect = [
                         pre_result,  # lint (pre)
                         subprocess.TimeoutExpired("biome", 120),  # fix
@@ -362,14 +407,32 @@ class TestBiomeParseOutput:
     def test_parse_multiple_diagnostics(self) -> None:
         """Test parsing output with multiple diagnostics."""
         linter = BiomeLinter()
-        output = json.dumps({
-            "diagnostics": [
-                {"severity": "error", "message": "Error 1", "category": "cat1",
-                 "location": {"path": {"file": "a.js"}, "lineStart": 1, "columnStart": 1}},
-                {"severity": "warning", "message": "Warning 1", "category": "cat2",
-                 "location": {"path": {"file": "b.js"}, "lineStart": 5, "columnStart": 3}},
-            ]
-        })
+        output = json.dumps(
+            {
+                "diagnostics": [
+                    {
+                        "severity": "error",
+                        "message": "Error 1",
+                        "category": "cat1",
+                        "location": {
+                            "path": {"file": "a.js"},
+                            "lineStart": 1,
+                            "columnStart": 1,
+                        },
+                    },
+                    {
+                        "severity": "warning",
+                        "message": "Warning 1",
+                        "category": "cat2",
+                        "location": {
+                            "path": {"file": "b.js"},
+                            "lineStart": 5,
+                            "columnStart": 3,
+                        },
+                    },
+                ]
+            }
+        )
 
         issues = linter._parse_output(output, Path("/project"))
         assert len(issues) == 2
@@ -534,5 +597,3 @@ class TestBiomeIssueIdGeneration:
         issue_id = linter._generate_issue_id("", "f.js", 1, 1, "msg")
         assert issue_id.startswith("biome-")
         assert "biome--" not in issue_id
-
-

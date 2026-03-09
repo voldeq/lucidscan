@@ -17,7 +17,9 @@ from lucidshark.plugins.linters.ruff import (
 )
 
 
-def make_completed_process(returncode: int, stdout: str, stderr: str = "") -> subprocess.CompletedProcess:
+def make_completed_process(
+    returncode: int, stdout: str, stderr: str = ""
+) -> subprocess.CompletedProcess:
     """Create a CompletedProcess for testing."""
     return subprocess.CompletedProcess(
         args=[],
@@ -232,7 +234,11 @@ class TestRuffGetExcludePatterns:
                 enabled_domains=[],
             )
 
-            with patch.object(context, "get_exclude_patterns", return_value=["**/.venv/**", "**/node_modules/**"]):
+            with patch.object(
+                context,
+                "get_exclude_patterns",
+                return_value=["**/.venv/**", "**/node_modules/**"],
+            ):
                 patterns = linter._get_ruff_exclude_patterns(context)
                 assert ".venv" in patterns
                 assert "node_modules" in patterns
@@ -248,7 +254,9 @@ class TestRuffGetExcludePatterns:
                 enabled_domains=[],
             )
 
-            with patch.object(context, "get_exclude_patterns", return_value=["**/.venv/**", ".venv"]):
+            with patch.object(
+                context, "get_exclude_patterns", return_value=["**/.venv/**", ".venv"]
+            ):
                 patterns = linter._get_ruff_exclude_patterns(context)
                 assert patterns.count(".venv") == 1
 
@@ -269,22 +277,33 @@ class TestRuffLint:
                 enabled_domains=[],
             )
 
-            ruff_output = json.dumps([
-                {
-                    "code": "F401",
-                    "message": "'os' imported but unused",
-                    "filename": "src/app.py",
-                    "location": {"row": 1, "column": 1},
-                    "end_location": {"row": 1, "column": 10},
-                    "fix": {"applicability": "safe", "edits": [], "message": "Remove import"},
-                    "url": "https://docs.astral.sh/ruff/rules/unused-import",
-                }
-            ])
+            ruff_output = json.dumps(
+                [
+                    {
+                        "code": "F401",
+                        "message": "'os' imported but unused",
+                        "filename": "src/app.py",
+                        "location": {"row": 1, "column": 1},
+                        "end_location": {"row": 1, "column": 10},
+                        "fix": {
+                            "applicability": "safe",
+                            "edits": [],
+                            "message": "Remove import",
+                        },
+                        "url": "https://docs.astral.sh/ruff/rules/unused-import",
+                    }
+                ]
+            )
 
             mock_result = make_completed_process(1, ruff_output)
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/ruff")):
-                with patch("lucidshark.plugins.linters.ruff.run_with_streaming", return_value=mock_result):
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+            ):
+                with patch(
+                    "lucidshark.plugins.linters.ruff.run_with_streaming",
+                    return_value=mock_result,
+                ):
                     issues = linter.lint(context)
 
                     assert len(issues) == 1
@@ -306,7 +325,9 @@ class TestRuffLint:
                 enabled_domains=[],
             )
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/ruff")):
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+            ):
                 with patch(
                     "lucidshark.plugins.linters.ruff.run_with_streaming",
                     side_effect=subprocess.TimeoutExpired("ruff", 120),
@@ -325,7 +346,9 @@ class TestRuffLint:
                 enabled_domains=[],
             )
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/ruff")):
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+            ):
                 with patch(
                     "lucidshark.plugins.linters.ruff.run_with_streaming",
                     side_effect=OSError("command failed"),
@@ -348,7 +371,9 @@ class TestRuffLint:
                 enabled_domains=[],
             )
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/ruff")):
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+            ):
                 issues = linter.lint(context)
                 assert issues == []
 
@@ -365,10 +390,17 @@ class TestRuffLint:
 
             mock_result = make_completed_process(0, "[]")
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/ruff")):
-                with patch("lucidshark.plugins.linters.ruff.run_with_streaming", return_value=mock_result) as mock_run:
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+            ):
+                with patch(
+                    "lucidshark.plugins.linters.ruff.run_with_streaming",
+                    return_value=mock_result,
+                ) as mock_run:
                     linter.lint(context)
-                    cmd = mock_run.call_args.kwargs.get("cmd") or mock_run.call_args[1].get("cmd")
+                    cmd = mock_run.call_args.kwargs.get("cmd") or mock_run.call_args[
+                        1
+                    ].get("cmd")
                     assert "." in cmd
 
 
@@ -389,23 +421,43 @@ class TestRuffFix:
             )
 
             # Pre-fix: 2 issues
-            pre_output = json.dumps([
-                {"code": "F401", "message": "unused import", "filename": "a.py",
-                 "location": {"row": 1, "column": 1}},
-                {"code": "F401", "message": "unused import 2", "filename": "a.py",
-                 "location": {"row": 2, "column": 1}},
-            ])
+            pre_output = json.dumps(
+                [
+                    {
+                        "code": "F401",
+                        "message": "unused import",
+                        "filename": "a.py",
+                        "location": {"row": 1, "column": 1},
+                    },
+                    {
+                        "code": "F401",
+                        "message": "unused import 2",
+                        "filename": "a.py",
+                        "location": {"row": 2, "column": 1},
+                    },
+                ]
+            )
             # Post-fix: 1 issue remaining
-            post_output = json.dumps([
-                {"code": "F401", "message": "unused import 2", "filename": "a.py",
-                 "location": {"row": 2, "column": 1}},
-            ])
+            post_output = json.dumps(
+                [
+                    {
+                        "code": "F401",
+                        "message": "unused import 2",
+                        "filename": "a.py",
+                        "location": {"row": 2, "column": 1},
+                    },
+                ]
+            )
 
             pre_result = make_completed_process(1, pre_output)
             post_result = make_completed_process(1, post_output)
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/ruff")):
-                with patch("lucidshark.plugins.linters.ruff.run_with_streaming") as mock_run:
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+            ):
+                with patch(
+                    "lucidshark.plugins.linters.ruff.run_with_streaming"
+                ) as mock_run:
                     mock_run.side_effect = [pre_result, post_result]
                     result = linter.fix(context)
                     assert result.issues_fixed == 1
@@ -422,14 +474,24 @@ class TestRuffFix:
                 enabled_domains=[],
             )
 
-            pre_output = json.dumps([
-                {"code": "F401", "message": "msg", "filename": "a.py",
-                 "location": {"row": 1, "column": 1}},
-            ])
+            pre_output = json.dumps(
+                [
+                    {
+                        "code": "F401",
+                        "message": "msg",
+                        "filename": "a.py",
+                        "location": {"row": 1, "column": 1},
+                    },
+                ]
+            )
             pre_result = make_completed_process(1, pre_output)
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/ruff")):
-                with patch("lucidshark.plugins.linters.ruff.run_with_streaming") as mock_run:
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+            ):
+                with patch(
+                    "lucidshark.plugins.linters.ruff.run_with_streaming"
+                ) as mock_run:
                     mock_run.side_effect = [
                         pre_result,
                         subprocess.TimeoutExpired("ruff", 120),
@@ -452,7 +514,9 @@ class TestRuffFix:
                 enabled_domains=[],
             )
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/ruff")):
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+            ):
                 result = linter.fix(context)
                 assert result.issues_fixed == 0
                 assert result.files_modified == 0
@@ -488,13 +552,17 @@ class TestRuffParseOutput:
     def test_parse_single_violation(self) -> None:
         """Test parsing single violation."""
         linter = RuffLinter()
-        output = json.dumps([{
-            "code": "E501",
-            "message": "Line too long",
-            "filename": "test.py",
-            "location": {"row": 5, "column": 80},
-            "end_location": {"row": 5, "column": 120},
-        }])
+        output = json.dumps(
+            [
+                {
+                    "code": "E501",
+                    "message": "Line too long",
+                    "filename": "test.py",
+                    "location": {"row": 5, "column": 80},
+                    "end_location": {"row": 5, "column": 120},
+                }
+            ]
+        )
 
         issues = linter._parse_output(output, Path("/project"))
         assert len(issues) == 1
@@ -504,12 +572,22 @@ class TestRuffParseOutput:
     def test_parse_multiple_violations(self) -> None:
         """Test parsing multiple violations."""
         linter = RuffLinter()
-        output = json.dumps([
-            {"code": "F401", "message": "unused", "filename": "a.py",
-             "location": {"row": 1, "column": 1}},
-            {"code": "E501", "message": "too long", "filename": "b.py",
-             "location": {"row": 10, "column": 80}},
-        ])
+        output = json.dumps(
+            [
+                {
+                    "code": "F401",
+                    "message": "unused",
+                    "filename": "a.py",
+                    "location": {"row": 1, "column": 1},
+                },
+                {
+                    "code": "E501",
+                    "message": "too long",
+                    "filename": "b.py",
+                    "location": {"row": 10, "column": 80},
+                },
+            ]
+        )
 
         issues = linter._parse_output(output, Path("/project"))
         assert len(issues) == 2
@@ -517,11 +595,17 @@ class TestRuffParseOutput:
     def test_parse_skips_non_dict_violations(self) -> None:
         """Test that non-dict violations are skipped."""
         linter = RuffLinter()
-        output = json.dumps([
-            "not a dict",
-            {"code": "F401", "message": "msg", "filename": "a.py",
-             "location": {"row": 1, "column": 1}},
-        ])
+        output = json.dumps(
+            [
+                "not a dict",
+                {
+                    "code": "F401",
+                    "message": "msg",
+                    "filename": "a.py",
+                    "location": {"row": 1, "column": 1},
+                },
+            ]
+        )
 
         issues = linter._parse_output(output, Path("/project"))
         assert len(issues) == 1
@@ -540,7 +624,11 @@ class TestRuffViolationToIssue:
             "location": {"row": 1, "column": 1},
             "end_location": {"row": 1, "column": 10},
             "source": "import os",
-            "fix": {"applicability": "safe", "edits": [{"content": ""}], "message": "Remove import"},
+            "fix": {
+                "applicability": "safe",
+                "edits": [{"content": ""}],
+                "message": "Remove import",
+            },
             "url": "https://docs.astral.sh/ruff/rules/unused-import",
             "noqa_row": 1,
         }
@@ -608,8 +696,12 @@ class TestRuffIssueIdGeneration:
     def test_deterministic_ids(self) -> None:
         """Test same input produces same ID."""
         linter = RuffLinter()
-        id1 = linter._generate_issue_id("F401", "file.py", {"row": 1, "column": 1}, "msg")
-        id2 = linter._generate_issue_id("F401", "file.py", {"row": 1, "column": 1}, "msg")
+        id1 = linter._generate_issue_id(
+            "F401", "file.py", {"row": 1, "column": 1}, "msg"
+        )
+        id2 = linter._generate_issue_id(
+            "F401", "file.py", {"row": 1, "column": 1}, "msg"
+        )
         assert id1 == id2
 
     def test_different_inputs_different_ids(self) -> None:
@@ -622,5 +714,7 @@ class TestRuffIssueIdGeneration:
     def test_id_format(self) -> None:
         """Test ID format starts with ruff-CODE-."""
         linter = RuffLinter()
-        issue_id = linter._generate_issue_id("F401", "f.py", {"row": 1, "column": 1}, "msg")
+        issue_id = linter._generate_issue_id(
+            "F401", "f.py", {"row": 1, "column": 1}, "msg"
+        )
         assert issue_id.startswith("ruff-F401-")

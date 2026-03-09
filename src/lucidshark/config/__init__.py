@@ -13,7 +13,11 @@ from lucidshark.config.models import (
     ScannerDomainConfig,
     DEFAULT_PLUGINS,
 )
-from lucidshark.config.loader import load_config, find_project_config, find_global_config
+from lucidshark.config.loader import (
+    load_config,
+    find_project_config,
+    find_global_config,
+)
 from lucidshark.config.validation import validate_config, ConfigValidationWarning
 
 __all__ = [

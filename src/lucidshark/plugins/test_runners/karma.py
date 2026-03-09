@@ -56,7 +56,7 @@ class KarmaRunner(TestRunnerPlugin):
             "Karma is not installed. Install it with:\n"
             "  npm install karma --save-dev\n"
             "  OR\n"
-            "  npm install -g karma-cli"
+            "  npm install -g karma-cli",
         )
 
     def run_tests(self, context: ScanContext) -> TestResult:
@@ -101,6 +101,7 @@ class KarmaRunner(TestRunnerPlugin):
 
             try:
                 import os
+
                 full_env = os.environ.copy()
                 full_env.update(env)
 
@@ -126,7 +127,9 @@ class KarmaRunner(TestRunnerPlugin):
                 return self._parse_json_report(report_file, context.project_root)
 
             # Fallback: parse stdout for basic results
-            return self._parse_stdout(result.stdout, result.stderr, context.project_root)
+            return self._parse_stdout(
+                result.stdout, result.stderr, context.project_root
+            )
 
     def _find_karma_config(self, project_root: Path) -> Optional[Path]:
         """Find Karma configuration file.
@@ -424,7 +427,7 @@ class KarmaRunner(TestRunnerPlugin):
         text = text.replace("\n", " ").strip()
         if len(text) <= max_length:
             return text
-        return text[:max_length - 3] + "..."
+        return text[: max_length - 3] + "..."
 
     def _generate_issue_id(self, full_name: str, message: str) -> str:
         """Generate deterministic issue ID.

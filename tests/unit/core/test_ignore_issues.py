@@ -47,10 +47,12 @@ class TestApplyIgnoreIssuesBasic:
 
     def test_reason_is_set(self) -> None:
         issues = [_make_issue("CVE-2021-1234")]
-        entries = [IgnoreIssueEntry(
-            rule_id="CVE-2021-1234",
-            reason="Accepted risk per security review",
-        )]
+        entries = [
+            IgnoreIssueEntry(
+                rule_id="CVE-2021-1234",
+                reason="Accepted risk per security review",
+            )
+        ]
 
         apply_ignore_issues(issues, entries)
 

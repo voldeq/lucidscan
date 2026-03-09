@@ -2,7 +2,7 @@
 
 **Support tier: Full**
 
-TypeScript has full tool coverage in LucidShark across all six quality domains.
+TypeScript has full tool coverage in LucidShark across all quality domains including formatting.
 
 ## Detection
 
@@ -18,6 +18,7 @@ TypeScript has full tool coverage in LucidShark across all six quality domains.
 |--------|------|----------|-------|
 | **Linting** | ESLint | Yes | Standard JS/TS linter |
 | **Linting** | Biome | Yes | Fast alternative to ESLint |
+| **Formatting** | Prettier | Yes | Opinionated formatter for JS, TS, CSS, JSON, Markdown |
 | **Type Checking** | tsc | -- | TypeScript compiler, strict mode via tsconfig |
 | **Security (SAST)** | OpenGrep | -- | TypeScript-specific vulnerability rules |
 | **Security (SCA)** | Trivy | -- | Scans `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` |
@@ -62,6 +63,25 @@ pipeline:
     enabled: true
     tools:
       - name: biome
+```
+
+## Formatting
+
+**Tool: [Prettier](https://prettier.io/)**
+
+Opinionated code formatter supporting JavaScript, TypeScript, CSS, JSON, and Markdown.
+
+- Supports auto-fix via `prettier --write`
+- Check-only mode via `prettier --check`
+- Requires Prettier installed in `node_modules` or system PATH
+- Configurable via `.prettierrc`, `.prettierrc.js`, `prettier.config.js`, or `package.json`
+
+```yaml
+pipeline:
+  formatting:
+    enabled: true
+    tools:
+      - name: prettier
 ```
 
 ## Type Checking
@@ -200,6 +220,9 @@ pipeline:
   linting:
     enabled: true
     tools: [{ name: eslint }]
+  formatting:
+    enabled: true
+    tools: [{ name: prettier }]
   type_checking:
     enabled: true
     tools: [{ name: typescript, strict: true }]

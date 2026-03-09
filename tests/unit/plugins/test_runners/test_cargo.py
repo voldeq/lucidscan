@@ -46,9 +46,7 @@ class TestHasTarpaulin:
         )
 
     @patch("subprocess.run")
-    def test_returns_false_when_not_installed(
-        self, mock_run: MagicMock
-    ) -> None:
+    def test_returns_false_when_not_installed(self, mock_run: MagicMock) -> None:
         """Test _has_tarpaulin returns False when tarpaulin is not found."""
         mock_run.return_value = subprocess.CompletedProcess(
             args=["cargo", "tarpaulin", "--version"],
@@ -58,9 +56,7 @@ class TestHasTarpaulin:
         assert runner._has_tarpaulin() is False
 
     @patch("subprocess.run")
-    def test_returns_false_on_file_not_found(
-        self, mock_run: MagicMock
-    ) -> None:
+    def test_returns_false_on_file_not_found(self, mock_run: MagicMock) -> None:
         """Test _has_tarpaulin returns False when cargo is missing."""
         mock_run.side_effect = FileNotFoundError("cargo not found")
         runner = CargoTestRunner()
@@ -98,9 +94,7 @@ class TestRunTestsTarpaulinIntegration:
         )
 
     @patch.object(CargoTestRunner, "_has_tarpaulin", return_value=True)
-    @patch(
-        "lucidshark.plugins.test_runners.cargo.run_with_streaming"
-    )
+    @patch("lucidshark.plugins.test_runners.cargo.run_with_streaming")
     @patch.object(CargoTestRunner, "ensure_binary")
     def test_uses_tarpaulin_when_coverage_enabled_and_available(
         self,
@@ -130,7 +124,11 @@ class TestRunTestsTarpaulinIntegration:
 
             # Should have called run_with_streaming with tarpaulin args
             call_args = mock_run.call_args
-            cmd = call_args.kwargs.get("cmd") or call_args[1].get("cmd") or call_args[0][0]
+            cmd = (
+                call_args.kwargs.get("cmd")
+                or call_args[1].get("cmd")
+                or call_args[0][0]
+            )
             assert "tarpaulin" in cmd[1], f"Expected tarpaulin in command, got: {cmd}"
             assert "--out" in cmd
             assert "Json" in cmd
@@ -141,9 +139,7 @@ class TestRunTestsTarpaulinIntegration:
             assert result.failed == 0
 
     @patch.object(CargoTestRunner, "_has_tarpaulin", return_value=False)
-    @patch(
-        "lucidshark.plugins.test_runners.cargo.run_with_streaming"
-    )
+    @patch("lucidshark.plugins.test_runners.cargo.run_with_streaming")
     @patch.object(CargoTestRunner, "ensure_binary")
     def test_uses_cargo_test_when_tarpaulin_not_available(
         self,
@@ -172,14 +168,16 @@ class TestRunTestsTarpaulinIntegration:
             result = runner.run_tests(context)
 
             call_args = mock_run.call_args
-            cmd = call_args.kwargs.get("cmd") or call_args[1].get("cmd") or call_args[0][0]
+            cmd = (
+                call_args.kwargs.get("cmd")
+                or call_args[1].get("cmd")
+                or call_args[0][0]
+            )
             assert cmd == ["/usr/bin/cargo", "test"], f"Expected cargo test, got: {cmd}"
             assert result.passed == 2
 
     @patch.object(CargoTestRunner, "_has_tarpaulin", return_value=True)
-    @patch(
-        "lucidshark.plugins.test_runners.cargo.run_with_streaming"
-    )
+    @patch("lucidshark.plugins.test_runners.cargo.run_with_streaming")
     @patch.object(CargoTestRunner, "ensure_binary")
     def test_uses_cargo_test_when_coverage_not_in_domains(
         self,
@@ -209,14 +207,16 @@ class TestRunTestsTarpaulinIntegration:
             result = runner.run_tests(context)
 
             call_args = mock_run.call_args
-            cmd = call_args.kwargs.get("cmd") or call_args[1].get("cmd") or call_args[0][0]
+            cmd = (
+                call_args.kwargs.get("cmd")
+                or call_args[1].get("cmd")
+                or call_args[0][0]
+            )
             assert cmd == ["/usr/bin/cargo", "test"], f"Expected cargo test, got: {cmd}"
             assert result.passed == 4
 
     @patch.object(CargoTestRunner, "_has_tarpaulin", return_value=True)
-    @patch(
-        "lucidshark.plugins.test_runners.cargo.run_with_streaming"
-    )
+    @patch("lucidshark.plugins.test_runners.cargo.run_with_streaming")
     @patch.object(CargoTestRunner, "ensure_binary")
     def test_falls_back_to_cargo_test_when_tarpaulin_crashes(
         self,

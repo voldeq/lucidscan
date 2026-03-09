@@ -52,7 +52,9 @@ class TestFixInstruction:
         )
 
         assert instruction.column == 10
-        assert instruction.problem == "Argument of type 'str' cannot be assigned to 'int'"
+        assert (
+            instruction.problem == "Argument of type 'str' cannot be assigned to 'int'"
+        )
         assert len(instruction.fix_steps) == 2
         assert instruction.suggested_fix == "int(value)"
 
@@ -110,7 +112,10 @@ class TestInstructionFormatter:
         assert len(result["instructions"]) == 2
 
         # Check instructions are sorted by priority
-        assert result["instructions"][0]["priority"] <= result["instructions"][1]["priority"]
+        assert (
+            result["instructions"][0]["priority"]
+            <= result["instructions"][1]["priority"]
+        )
 
     def test_severity_to_priority_mapping(
         self, formatter: InstructionFormatter
@@ -309,12 +314,14 @@ class TestInstructionFormatter:
                 title="Test",
                 description="Test",
             )
-            for i, sev in enumerate([
-                Severity.CRITICAL,
-                Severity.HIGH,
-                Severity.HIGH,
-                Severity.MEDIUM,
-            ])
+            for i, sev in enumerate(
+                [
+                    Severity.CRITICAL,
+                    Severity.HIGH,
+                    Severity.HIGH,
+                    Severity.MEDIUM,
+                ]
+            )
         ]
 
         result = formatter.format_scan_result(issues)
@@ -411,6 +418,7 @@ class TestInstructionFormatter:
         """Test action generation for unknown scanner returns default."""
         # Create issue with non-standard domain value using MagicMock
         from unittest.mock import MagicMock
+
         issue = MagicMock()
         issue.domain = "unknown_domain"
         issue.title = "Some issue"
@@ -437,9 +445,7 @@ class TestInstructionFormatter:
         assert "module.py" in summary
         assert ":" not in summary.split("module.py")[1]  # No line number after file
 
-    def test_summary_line_with_no_file(
-        self, formatter: InstructionFormatter
-    ) -> None:
+    def test_summary_line_with_no_file(self, formatter: InstructionFormatter) -> None:
         """Test summary line generation with no file."""
         issue = UnifiedIssue(
             id="test-1",
@@ -453,9 +459,7 @@ class TestInstructionFormatter:
         summary = formatter._generate_summary_line(issue)
         assert summary == "Security issue"
 
-    def test_format_detailed_issue(
-        self, formatter: InstructionFormatter
-    ) -> None:
+    def test_format_detailed_issue(self, formatter: InstructionFormatter) -> None:
         """Test formatting issue with detailed mode."""
         issue = UnifiedIssue(
             id="test-1",

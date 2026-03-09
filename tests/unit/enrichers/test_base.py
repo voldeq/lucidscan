@@ -136,6 +136,7 @@ class TestConcreteEnricher:
         sample_issues: List[UnifiedIssue],
     ) -> None:
         """Test that enricher can return issues unchanged."""
+
         # Create an enricher that does nothing
         class NoOpEnricher(EnricherPlugin):
             @property

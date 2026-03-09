@@ -18,7 +18,9 @@ from lucidshark.plugins.type_checkers.mypy import (
 )
 
 
-def make_completed_process(returncode: int, stdout: str, stderr: str = "") -> subprocess.CompletedProcess:
+def make_completed_process(
+    returncode: int, stdout: str, stderr: str = ""
+) -> subprocess.CompletedProcess:
     """Create a CompletedProcess for testing."""
     return subprocess.CompletedProcess(
         args=[],
@@ -159,7 +161,10 @@ class TestMypyEnsureBinary:
         checker = MypyChecker()
 
         with patch.object(checker, "ensure_binary", return_value=Path("/usr/bin/mypy")):
-            with patch("lucidshark.plugins.type_checkers.mypy.get_cli_version", return_value="1.8.0"):
+            with patch(
+                "lucidshark.plugins.type_checkers.mypy.get_cli_version",
+                return_value="1.8.0",
+            ):
                 version = checker.get_version()
                 assert version == "1.8.0"
 
@@ -186,7 +191,9 @@ class TestMypyCheck:
                 enabled_domains=[],
             )
 
-            with patch.object(checker, "ensure_binary", side_effect=FileNotFoundError("not found")):
+            with patch.object(
+                checker, "ensure_binary", side_effect=FileNotFoundError("not found")
+            ):
                 issues = checker.check(context)
                 assert issues == []
 
@@ -203,19 +210,26 @@ class TestMypyCheck:
                 enabled_domains=[],
             )
 
-            mypy_output = json.dumps({
-                "file": "src/app.py",
-                "severity": "error",
-                "message": "Incompatible types in assignment",
-                "line": 10,
-                "column": 5,
-                "code": "assignment",
-            })
+            mypy_output = json.dumps(
+                {
+                    "file": "src/app.py",
+                    "severity": "error",
+                    "message": "Incompatible types in assignment",
+                    "line": 10,
+                    "column": 5,
+                    "code": "assignment",
+                }
+            )
 
             mock_result = make_completed_process(1, mypy_output)
 
-            with patch.object(checker, "ensure_binary", return_value=Path("/usr/bin/mypy")):
-                with patch("lucidshark.plugins.type_checkers.mypy.run_with_streaming", return_value=mock_result):
+            with patch.object(
+                checker, "ensure_binary", return_value=Path("/usr/bin/mypy")
+            ):
+                with patch(
+                    "lucidshark.plugins.type_checkers.mypy.run_with_streaming",
+                    return_value=mock_result,
+                ):
                     issues = checker.check(context)
 
                     assert len(issues) == 1
@@ -235,7 +249,9 @@ class TestMypyCheck:
                 enabled_domains=[],
             )
 
-            with patch.object(checker, "ensure_binary", return_value=Path("/usr/bin/mypy")):
+            with patch.object(
+                checker, "ensure_binary", return_value=Path("/usr/bin/mypy")
+            ):
                 with patch(
                     "lucidshark.plugins.type_checkers.mypy.run_with_streaming",
                     side_effect=subprocess.TimeoutExpired("mypy", 180),
@@ -254,7 +270,9 @@ class TestMypyCheck:
                 enabled_domains=[],
             )
 
-            with patch.object(checker, "ensure_binary", return_value=Path("/usr/bin/mypy")):
+            with patch.object(
+                checker, "ensure_binary", return_value=Path("/usr/bin/mypy")
+            ):
                 with patch(
                     "lucidshark.plugins.type_checkers.mypy.run_with_streaming",
                     side_effect=OSError("command failed"),
@@ -277,7 +295,9 @@ class TestMypyCheck:
                 enabled_domains=[],
             )
 
-            with patch.object(checker, "ensure_binary", return_value=Path("/usr/bin/mypy")):
+            with patch.object(
+                checker, "ensure_binary", return_value=Path("/usr/bin/mypy")
+            ):
                 issues = checker.check(context)
                 assert issues == []
 
@@ -298,10 +318,17 @@ class TestMypyCheck:
 
             mock_result = make_completed_process(0, "")
 
-            with patch.object(checker, "ensure_binary", return_value=Path("/usr/bin/mypy")):
-                with patch("lucidshark.plugins.type_checkers.mypy.run_with_streaming", return_value=mock_result) as mock_run:
+            with patch.object(
+                checker, "ensure_binary", return_value=Path("/usr/bin/mypy")
+            ):
+                with patch(
+                    "lucidshark.plugins.type_checkers.mypy.run_with_streaming",
+                    return_value=mock_result,
+                ) as mock_run:
                     checker.check(context)
-                    cmd = mock_run.call_args.kwargs.get("cmd") or mock_run.call_args[1].get("cmd")
+                    cmd = mock_run.call_args.kwargs.get("cmd") or mock_run.call_args[
+                        1
+                    ].get("cmd")
                     assert "--config-file" in cmd
                     assert str(mypy_ini) in cmd
 
@@ -320,10 +347,17 @@ class TestMypyCheck:
 
             mock_result = make_completed_process(0, "")
 
-            with patch.object(checker, "ensure_binary", return_value=Path("/usr/bin/mypy")):
-                with patch("lucidshark.plugins.type_checkers.mypy.run_with_streaming", return_value=mock_result) as mock_run:
+            with patch.object(
+                checker, "ensure_binary", return_value=Path("/usr/bin/mypy")
+            ):
+                with patch(
+                    "lucidshark.plugins.type_checkers.mypy.run_with_streaming",
+                    return_value=mock_result,
+                ) as mock_run:
                     checker.check(context)
-                    cmd = mock_run.call_args.kwargs.get("cmd") or mock_run.call_args[1].get("cmd")
+                    cmd = mock_run.call_args.kwargs.get("cmd") or mock_run.call_args[
+                        1
+                    ].get("cmd")
                     assert "." in cmd
 
     def test_check_uses_stderr_as_fallback(self) -> None:
@@ -337,19 +371,26 @@ class TestMypyCheck:
                 enabled_domains=[],
             )
 
-            mypy_error = json.dumps({
-                "file": "app.py",
-                "severity": "error",
-                "message": "test error",
-                "line": 1,
-                "column": 1,
-                "code": "misc",
-            })
+            mypy_error = json.dumps(
+                {
+                    "file": "app.py",
+                    "severity": "error",
+                    "message": "test error",
+                    "line": 1,
+                    "column": 1,
+                    "code": "misc",
+                }
+            )
 
             mock_result = make_completed_process(1, "", mypy_error)
 
-            with patch.object(checker, "ensure_binary", return_value=Path("/usr/bin/mypy")):
-                with patch("lucidshark.plugins.type_checkers.mypy.run_with_streaming", return_value=mock_result):
+            with patch.object(
+                checker, "ensure_binary", return_value=Path("/usr/bin/mypy")
+            ):
+                with patch(
+                    "lucidshark.plugins.type_checkers.mypy.run_with_streaming",
+                    return_value=mock_result,
+                ):
                     issues = checker.check(context)
                     assert len(issues) == 1
 
@@ -372,14 +413,16 @@ class TestMypyParseOutput:
     def test_parse_single_line_json(self) -> None:
         """Test parsing single JSON line (mypy 1.x format)."""
         checker = MypyChecker()
-        output = json.dumps({
-            "file": "app.py",
-            "severity": "error",
-            "message": "Incompatible types",
-            "line": 5,
-            "column": 3,
-            "code": "assignment",
-        })
+        output = json.dumps(
+            {
+                "file": "app.py",
+                "severity": "error",
+                "message": "Incompatible types",
+                "line": 5,
+                "column": 3,
+                "code": "assignment",
+            }
+        )
 
         issues = checker._parse_output(output, Path("/project"))
         assert len(issues) == 1
@@ -389,14 +432,26 @@ class TestMypyParseOutput:
     def test_parse_multiline_json(self) -> None:
         """Test parsing multiple JSON lines."""
         checker = MypyChecker()
-        line1 = json.dumps({
-            "file": "a.py", "severity": "error", "message": "Error 1",
-            "line": 1, "column": 1, "code": "misc",
-        })
-        line2 = json.dumps({
-            "file": "b.py", "severity": "warning", "message": "Warning 1",
-            "line": 5, "column": 2, "code": "override",
-        })
+        line1 = json.dumps(
+            {
+                "file": "a.py",
+                "severity": "error",
+                "message": "Error 1",
+                "line": 1,
+                "column": 1,
+                "code": "misc",
+            }
+        )
+        line2 = json.dumps(
+            {
+                "file": "b.py",
+                "severity": "warning",
+                "message": "Warning 1",
+                "line": 5,
+                "column": 2,
+                "code": "override",
+            }
+        )
         output = f"{line1}\n{line2}"
 
         issues = checker._parse_output(output, Path("/project"))
@@ -405,18 +460,28 @@ class TestMypyParseOutput:
     def test_parse_messages_array_format(self) -> None:
         """Test parsing mypy 2.x format with messages array."""
         checker = MypyChecker()
-        output = json.dumps({
-            "messages": [
-                {
-                    "file": "a.py", "severity": "error", "message": "Error 1",
-                    "line": 1, "column": 1, "code": "misc",
-                },
-                {
-                    "file": "b.py", "severity": "error", "message": "Error 2",
-                    "line": 5, "column": 1, "code": "attr-defined",
-                },
-            ]
-        })
+        output = json.dumps(
+            {
+                "messages": [
+                    {
+                        "file": "a.py",
+                        "severity": "error",
+                        "message": "Error 1",
+                        "line": 1,
+                        "column": 1,
+                        "code": "misc",
+                    },
+                    {
+                        "file": "b.py",
+                        "severity": "error",
+                        "message": "Error 2",
+                        "line": 5,
+                        "column": 1,
+                        "code": "attr-defined",
+                    },
+                ]
+            }
+        )
 
         issues = checker._parse_output(output, Path("/project"))
         assert len(issues) == 2
@@ -424,10 +489,16 @@ class TestMypyParseOutput:
     def test_parse_non_json_lines_skipped(self) -> None:
         """Test that non-JSON lines are skipped."""
         checker = MypyChecker()
-        valid_line = json.dumps({
-            "file": "a.py", "severity": "error", "message": "Error",
-            "line": 1, "column": 1, "code": "misc",
-        })
+        valid_line = json.dumps(
+            {
+                "file": "a.py",
+                "severity": "error",
+                "message": "Error",
+                "line": 1,
+                "column": 1,
+                "code": "misc",
+            }
+        )
         output = f"Some non-JSON output\n{valid_line}\nAnother non-JSON line"
 
         issues = checker._parse_output(output, Path("/project"))

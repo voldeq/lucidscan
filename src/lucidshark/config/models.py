@@ -22,7 +22,15 @@ DEFAULT_PLUGINS: Dict[str, str] = {
 VALID_SEVERITIES = {"critical", "high", "medium", "low", "info"}
 
 # Valid domain keys for fail_on dict format
-VALID_FAIL_ON_DOMAINS = {"linting", "type_checking", "security", "testing", "coverage", "duplication"}
+VALID_FAIL_ON_DOMAINS = {
+    "linting",
+    "type_checking",
+    "security",
+    "testing",
+    "coverage",
+    "duplication",
+    "formatting",
+}
 
 # Special fail_on values (not severities)
 SPECIAL_FAIL_ON_VALUES = {"error", "any", "none", "below_threshold", "above_threshold"}
@@ -56,6 +64,7 @@ class FailOnConfig:
     testing: Optional[str] = None  # any, none
     coverage: Optional[str] = None  # any, none
     duplication: Optional[str] = None  # percentage threshold (e.g., "5%"), any, none
+    formatting: Optional[str] = None  # error, none
 
     def get_threshold(self, domain: str) -> Optional[str]:
         """Get threshold for a specific domain.
@@ -93,14 +102,18 @@ class DomainPipelineConfig:
 
     enabled: bool = True
     tools: List[ToolConfig] = field(default_factory=list)
-    exclude: List[str] = field(default_factory=list)  # Patterns to exclude from this domain
+    exclude: List[str] = field(
+        default_factory=list
+    )  # Patterns to exclude from this domain
     # Scope for threshold check when using --base-branch:
     # "changed" - apply to changed files only (default)
     # "project" - apply to full project
     # "both" - fail if either changed files or full project exceeds threshold
     threshold_scope: str = "changed"
     command: Optional[str] = None  # Custom shell command to run instead of plugins
-    pre_command: Optional[str] = None  # Shell command to run before main command (e.g., cleanup)
+    pre_command: Optional[str] = (
+        None  # Shell command to run before main command (e.g., cleanup)
+    )
     post_command: Optional[str] = None  # Shell command to run after main command
 
 
@@ -119,9 +132,13 @@ class CoveragePipelineConfig:
     # Extra arguments to pass to Maven/Gradle when running coverage tests
     # e.g., ["-DskipITs", "-Ddocker.skip=true"]
     extra_args: List[str] = field(default_factory=list)
-    exclude: List[str] = field(default_factory=list)  # Patterns to exclude from coverage
+    exclude: List[str] = field(
+        default_factory=list
+    )  # Patterns to exclude from coverage
     command: Optional[str] = None  # Custom shell command to run coverage
-    pre_command: Optional[str] = None  # Shell command to run before coverage (e.g., cleanup)
+    pre_command: Optional[str] = (
+        None  # Shell command to run before coverage (e.g., cleanup)
+    )
     post_command: Optional[str] = None  # Shell command to run after coverage
 
 
@@ -138,7 +155,9 @@ class DuplicationPipelineConfig:
     threshold_scope: str = "changed"
     min_lines: int = 4  # Minimum lines for a duplicate block
     min_chars: int = 3  # Minimum characters per line
-    exclude: List[str] = field(default_factory=list)  # Patterns to exclude from duplication scan
+    exclude: List[str] = field(
+        default_factory=list
+    )  # Patterns to exclude from duplication scan
     tools: List[ToolConfig] = field(default_factory=list)
     baseline: bool = False  # Only report NEW duplicates after first run
     cache: bool = True  # Cache processed files for faster re-runs
@@ -166,6 +185,7 @@ class PipelineConfig:
     coverage: Optional[CoveragePipelineConfig] = None
     security: Optional[DomainPipelineConfig] = None
     duplication: Optional[DuplicationPipelineConfig] = None
+    formatting: Optional[DomainPipelineConfig] = None
 
     def get_enabled_tool_names(self, domain: str) -> List[str]:
         """Get list of enabled tool names for a domain.

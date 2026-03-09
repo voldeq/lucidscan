@@ -49,8 +49,7 @@ class TestRustLinting:
         # The project has intentional redundant_clone in lib.rs
         if linting_issues:
             lib_issues = [
-                i for i in linting_issues
-                if "lib.rs" in str(i.get("file_path", ""))
+                i for i in linting_issues if "lib.rs" in str(i.get("file_path", ""))
             ]
             assert len(lib_issues) >= 1, "Expected clippy issues in lib.rs"
 
@@ -61,8 +60,7 @@ class TestRustLinting:
         linting_issues = result.issues_by_domain("linting")
         if linting_issues:
             main_issues = [
-                i for i in linting_issues
-                if "main.rs" in str(i.get("file_path", ""))
+                i for i in linting_issues if "main.rs" in str(i.get("file_path", ""))
             ]
             # main.rs has unused HashMap import
             assert isinstance(main_issues, list)
@@ -131,9 +129,7 @@ class TestRustTestRunner:
 class TestRustCoverage:
     """Test Rust coverage with cargo-tarpaulin."""
 
-    def test_tarpaulin_measures_coverage(
-        self, rust_project_compiled: Path
-    ) -> None:
+    def test_tarpaulin_measures_coverage(self, rust_project_compiled: Path) -> None:
         """Test that tarpaulin measures code coverage."""
         result = run_lucidshark(rust_project_compiled, domains=["coverage"])
 
@@ -155,13 +151,9 @@ class TestRustCombinedScanning:
     """Test combined scanning for Rust projects."""
 
     @clippy_available
-    def test_combined_linting_and_type_checking(
-        self, rust_project: Path
-    ) -> None:
+    def test_combined_linting_and_type_checking(self, rust_project: Path) -> None:
         """Test running both linting and type checking together."""
-        result = run_lucidshark(
-            rust_project, domains=["linting", "type_checking"]
-        )
+        result = run_lucidshark(rust_project, domains=["linting", "type_checking"])
 
         # Scan should complete
         assert result.exit_code in (0, 1)

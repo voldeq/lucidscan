@@ -148,7 +148,12 @@ class MavenTestRunner(TestRunnerPlugin):
         Returns:
             TestResult with test statistics.
         """
-        cmd = [str(binary), "test", "jacoco:report", "-B"]  # Always generate JaCoCo coverage
+        cmd = [
+            str(binary),
+            "test",
+            "jacoco:report",
+            "-B",
+        ]  # Always generate JaCoCo coverage
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
@@ -185,7 +190,12 @@ class MavenTestRunner(TestRunnerPlugin):
         Returns:
             TestResult with test statistics.
         """
-        cmd = [str(binary), "test", "jacocoTestReport", "--no-daemon"]  # Always generate JaCoCo coverage
+        cmd = [
+            str(binary),
+            "test",
+            "jacocoTestReport",
+            "--no-daemon",
+        ]  # Always generate JaCoCo coverage
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
@@ -224,7 +234,9 @@ class MavenTestRunner(TestRunnerPlugin):
             for child in project_root.iterdir():
                 child_reports = child / "target" / "surefire-reports"
                 if child_reports.exists():
-                    child_result = self._parse_junit_xml_dir(child_reports, project_root)
+                    child_result = self._parse_junit_xml_dir(
+                        child_reports, project_root
+                    )
                     result = self._merge_results(result, child_result)
             return result
 
@@ -256,10 +268,15 @@ class MavenTestRunner(TestRunnerPlugin):
         # Check for multi-module projects
         for child in project_root.iterdir():
             if child.is_dir() and not child.name.startswith("."):
-                for subdir in ["build/test-results/test", "build/test-results/testDebug"]:
+                for subdir in [
+                    "build/test-results/test",
+                    "build/test-results/testDebug",
+                ]:
                     child_reports = child / subdir
                     if child_reports.exists():
-                        child_result = self._parse_junit_xml_dir(child_reports, project_root)
+                        child_result = self._parse_junit_xml_dir(
+                            child_reports, project_root
+                        )
                         result = self._merge_results(result, child_result)
 
         return result
@@ -335,7 +352,9 @@ class MavenTestRunner(TestRunnerPlugin):
             error = testcase.find("error")
 
             if failure is not None:
-                issue = self._testcase_to_issue(testcase, failure, project_root, "failed")
+                issue = self._testcase_to_issue(
+                    testcase, failure, project_root, "failed"
+                )
                 if issue:
                     result.issues.append(issue)
             elif error is not None:
@@ -388,7 +407,9 @@ class MavenTestRunner(TestRunnerPlugin):
 
                 # Try to extract line number from stacktrace
                 if stacktrace and classname:
-                    line_number = self._extract_line_from_stacktrace(stacktrace, classname)
+                    line_number = self._extract_line_from_stacktrace(
+                        stacktrace, classname
+                    )
 
             # Build test identifier
             test_id = f"{classname}#{name}" if classname else name
@@ -401,7 +422,11 @@ class MavenTestRunner(TestRunnerPlugin):
 
             # Build title
             short_message = message[:80] + "..." if len(message) > 80 else message
-            title = f"{name} {outcome}: {short_message}" if short_message else f"{name} {outcome}"
+            title = (
+                f"{name} {outcome}: {short_message}"
+                if short_message
+                else f"{name} {outcome}"
+            )
 
             return UnifiedIssue(
                 id=issue_id,
@@ -410,7 +435,9 @@ class MavenTestRunner(TestRunnerPlugin):
                 severity=severity,
                 rule_id=outcome,
                 title=title,
-                description=f"{failure_type}: {message}\n\n{stacktrace[:500]}" if stacktrace else f"{failure_type}: {message}",
+                description=f"{failure_type}: {message}\n\n{stacktrace[:500]}"
+                if stacktrace
+                else f"{failure_type}: {message}",
                 file_path=file_path,
                 line_start=line_number,
                 line_end=line_number,
@@ -427,7 +454,9 @@ class MavenTestRunner(TestRunnerPlugin):
             LOGGER.warning(f"Failed to parse JUnit XML testcase: {e}")
             return None
 
-    def _extract_line_from_stacktrace(self, stacktrace: str, classname: str) -> Optional[int]:
+    def _extract_line_from_stacktrace(
+        self, stacktrace: str, classname: str
+    ) -> Optional[int]:
         """Extract line number from stacktrace for the test class.
 
         Args:

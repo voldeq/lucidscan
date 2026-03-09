@@ -333,9 +333,7 @@ class TestBuildBaseCmd:
             (pkg / "__init__.py").touch()
             # Add existing coverage source config
             pyproject = project_root / "pyproject.toml"
-            pyproject.write_text(
-                '[tool.coverage.run]\nsource = ["src/mypackage"]\n'
-            )
+            pyproject.write_text('[tool.coverage.run]\nsource = ["src/mypackage"]\n')
 
             runner = PytestRunner()
             binary = Path("/usr/bin/pytest")

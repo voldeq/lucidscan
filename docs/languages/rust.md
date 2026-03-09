@@ -17,6 +17,7 @@ Rust projects are fully supported with linting, type checking, testing, coverage
 | Domain | Tool | Notes |
 |--------|------|-------|
 | **Linting** | Clippy | Official Rust linter; detects common mistakes and style issues |
+| **Formatting** | rustfmt | Official Rust formatter |
 | **Type Checking** | cargo check | Rust compiler diagnostics; catches type errors and lifetime issues |
 | **Testing** | cargo test | Built-in Rust test runner |
 | **Coverage** | Tarpaulin | Code coverage via `cargo-tarpaulin` |
@@ -40,6 +41,23 @@ Clippy supports auto-fix via `cargo clippy --fix`.
 ```yaml
 pipeline:
   linting:
+    enabled: true
+```
+
+## Formatting
+
+**Tool: [rustfmt](https://github.com/rust-lang/rustfmt)**
+
+The official Rust code formatter.
+
+- Supports auto-fix (runs `rustfmt` directly on files)
+- Check-only mode via `rustfmt --check`
+- Installed via `rustup component add rustfmt`
+- Configurable via `rustfmt.toml` or `.rustfmt.toml`
+
+```yaml
+pipeline:
+  formatting:
     enabled: true
 ```
 
@@ -112,6 +130,8 @@ project:
   languages: [rust]
 pipeline:
   linting:
+    enabled: true
+  formatting:
     enabled: true
   type_checking:
     enabled: true

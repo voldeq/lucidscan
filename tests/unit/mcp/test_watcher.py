@@ -44,9 +44,7 @@ class TestLucidSharkFileWatcher:
         self, project_root: Path, config: LucidSharkConfig
     ) -> None:
         """Test watcher with custom debounce."""
-        watcher = LucidSharkFileWatcher(
-            project_root, config, debounce_ms=500
-        )
+        watcher = LucidSharkFileWatcher(project_root, config, debounce_ms=500)
         assert watcher.debounce_ms == 500
 
     def test_on_result_callback(self, watcher: LucidSharkFileWatcher) -> None:
@@ -57,9 +55,7 @@ class TestLucidSharkFileWatcher:
         assert len(watcher._callbacks) == 1
         assert callback in watcher._callbacks
 
-    def test_on_result_multiple_callbacks(
-        self, watcher: LucidSharkFileWatcher
-    ) -> None:
+    def test_on_result_multiple_callbacks(self, watcher: LucidSharkFileWatcher) -> None:
         """Test registering multiple callbacks."""
         callback1 = MagicMock()
         callback2 = MagicMock()
@@ -68,9 +64,7 @@ class TestLucidSharkFileWatcher:
 
         assert len(watcher._callbacks) == 2
 
-    def test_default_ignore_patterns(
-        self, watcher: LucidSharkFileWatcher
-    ) -> None:
+    def test_default_ignore_patterns(self, watcher: LucidSharkFileWatcher) -> None:
         """Test default ignore patterns."""
         assert ".git" in watcher.ignore_patterns
         assert "__pycache__" in watcher.ignore_patterns
@@ -138,15 +132,11 @@ class TestLucidSharkFileWatcher:
         nested_file = project_root / "src" / "components" / "Button.tsx"
         assert watcher._should_ignore(nested_file) is False
 
-    def test_not_running_initially(
-        self, watcher: LucidSharkFileWatcher
-    ) -> None:
+    def test_not_running_initially(self, watcher: LucidSharkFileWatcher) -> None:
         """Test that watcher is not running initially."""
         assert watcher._running is False
 
-    def test_stop_when_not_running(
-        self, watcher: LucidSharkFileWatcher
-    ) -> None:
+    def test_stop_when_not_running(self, watcher: LucidSharkFileWatcher) -> None:
         """Test stopping when not running doesn't error."""
         watcher.stop()  # Should not raise
         assert watcher._running is False
@@ -173,9 +163,7 @@ class TestFileWatcherAsync:
         return LucidSharkFileWatcher(project_root, config, debounce_ms=10)
 
     @pytest.mark.asyncio
-    async def test_process_pending_empty(
-        self, watcher: LucidSharkFileWatcher
-    ) -> None:
+    async def test_process_pending_empty(self, watcher: LucidSharkFileWatcher) -> None:
         """Test processing with no pending files."""
         # Should complete without error
         await watcher._process_pending()
@@ -230,6 +218,7 @@ class TestFileWatcherAsync:
 
         # Simulate event loop
         import asyncio
+
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
@@ -256,18 +245,23 @@ class TestFileWatcherAsync:
 
         # Register callback
         results = []
+
         def callback(result):
             results.append(result)
+
         watcher.on_result(callback)
 
         # Mock the executor scan
         from unittest.mock import AsyncMock
-        watcher.executor.scan = AsyncMock(return_value={  # type: ignore[method-assign]
-            "total_issues": 0,
-            "blocking": False,
-            "summary": "No issues",
-            "instructions": []
-        })
+
+        watcher.executor.scan = AsyncMock(  # type: ignore[method-assign]
+            return_value={
+                "total_issues": 0,
+                "blocking": False,
+                "summary": "No issues",
+                "instructions": [],
+            }
+        )
 
         # Process pending (will debounce)
         await watcher._process_pending()
@@ -291,16 +285,20 @@ class TestFileWatcherAsync:
         # Register callback that raises
         def failing_callback(result):
             raise Exception("Callback failed")
+
         watcher.on_result(failing_callback)
 
         # Mock the executor scan
         from unittest.mock import AsyncMock
-        watcher.executor.scan = AsyncMock(return_value={  # type: ignore[method-assign]
-            "total_issues": 0,
-            "blocking": False,
-            "summary": "No issues",
-            "instructions": []
-        })
+
+        watcher.executor.scan = AsyncMock(  # type: ignore[method-assign]
+            return_value={
+                "total_issues": 0,
+                "blocking": False,
+                "summary": "No issues",
+                "instructions": [],
+            }
+        )
 
         # Should not raise
         await watcher._process_pending()
@@ -319,12 +317,15 @@ class TestFileWatcherAsync:
 
         # Register callback
         results = []
+
         def callback(result):
             results.append(result)
+
         watcher.on_result(callback)
 
         # Mock the executor scan to raise
         from unittest.mock import AsyncMock
+
         watcher.executor.scan = AsyncMock(side_effect=Exception("Scan failed"))  # type: ignore[method-assign]
 
         # Should not raise
@@ -347,12 +348,15 @@ class TestFileWatcherAsync:
         watcher._pending_files.add(outside_file)
 
         from unittest.mock import AsyncMock
-        watcher.executor.scan = AsyncMock(return_value={  # type: ignore[method-assign]
-            "total_issues": 0,
-            "blocking": False,
-            "summary": "No issues",
-            "instructions": []
-        })
+
+        watcher.executor.scan = AsyncMock(  # type: ignore[method-assign]
+            return_value={
+                "total_issues": 0,
+                "blocking": False,
+                "summary": "No issues",
+                "instructions": [],
+            }
+        )
 
         # Should not raise
         await watcher._process_pending()
@@ -367,6 +371,7 @@ class TestFileChangeHandler:
         from watchdog.events import FileModifiedEvent
 
         results = []
+
         def callback(path):
             results.append(path)
 
@@ -386,6 +391,7 @@ class TestFileChangeHandler:
         from watchdog.events import DirModifiedEvent
 
         results = []
+
         def callback(path):
             results.append(path)
 
@@ -404,6 +410,7 @@ class TestFileChangeHandler:
         from watchdog.events import FileCreatedEvent
 
         results = []
+
         def callback(path):
             results.append(path)
 
@@ -423,6 +430,7 @@ class TestFileChangeHandler:
         from watchdog.events import DirCreatedEvent
 
         results = []
+
         def callback(path):
             results.append(path)
 

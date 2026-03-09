@@ -85,7 +85,8 @@ A single configuration file controls:
 
 | Domain | Tools | What It Catches |
 |--------|-------|-----------------|
-| **Linting** | Ruff, ESLint, Biome, Checkstyle, Clippy | Style, formatting, code smells |
+| **Linting** | Ruff, ESLint, Biome, Clippy, Checkstyle | Style, code smells |
+| **Formatting** | Ruff Format, Prettier, rustfmt, google-java-format | Code formatting, whitespace style |
 | **Type Checking** | mypy, TypeScript, Pyright, SpotBugs, cargo check | Type errors, static analysis bugs |
 | **Security** | Trivy, OpenGrep, Checkov | Vulnerabilities, misconfigurations |
 | **Testing** | pytest, Jest, Vitest, Maven/Gradle, cargo test | Test failures |
@@ -239,6 +240,11 @@ pipeline:
       - name: mypy
         strict: true
 
+  formatting:
+    enabled: true
+    tools:
+      - name: ruff_format
+
   security:
     enabled: true
     tools:
@@ -270,6 +276,8 @@ pipeline:
     post_command: "rm -rf tmp/test-artifacts"
   coverage:
     command: "npm run test:coverage"
+  formatting:
+    command: "npm run format:check"          # Custom formatting check
 ```
 
 **`pre_command`** runs a shell command before the main command (or plugin-based runner)
@@ -290,6 +298,16 @@ Failures are logged as warnings and do not fail the pipeline.
       - name: coverage_py
     # extra_args: ["-DskipITs", "-Ddocker.skip=true"]  # For Java: skip integration tests
 
+  formatting:
+    enabled: true
+    exclude:
+      - "generated/**"
+    tools:
+      - name: ruff_format
+      - name: prettier
+      - name: google_java_format
+      - name: rustfmt
+
   duplication:
     enabled: true
     threshold: 10.0  # Max allowed duplication percentage
@@ -301,6 +319,7 @@ Failures are logged as warnings and do not fail the pipeline.
 
 fail_on:
   linting: error
+  formatting: error
   type_checking: error
   security: high
   testing: any
@@ -324,11 +343,12 @@ lucidshark scan [--fix] [--format FORMAT]
 Execute the configured pipeline in order:
 
 1. **Linting** → Run configured linters
-2. **Type Checking** → Run type checkers
-3. **Security** → Run security scanners
-4. **Testing** → Run test suites
-5. **Coverage** → Check coverage thresholds (fails automatically if tests failed)
-6. **Duplication** → Detect code clones
+2. **Formatting** → Check code formatting
+3. **Type Checking** → Run type checkers
+4. **Security** → Run security scanners
+5. **Testing** → Run test suites
+6. **Coverage** → Check coverage thresholds (fails automatically if tests failed)
+7. **Duplication** → Detect code clones
 
 Each stage produces normalized results. Stages can run in parallel where independent.
 
@@ -339,6 +359,7 @@ LucidShark scans only changed files (uncommitted changes) by default. Use `--all
 | Domain | Partial Scan Support | Behavior |
 |--------|---------------------|----------|
 | **Linting** | ⚠️ Partial | Ruff/ESLint/Biome/Checkstyle support file args; Clippy is workspace-wide |
+| **Formatting** | ⚠️ Partial | Ruff Format/Prettier support file args; rustfmt/google-java-format project-wide |
 | **Type Checking** | ⚠️ Partial | mypy/pyright yes; tsc/SpotBugs/cargo check always full |
 | **SAST** | ✅ Full | OpenGrep scans only changed/specified files |
 | **SCA** | ❌ None | Trivy dependency scan always project-wide |
@@ -542,6 +563,15 @@ pipeline:
       - name: string  # coverage_py for Python, istanbul/vitest_coverage for JS/TS, jacoco for Java, tarpaulin for Rust
     extra_args: [string]  # Extra arguments for Maven/Gradle (Java only)
 
+  formatting:
+    enabled: boolean
+    pre_command: string   # Optional: runs before formatting check starts
+    command: string       # Optional: custom shell command overrides plugin-based runner
+    post_command: string  # Optional: runs after formatting check completes
+    exclude: [string]  # Patterns to exclude from formatting check
+    tools:
+      - name: string  # ruff_format, prettier, rustfmt, google_java_format
+
   duplication:
     enabled: boolean
     exclude: [string]  # Patterns to exclude from duplication scan
@@ -553,6 +583,7 @@ pipeline:
 
 fail_on:
   linting: error | none
+  formatting: error | none
   type_checking: error | none
   security: critical | high | medium | low | info | none
   testing: any | none
@@ -686,7 +717,7 @@ checkov = "3.2.506"
 duplo = "0.1.6"
 ```
 
-**Language-specific tools** (ruff, eslint, biome, mypy, pyright, checkstyle, spotbugs, etc.) are **not** version-pinned by LucidShark. Install these via your package manager (pip, npm, cargo) to ensure compatibility with your project.
+**Language-specific tools** (ruff, eslint, biome, mypy, pyright, checkstyle, google-java-format, spotbugs, etc.) are **not** version-pinned by LucidShark. Install these via your package manager (pip, npm, cargo) to ensure compatibility with your project.
 
 When installed as a package, LucidShark uses hardcoded fallback versions from `src/lucidshark/bootstrap/versions.py`.
 
@@ -735,7 +766,7 @@ Binaries are cached in `{project_root}/.lucidshark/` by default. The `LUCIDSHARK
 ├─────────────────────────────────────────────────────────────────┤
 │  Tool Plugins                                                   │
 │  ├── Linting:     RuffLinter, ESLintLinter, BiomeLinter,        │
-│  │                CheckstyleLinter, ClippyLinter                │
+│  │                ClippyLinter                                  │
 │  ├── TypeCheck:   MypyChecker, PyrightChecker,                  │
 │  │                TypeScriptChecker, SpotBugsChecker,           │
 │  │                CargoCheckChecker                             │
@@ -747,6 +778,8 @@ Binaries are cached in `{project_root}/.lucidshark/` by default. The `LUCIDSHARK
 │  ├── Coverage:    CoveragePyPlugin, IstanbulPlugin,             │
 │  │                VitestCoveragePlugin, JaCoCoPlugin,            │
 │  │                TarpaulinPlugin                               │
+│  ├── Formatting:  RuffFormatter, PrettierFormatter,             │
+│  │                RustfmtFormatter, GoogleJavaFormatFormatter   │
 │  ├── Duplication: DuploPlugin                                   │
 │  └── Enrichers:   (post-processing pipeline)                    │
 ├─────────────────────────────────────────────────────────────────┤
@@ -1017,6 +1050,7 @@ The MCP server sends progress notifications during scans, reporting domain start
 | Domain | Partial Scan | Notes |
 |--------|--------------|-------|
 | Linting | ⚠️ Partial | Ruff/ESLint/Biome/Checkstyle support file-level; Clippy is workspace-wide |
+| Formatting | ⚠️ Partial | Ruff Format/Prettier support file-level; rustfmt/google-java-format project-wide |
 | Type Checking | ⚠️ Partial | mypy/pyright yes; tsc/SpotBugs/cargo check no |
 | SAST | ✅ Yes | OpenGrep supports file-level scanning |
 | SCA | ❌ No | Trivy dependency scan always project-wide |
@@ -1240,6 +1274,8 @@ LucidShark scans only changed files by default, enabling fast feedback loops:
 |---------------|-------|---------------------|
 | **Linting** | Ruff, ESLint, Biome, Checkstyle | ✅ All support file args |
 | **Linting** | Clippy | ❌ Cargo workspace only |
+| **Formatting** | Ruff Format, Prettier | ✅ Support file args |
+| **Formatting** | rustfmt, google-java-format | ❌ Project-wide only |
 | **Type Checking** | mypy, pyright | ✅ Support file args |
 | **Type Checking** | TypeScript (tsc), SpotBugs, cargo check | ❌ Project-wide only |
 | **SAST** | OpenGrep | ✅ Supports file args |
@@ -1439,7 +1475,18 @@ MCP tools, and configuration reference.
 
 All linting tools support partial scanning via the `files` parameter, except Clippy which operates on the full Cargo workspace.
 
-### 9.2 Type Checking
+### 9.2 Formatting
+
+| Tool | Languages | Install Method | Partial Scan |
+|------|-----------|----------------|--------------|
+| Ruff Format | Python | pip / binary | ✅ Yes |
+| Prettier | JavaScript, TypeScript, CSS, HTML, JSON | npm | ✅ Yes |
+| rustfmt | Rust | system (rustup) | ❌ No (Cargo workspace) |
+| google-java-format | Java | binary (jar) | ❌ No |
+
+Formatting tools check code style and whitespace conventions. Ruff Format and Prettier support partial scanning via the `files` parameter.
+
+### 9.3 Type Checking
 
 | Tool | Languages | Install Method | Partial Scan |
 |------|-----------|----------------|--------------|
@@ -1451,7 +1498,7 @@ All linting tools support partial scanning via the `files` parameter, except Cli
 
 **Note:** TypeScript (tsc) does not support file-level CLI arguments - it uses `tsconfig.json` to determine what to check. SpotBugs requires compiled Java classes (run `mvn compile` or `gradle build` first). cargo check operates on the full Cargo workspace.
 
-### 9.3 Security
+### 9.4 Security
 
 | Tool | Domains | Install Method | Partial Scan |
 |------|---------|----------------|--------------|
@@ -1461,7 +1508,7 @@ All linting tools support partial scanning via the `files` parameter, except Cli
 
 **Note:** OpenGrep (SAST) supports partial scanning and scans only changed files by default. Trivy (SCA) always scans the entire project - dependency analysis requires full project context. Checkov (IaC) also scans project-wide.
 
-### 9.4 Testing
+### 9.5 Testing
 
 | Tool | Languages | Install Method | Partial Scan |
 |------|-----------|----------------|--------------|
@@ -1475,7 +1522,7 @@ All linting tools support partial scanning via the `files` parameter, except Cli
 
 **Note:** While most test runners support running specific test files, running the full test suite is recommended before commits to catch regressions. Maven and Gradle run the full test suite by default. cargo test runs all unit tests, integration tests, and doc tests in the Cargo workspace.
 
-### 9.5 Coverage
+### 9.6 Coverage
 
 | Tool | Languages | Install Method | Partial Scan |
 |------|-----------|----------------|--------------|
@@ -1497,7 +1544,7 @@ pipeline:
     extra_args: ["-DskipITs", "-Ddocker.skip=true"]
 ```
 
-### 9.6 Duplication Detection
+### 9.7 Duplication Detection
 
 | Tool | Languages | Install Method | Partial Scan |
 |------|-----------|----------------|--------------|
@@ -1534,7 +1581,7 @@ pipeline:
 - [x] Additional tool plugins:
   - [x] Biome (JS/TS)
   - [x] Checkov (IaC)
-  - [x] Checkstyle (Java)
+  - [x] Checkstyle (Java linting)
   - [x] Jest (JS/TS testing)
   - [x] Karma (Angular testing)
   - [x] Playwright (E2E testing)

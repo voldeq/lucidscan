@@ -41,6 +41,7 @@ from lucidshark.core.models import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_config(**overrides: object) -> LucidSharkConfig:
     """Build a minimal LucidSharkConfig with sensible defaults."""
     defaults: dict[str, object] = dict(
@@ -103,6 +104,7 @@ def _make_issue(
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestScanCommandBasic:
     """Basic ScanCommand properties and guard clauses."""
@@ -276,9 +278,7 @@ class TestScanCommandExecute:
         assert result == EXIT_SUCCESS
 
     @patch.object(ScanCommand, "_run_scan")
-    def test_execute_file_not_found(
-        self, mock_run_scan, tmp_path: Path
-    ) -> None:
+    def test_execute_file_not_found(self, mock_run_scan, tmp_path: Path) -> None:
         mock_run_scan.side_effect = FileNotFoundError("Path does not exist")
 
         cmd = ScanCommand(version="1.0.0")
@@ -289,9 +289,7 @@ class TestScanCommandExecute:
             cmd.execute(args, config)
 
     @patch.object(ScanCommand, "_run_scan")
-    def test_execute_unexpected_error(
-        self, mock_run_scan, tmp_path: Path
-    ) -> None:
+    def test_execute_unexpected_error(self, mock_run_scan, tmp_path: Path) -> None:
         mock_run_scan.side_effect = RuntimeError("Unexpected")
 
         cmd = ScanCommand(version="1.0.0")
@@ -302,9 +300,7 @@ class TestScanCommandExecute:
             cmd.execute(args, config)
 
     @patch.object(ScanCommand, "_dry_run", return_value=EXIT_SUCCESS)
-    def test_execute_dry_run_delegates(
-        self, mock_dry_run, tmp_path: Path
-    ) -> None:
+    def test_execute_dry_run_delegates(self, mock_dry_run, tmp_path: Path) -> None:
         cmd = ScanCommand(version="1.0.0")
         config = _make_config()
         args = _make_args(tmp_path, dry_run=True)
@@ -416,8 +412,11 @@ class TestScanCommandRunScan:
 
         assert result.issues == []
         mock_runner.run_tests.assert_called_once_with(
-            mock_ctx, exclude_patterns=None,
-            command=None, pre_command=None, post_command=None,
+            mock_ctx,
+            exclude_patterns=None,
+            command=None,
+            pre_command=None,
+            post_command=None,
         )
 
     def test_run_scan_coverage_without_testing_returns_error(
@@ -478,8 +477,11 @@ class TestScanCommandRunScan:
         result = cmd._run_scan(args, config)
 
         mock_runner.run_tests.assert_called_once_with(
-            mock_ctx, exclude_patterns=None,
-            command=None, pre_command=None, post_command=None,
+            mock_ctx,
+            exclude_patterns=None,
+            command=None,
+            pre_command=None,
+            post_command=None,
         )
         mock_runner.run_coverage.assert_called_once()
         assert result.coverage_summary is not None
@@ -709,52 +711,40 @@ class TestCheckDomainThresholds:
         assert self._cmd()._check_domain_thresholds(result, config, args) is False
 
     def test_threshold_any_with_issues(self) -> None:
-        config = _make_config(
-            fail_on=FailOnConfig(linting="any")
-        )
+        config = _make_config(fail_on=FailOnConfig(linting="any"))
         result = ScanResult(issues=[_make_issue(domain=ToolDomain.LINTING)])
         args = self._make_args()
         assert self._cmd()._check_domain_thresholds(result, config, args) is True
 
     def test_threshold_any_no_issues(self) -> None:
-        config = _make_config(
-            fail_on=FailOnConfig(linting="any")
-        )
+        config = _make_config(fail_on=FailOnConfig(linting="any"))
         result = ScanResult(issues=[])
         args = self._make_args()
         assert self._cmd()._check_domain_thresholds(result, config, args) is False
 
     def test_threshold_error_with_high_severity(self) -> None:
-        config = _make_config(
-            fail_on=FailOnConfig(linting="error")
-        )
+        config = _make_config(fail_on=FailOnConfig(linting="error"))
         issue = _make_issue(domain=ToolDomain.LINTING, severity=Severity.HIGH)
         result = ScanResult(issues=[issue])
         args = self._make_args()
         assert self._cmd()._check_domain_thresholds(result, config, args) is True
 
     def test_threshold_error_with_low_severity(self) -> None:
-        config = _make_config(
-            fail_on=FailOnConfig(linting="error")
-        )
+        config = _make_config(fail_on=FailOnConfig(linting="error"))
         issue = _make_issue(domain=ToolDomain.LINTING, severity=Severity.LOW)
         result = ScanResult(issues=[issue])
         args = self._make_args()
         assert self._cmd()._check_domain_thresholds(result, config, args) is False
 
     def test_threshold_none_never_fails(self) -> None:
-        config = _make_config(
-            fail_on=FailOnConfig(linting="none")
-        )
+        config = _make_config(fail_on=FailOnConfig(linting="none"))
         issue = _make_issue(domain=ToolDomain.LINTING, severity=Severity.CRITICAL)
         result = ScanResult(issues=[issue])
         args = self._make_args()
         assert self._cmd()._check_domain_thresholds(result, config, args) is False
 
     def test_threshold_above_threshold_duplication_fail(self) -> None:
-        config = _make_config(
-            fail_on=FailOnConfig(duplication="above_threshold")
-        )
+        config = _make_config(fail_on=FailOnConfig(duplication="above_threshold"))
         issue = _make_issue(domain=ToolDomain.DUPLICATION)
         result = ScanResult(issues=[issue])
         result.duplication_summary = DuplicationSummary(
@@ -764,9 +754,7 @@ class TestCheckDomainThresholds:
         assert self._cmd()._check_domain_thresholds(result, config, args) is True
 
     def test_threshold_above_threshold_duplication_pass(self) -> None:
-        config = _make_config(
-            fail_on=FailOnConfig(duplication="above_threshold")
-        )
+        config = _make_config(fail_on=FailOnConfig(duplication="above_threshold"))
         issue = _make_issue(domain=ToolDomain.DUPLICATION)
         result = ScanResult(issues=[issue])
         result.duplication_summary = DuplicationSummary(
@@ -776,9 +764,7 @@ class TestCheckDomainThresholds:
         assert self._cmd()._check_domain_thresholds(result, config, args) is False
 
     def test_threshold_below_threshold_coverage_fail(self) -> None:
-        config = _make_config(
-            fail_on=FailOnConfig(coverage="below_threshold")
-        )
+        config = _make_config(fail_on=FailOnConfig(coverage="below_threshold"))
         issue = _make_issue(domain=ToolDomain.COVERAGE)
         result = ScanResult(issues=[issue])
         result.coverage_summary = CoverageSummary(
@@ -788,9 +774,7 @@ class TestCheckDomainThresholds:
         assert self._cmd()._check_domain_thresholds(result, config, args) is True
 
     def test_threshold_below_threshold_coverage_pass(self) -> None:
-        config = _make_config(
-            fail_on=FailOnConfig(coverage="below_threshold")
-        )
+        config = _make_config(fail_on=FailOnConfig(coverage="below_threshold"))
         issue = _make_issue(domain=ToolDomain.COVERAGE)
         result = ScanResult(issues=[issue])
         result.coverage_summary = CoverageSummary(
@@ -800,9 +784,7 @@ class TestCheckDomainThresholds:
         assert self._cmd()._check_domain_thresholds(result, config, args) is False
 
     def test_threshold_percentage_duplication(self) -> None:
-        config = _make_config(
-            fail_on=FailOnConfig(duplication="5%")
-        )
+        config = _make_config(fail_on=FailOnConfig(duplication="5%"))
         issue = _make_issue(domain=ToolDomain.DUPLICATION)
         result = ScanResult(issues=[issue])
         result.duplication_summary = DuplicationSummary(
@@ -812,9 +794,7 @@ class TestCheckDomainThresholds:
         assert self._cmd()._check_domain_thresholds(result, config, args) is True
 
     def test_threshold_percentage_duplication_under(self) -> None:
-        config = _make_config(
-            fail_on=FailOnConfig(duplication="10%")
-        )
+        config = _make_config(fail_on=FailOnConfig(duplication="10%"))
         issue = _make_issue(domain=ToolDomain.DUPLICATION)
         result = ScanResult(issues=[issue])
         result.duplication_summary = DuplicationSummary(
@@ -824,9 +804,7 @@ class TestCheckDomainThresholds:
         assert self._cmd()._check_domain_thresholds(result, config, args) is False
 
     def test_threshold_invalid_percentage(self) -> None:
-        config = _make_config(
-            fail_on=FailOnConfig(duplication="abc%")
-        )
+        config = _make_config(fail_on=FailOnConfig(duplication="abc%"))
         issue = _make_issue(domain=ToolDomain.DUPLICATION)
         result = ScanResult(issues=[issue])
         result.duplication_summary = DuplicationSummary()
@@ -835,9 +813,7 @@ class TestCheckDomainThresholds:
 
     @patch("lucidshark.cli.commands.scan.check_severity_threshold", return_value=True)
     def test_threshold_severity_string(self, mock_check) -> None:
-        config = _make_config(
-            fail_on=FailOnConfig(security="high")
-        )
+        config = _make_config(fail_on=FailOnConfig(security="high"))
         issue = _make_issue(domain=ScanDomain.SCA, severity=Severity.HIGH)
         result = ScanResult(issues=[issue])
         args = self._make_args()
@@ -845,11 +821,14 @@ class TestCheckDomainThresholds:
 
     def test_scan_domain_maps_to_security(self) -> None:
         """SCA, CONTAINER, IAC, SAST issues all map to 'security' domain."""
-        config = _make_config(
-            fail_on=FailOnConfig(security="any")
-        )
+        config = _make_config(fail_on=FailOnConfig(security="any"))
         args = self._make_args()
-        for domain in [ScanDomain.SCA, ScanDomain.CONTAINER, ScanDomain.IAC, ScanDomain.SAST]:
+        for domain in [
+            ScanDomain.SCA,
+            ScanDomain.CONTAINER,
+            ScanDomain.IAC,
+            ScanDomain.SAST,
+        ]:
             issue = _make_issue(domain=domain)
             result = ScanResult(issues=[issue])
             assert self._cmd()._check_domain_thresholds(result, config, args) is True
@@ -896,7 +875,9 @@ class TestDryRun:
 
     def test_dry_run_no_domains(self, tmp_path: Path, capsys) -> None:
         cmd = ScanCommand(version="1.0.0")
-        config = _make_config(pipeline=PipelineConfig(linting=DomainPipelineConfig(enabled=False)))
+        config = _make_config(
+            pipeline=PipelineConfig(linting=DomainPipelineConfig(enabled=False))
+        )
         args = _make_args(tmp_path)
 
         cmd._dry_run(args, config)
@@ -1083,9 +1064,7 @@ class TestIgnoreIssuesIntegration:
 
     def test_ignored_issues_excluded_from_domain_thresholds(self) -> None:
         """Ignored issues should not count in domain threshold checks."""
-        config = _make_config(
-            fail_on=FailOnConfig(linting="any")
-        )
+        config = _make_config(fail_on=FailOnConfig(linting="any"))
         issue = _make_issue(domain=ToolDomain.LINTING)
         issue.ignored = True
         result = ScanResult(issues=[issue])
@@ -1103,9 +1082,7 @@ class TestIgnoreIssuesIntegration:
 
     def test_mixed_ignored_and_active_in_domain_thresholds(self) -> None:
         """Mix of ignored and active issues - only active should trigger."""
-        config = _make_config(
-            fail_on=FailOnConfig(linting="any")
-        )
+        config = _make_config(fail_on=FailOnConfig(linting="any"))
         ignored_issue = _make_issue(domain=ToolDomain.LINTING)
         ignored_issue.ignored = True
         active_issue = _make_issue(domain=ToolDomain.LINTING)

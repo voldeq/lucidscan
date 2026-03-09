@@ -463,6 +463,7 @@ class TestSpotBugsBinaryDetection:
             with patch.dict("os.environ", {}, clear=False):
                 # Remove SPOTBUGS_HOME if set
                 import os
+
                 env_backup = os.environ.pop("SPOTBUGS_HOME", None)
                 try:
                     result = checker.ensure_binary()
@@ -498,6 +499,7 @@ class TestSpotBugsBinaryDetection:
             checker = SpotBugsChecker()
             with patch.dict("os.environ", {}, clear=False):
                 import os
+
                 env_backup = os.environ.pop("SPOTBUGS_HOME", None)
                 try:
                     result = checker.ensure_binary()
@@ -519,6 +521,7 @@ class TestSpotBugsBinaryDetection:
         with patch.object(checker, "_search_for_spotbugs_jar", return_value=None):
             with patch.dict("os.environ", {}, clear=False):
                 import os
+
                 env_backup = os.environ.pop("SPOTBUGS_HOME", None)
                 try:
                     # Also patch Path.exists for the direct jar checks in common paths

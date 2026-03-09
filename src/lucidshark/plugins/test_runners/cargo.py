@@ -103,17 +103,14 @@ class CargoTestRunner(TestRunnerPlugin):
             return TestResult(tool="cargo")
 
         use_tarpaulin = (
-            ToolDomain.COVERAGE in context.enabled_domains
-            and self._has_tarpaulin()
+            ToolDomain.COVERAGE in context.enabled_domains and self._has_tarpaulin()
         )
 
         if use_tarpaulin:
             result = self._run_with_tarpaulin(cargo, context)
             if result is not None:
                 return result
-            LOGGER.warning(
-                "Tarpaulin execution failed, falling back to cargo test"
-            )
+            LOGGER.warning("Tarpaulin execution failed, falling back to cargo test")
 
         return self._run_cargo_test(cargo, context)
 
@@ -171,9 +168,7 @@ class CargoTestRunner(TestRunnerPlugin):
 
         return self._parse_test_output(combined, context.project_root)
 
-    def _run_cargo_test(
-        self, cargo: Path, context: ScanContext
-    ) -> TestResult:
+    def _run_cargo_test(self, cargo: Path, context: ScanContext) -> TestResult:
         """Run tests via plain cargo test.
 
         Args:
@@ -251,9 +246,7 @@ class CargoTestRunner(TestRunnerPlugin):
         failed_tests = self._extract_failed_tests(output)
 
         for test_name, failure_message in failed_tests:
-            issue = self._failure_to_issue(
-                test_name, failure_message, project_root
-            )
+            issue = self._failure_to_issue(test_name, failure_message, project_root)
             if issue:
                 result.issues.append(issue)
 
@@ -324,9 +317,17 @@ class CargoTestRunner(TestRunnerPlugin):
             line_number = self._extract_line_from_message(failure_message)
 
             # Truncate message for title
-            short_msg = failure_message[:80] + "..." if len(failure_message) > 80 else failure_message
+            short_msg = (
+                failure_message[:80] + "..."
+                if len(failure_message) > 80
+                else failure_message
+            )
             short_msg = short_msg.replace("\n", " ")
-            title = f"{test_name} FAILED: {short_msg}" if short_msg else f"{test_name} FAILED"
+            title = (
+                f"{test_name} FAILED: {short_msg}"
+                if short_msg
+                else f"{test_name} FAILED"
+            )
 
             issue_id = self._generate_issue_id(test_name, failure_message)
 
@@ -351,9 +352,7 @@ class CargoTestRunner(TestRunnerPlugin):
             LOGGER.warning(f"Failed to parse test failure: {e}")
             return None
 
-    def _resolve_test_file(
-        self, test_name: str, project_root: Path
-    ) -> Optional[Path]:
+    def _resolve_test_file(self, test_name: str, project_root: Path) -> Optional[Path]:
         """Resolve test file path from test name.
 
         Args:

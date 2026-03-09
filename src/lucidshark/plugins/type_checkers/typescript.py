@@ -104,8 +104,9 @@ class TypeScriptChecker(TypeCheckerPlugin):
         # Build command
         cmd = [
             str(binary),
-            "--noEmit",       # Don't emit compiled files
-            "--pretty", "false",  # Plain output for parsing
+            "--noEmit",  # Don't emit compiled files
+            "--pretty",
+            "false",  # Plain output for parsing
         ]
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
@@ -197,7 +198,9 @@ class TypeScriptChecker(TypeCheckerPlugin):
                 file_path = project_root / file_path
 
             # Generate deterministic ID
-            issue_id = self._generate_issue_id(code, file_path_str, line, column, message)
+            issue_id = self._generate_issue_id(
+                code, file_path_str, line, column, message
+            )
 
             return UnifiedIssue(
                 id=issue_id,

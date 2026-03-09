@@ -48,7 +48,7 @@ class JestRunner(TestRunnerPlugin):
             "Jest is not installed. Install it with:\n"
             "  npm install jest --save-dev\n"
             "  OR\n"
-            "  npm install -g jest"
+            "  npm install -g jest",
         )
 
     def run_tests(self, context: ScanContext) -> TestResult:

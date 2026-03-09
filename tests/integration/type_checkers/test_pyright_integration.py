@@ -110,8 +110,7 @@ class TestPyrightTypeChecking:
             # Create a file with multiple type errors
             test_file = tmpdir_path / "multiple.py"
             test_file.write_text(
-                "x: int = 'string'  # Error 1\n"
-                "y: str = 123  # Error 2\n"
+                "x: int = 'string'  # Error 1\ny: str = 123  # Error 2\n"
             )
 
             context = ScanContext(

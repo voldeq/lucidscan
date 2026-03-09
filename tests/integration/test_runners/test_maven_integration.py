@@ -20,9 +20,7 @@ class TestMavenAvailability:
     """Tests for Maven availability."""
 
     @maven_available
-    def test_ensure_binary_finds_maven(
-        self, maven_runner: MavenTestRunner
-    ) -> None:
+    def test_ensure_binary_finds_maven(self, maven_runner: MavenTestRunner) -> None:
         """Test that ensure_binary finds Maven if installed."""
         binary_path = maven_runner.ensure_binary()
         assert binary_path.exists()
@@ -161,7 +159,9 @@ class TestMavenXmlParsing:
 
         # Only check if tests were actually run
         if result.total > 0:
-            assert surefire_dir.exists(), "Maven should create surefire-reports directory"
+            assert surefire_dir.exists(), (
+                "Maven should create surefire-reports directory"
+            )
 
             # Check for XML report files
             xml_files = list(surefire_dir.glob("TEST-*.xml"))

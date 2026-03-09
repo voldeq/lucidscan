@@ -209,9 +209,7 @@ def get_changed_files_since_branch(
                     changed_files.add(file_path)
 
         committed_count = len(changed_files)
-        LOGGER.debug(
-            f"Found {committed_count} files changed since {base_branch}"
-        )
+        LOGGER.debug(f"Found {committed_count} files changed since {base_branch}")
 
         # Also include uncommitted local changes (for local development)
         if include_uncommitted:
@@ -240,9 +238,7 @@ def get_changed_files_since_branch(
 
             uncommitted_added = len(changed_files) - uncommitted_before
             if uncommitted_added > 0:
-                LOGGER.debug(
-                    f"Also including {uncommitted_added} uncommitted file(s)"
-                )
+                LOGGER.debug(f"Also including {uncommitted_added} uncommitted file(s)")
 
         return sorted(changed_files)
 

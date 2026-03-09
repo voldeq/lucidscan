@@ -59,9 +59,7 @@ class TestPipelineExecutor:
         self, config: LucidSharkConfig, context: ScanContext
     ) -> None:
         """Test that execute returns a ScanResult."""
-        with patch.object(
-            PipelineExecutor, "_execute_scanners"
-        ) as mock_scan:
+        with patch.object(PipelineExecutor, "_execute_scanners") as mock_scan:
             mock_scan.return_value = ([], [])
 
             executor = PipelineExecutor(config, lucidshark_version="1.0.0")
@@ -75,9 +73,7 @@ class TestPipelineExecutor:
         self, config: LucidSharkConfig, context: ScanContext
     ) -> None:
         """Test that execute includes proper metadata."""
-        with patch.object(
-            PipelineExecutor, "_execute_scanners"
-        ) as mock_scan:
+        with patch.object(PipelineExecutor, "_execute_scanners") as mock_scan:
             mock_scan.return_value = ([], [])
 
             executor = PipelineExecutor(config, lucidshark_version="1.0.0")
@@ -102,9 +98,7 @@ class TestPipelineExecutor:
             description="Test issue",
         )
 
-        with patch.object(
-            PipelineExecutor, "_execute_scanners"
-        ) as mock_scan:
+        with patch.object(PipelineExecutor, "_execute_scanners") as mock_scan:
             mock_scan.return_value = ([mock_issue], [])
 
             executor = PipelineExecutor(config)
@@ -114,9 +108,7 @@ class TestPipelineExecutor:
             assert result.summary.total == 1
             assert result.summary.by_severity.get("high", 0) == 1
 
-    def test_enrichers_run_in_order(
-        self, tmp_path: Path
-    ) -> None:
+    def test_enrichers_run_in_order(self, tmp_path: Path) -> None:
         """Test that enrichers execute in configured order."""
         config = LucidSharkConfig(
             pipeline=PipelineConfig(enrichers=["first", "second"]),
@@ -143,11 +135,12 @@ class TestPipelineExecutor:
             enricher.enrich = enrich_fn
             return enricher
 
-        with patch.object(
-            PipelineExecutor, "_execute_scanners"
-        ) as mock_scan, patch(
-            "lucidshark.plugins.enrichers.get_enricher_plugin",
-            side_effect=mock_enricher,
+        with (
+            patch.object(PipelineExecutor, "_execute_scanners") as mock_scan,
+            patch(
+                "lucidshark.plugins.enrichers.get_enricher_plugin",
+                side_effect=mock_enricher,
+            ),
         ):
             mock_scan.return_value = ([], [])
 
@@ -164,11 +157,12 @@ class TestPipelineExecutor:
             enricher_order=["missing", "also_missing"]
         )
 
-        with patch.object(
-            PipelineExecutor, "_execute_scanners"
-        ) as mock_scan, patch(
-            "lucidshark.plugins.enrichers.get_enricher_plugin",
-            return_value=None,
+        with (
+            patch.object(PipelineExecutor, "_execute_scanners") as mock_scan,
+            patch(
+                "lucidshark.plugins.enrichers.get_enricher_plugin",
+                return_value=None,
+            ),
         ):
             mock_scan.return_value = ([], [])
 
@@ -188,11 +182,12 @@ class TestPipelineExecutor:
         failing_enricher.name = "failing"
         failing_enricher.enrich.side_effect = RuntimeError("Enricher failed")
 
-        with patch.object(
-            PipelineExecutor, "_execute_scanners"
-        ) as mock_scan, patch(
-            "lucidshark.plugins.enrichers.get_enricher_plugin",
-            return_value=failing_enricher,
+        with (
+            patch.object(PipelineExecutor, "_execute_scanners") as mock_scan,
+            patch(
+                "lucidshark.plugins.enrichers.get_enricher_plugin",
+                return_value=failing_enricher,
+            ),
         ):
             mock_scan.return_value = ([], [])
 
@@ -213,9 +208,7 @@ class TestPipelineExecutor:
             success=True,
         )
 
-        with patch.object(
-            PipelineExecutor, "_execute_scanners"
-        ) as mock_scan:
+        with patch.object(PipelineExecutor, "_execute_scanners") as mock_scan:
             mock_scan.return_value = ([], [scanner_result])
 
             executor = PipelineExecutor(config)

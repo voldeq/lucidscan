@@ -171,7 +171,9 @@ def detect_frameworks(project_root: Path) -> tuple[list[str], list[str]]:
             test_frameworks.append("built-in")
 
     # Check for pytest.ini or conftest.py as indicators
-    if (project_root / "pytest.ini").exists() or (project_root / "conftest.py").exists():
+    if (project_root / "pytest.ini").exists() or (
+        project_root / "conftest.py"
+    ).exists():
         if "pytest" not in test_frameworks:
             test_frameworks.append("pytest")
 
@@ -213,7 +215,11 @@ def _get_python_dependencies(project_root: Path) -> set[str]:
             pass
 
     # Check requirements-dev.txt or requirements_dev.txt
-    for dev_req in ["requirements-dev.txt", "requirements_dev.txt", "dev-requirements.txt"]:
+    for dev_req in [
+        "requirements-dev.txt",
+        "requirements_dev.txt",
+        "dev-requirements.txt",
+    ]:
         dev_requirements = project_root / dev_req
         if dev_requirements.exists():
             try:
@@ -240,32 +246,29 @@ def _parse_pyproject_deps(content: str) -> set[str]:
     # In dependencies array or optional-dependencies
 
     # Find dependencies section
-    dep_section = re.search(
-        r'dependencies\s*=\s*\[(.*?)\]',
-        content,
-        re.DOTALL
-    )
+    dep_section = re.search(r"dependencies\s*=\s*\[(.*?)\]", content, re.DOTALL)
     if dep_section:
         deps.update(_extract_package_names(dep_section.group(1)))
 
     # Find optional-dependencies (all groups)
     opt_deps = re.findall(
-        r'\[project\.optional-dependencies\.[^\]]+\]\s*\n([^\[]+)',
-        content
+        r"\[project\.optional-dependencies\.[^\]]+\]\s*\n([^\[]+)", content
     )
     for section in opt_deps:
         deps.update(_extract_package_names(section))
 
     # Also check [tool.poetry.dependencies] for Poetry projects
     poetry_deps = re.search(
-        r'\[tool\.poetry\.dependencies\](.*?)(?=\[|$)',
-        content,
-        re.DOTALL
+        r"\[tool\.poetry\.dependencies\](.*?)(?=\[|$)", content, re.DOTALL
     )
     if poetry_deps:
         # Poetry uses package = "version" format
-        package_matches = re.findall(r'^(\w[\w-]*)\s*=', poetry_deps.group(1), re.MULTILINE)
-        deps.update(p.lower().replace("-", "_").replace("_", "-") for p in package_matches)
+        package_matches = re.findall(
+            r"^(\w[\w-]*)\s*=", poetry_deps.group(1), re.MULTILINE
+        )
+        deps.update(
+            p.lower().replace("-", "_").replace("_", "-") for p in package_matches
+        )
 
     return deps
 
@@ -285,7 +288,7 @@ def _extract_package_names(text: str) -> set[str]:
     matches = re.findall(r'["\']([a-zA-Z][\w.-]*)', text)
     for match in matches:
         # Normalize: remove extras, convert to lowercase
-        package = re.sub(r'\[.*?\]', '', match).lower()
+        package = re.sub(r"\[.*?\]", "", match).lower()
         # Normalize underscores and hyphens
         package = package.replace("_", "-")
         deps.add(package)
@@ -311,7 +314,7 @@ def _parse_requirements_txt(content: str) -> set[str]:
             continue
 
         # Extract package name (before any version specifier)
-        match = re.match(r'^([a-zA-Z][\w.-]*)', line)
+        match = re.match(r"^([a-zA-Z][\w.-]*)", line)
         if match:
             package = match.group(1).lower().replace("_", "-")
             deps.add(package)

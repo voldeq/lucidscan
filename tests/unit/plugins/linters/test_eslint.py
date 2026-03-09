@@ -15,10 +15,16 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from lucidshark.core.models import ScanContext, Severity, ToolDomain
-from lucidshark.plugins.linters.eslint import ESLintLinter, SEVERITY_MAP, ESLINT_EXTENSIONS
+from lucidshark.plugins.linters.eslint import (
+    ESLintLinter,
+    SEVERITY_MAP,
+    ESLINT_EXTENSIONS,
+)
 
 
-def make_completed_process(returncode: int, stdout: str, stderr: str = "") -> subprocess.CompletedProcess:
+def make_completed_process(
+    returncode: int, stdout: str, stderr: str = ""
+) -> subprocess.CompletedProcess:
     """Create a CompletedProcess for testing."""
     return subprocess.CompletedProcess(
         args=[],
@@ -54,7 +60,9 @@ class TestESLintLinter:
         mock_result.returncode = 0
         mock_result.stdout = "v8.56.0"
 
-        with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/eslint")):
+        with patch.object(
+            linter, "ensure_binary", return_value=Path("/usr/bin/eslint")
+        ):
             with patch("subprocess.run", return_value=mock_result):
                 version = linter.get_version()
                 assert version == "8.56.0"
@@ -110,7 +118,9 @@ class TestESLintLinter:
                 enabled_domains=[],
             )
 
-            with patch.object(linter, "ensure_binary", side_effect=FileNotFoundError("not found")):
+            with patch.object(
+                linter, "ensure_binary", side_effect=FileNotFoundError("not found")
+            ):
                 issues = linter.lint(context)
                 assert issues == []
 
@@ -127,32 +137,39 @@ class TestESLintLinter:
                 enabled_domains=[],
             )
 
-            eslint_output = json.dumps([
-                {
-                    "filePath": "/test/src/file.js",
-                    "messages": [
-                        {
-                            "ruleId": "no-unused-vars",
-                            "severity": 2,
-                            "message": "'x' is assigned a value but never used.",
-                            "line": 10,
-                            "column": 5,
-                            "endLine": 10,
-                            "endColumn": 6,
-                        }
-                    ],
-                    "errorCount": 1,
-                    "warningCount": 0,
-                }
-            ])
+            eslint_output = json.dumps(
+                [
+                    {
+                        "filePath": "/test/src/file.js",
+                        "messages": [
+                            {
+                                "ruleId": "no-unused-vars",
+                                "severity": 2,
+                                "message": "'x' is assigned a value but never used.",
+                                "line": 10,
+                                "column": 5,
+                                "endLine": 10,
+                                "endColumn": 6,
+                            }
+                        ],
+                        "errorCount": 1,
+                        "warningCount": 0,
+                    }
+                ]
+            )
 
             mock_result = make_completed_process(
                 returncode=1,
                 stdout=eslint_output,
             )
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/eslint")):
-                with patch("lucidshark.plugins.linters.eslint.run_with_streaming", return_value=mock_result):
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/eslint")
+            ):
+                with patch(
+                    "lucidshark.plugins.linters.eslint.run_with_streaming",
+                    return_value=mock_result,
+                ):
                     issues = linter.lint(context)
 
                     assert len(issues) == 1
@@ -173,9 +190,13 @@ class TestESLintLinter:
                 enabled_domains=[],
             )
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/eslint")):
-                with patch("lucidshark.plugins.linters.eslint.run_with_streaming",
-                          side_effect=subprocess.TimeoutExpired("eslint", 120)):
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/eslint")
+            ):
+                with patch(
+                    "lucidshark.plugins.linters.eslint.run_with_streaming",
+                    side_effect=subprocess.TimeoutExpired("eslint", 120),
+                ):
                     issues = linter.lint(context)
                     assert issues == []
 
@@ -190,9 +211,13 @@ class TestESLintLinter:
                 enabled_domains=[],
             )
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/eslint")):
-                with patch("lucidshark.plugins.linters.eslint.run_with_streaming",
-                          side_effect=OSError("command failed")):
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/eslint")
+            ):
+                with patch(
+                    "lucidshark.plugins.linters.eslint.run_with_streaming",
+                    side_effect=OSError("command failed"),
+                ):
                     issues = linter.lint(context)
                     assert issues == []
 
@@ -215,12 +240,21 @@ class TestESLintLinter:
 
             mock_result = make_completed_process(returncode=0, stdout="[]")
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/eslint")):
-                with patch("lucidshark.plugins.linters.eslint.run_with_streaming", return_value=mock_result) as mock_run:
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/eslint")
+            ):
+                with patch(
+                    "lucidshark.plugins.linters.eslint.run_with_streaming",
+                    return_value=mock_result,
+                ) as mock_run:
                     linter.lint(context)
                     # Check that src was passed
                     call_args = mock_run.call_args
-                    cmd = call_args.kwargs.get("cmd") or call_args[1].get("cmd") or call_args[0][0]
+                    cmd = (
+                        call_args.kwargs.get("cmd")
+                        or call_args[1].get("cmd")
+                        or call_args[0][0]
+                    )
                     assert str(src_dir) in cmd
 
 
@@ -238,7 +272,9 @@ class TestESLintFix:
                 enabled_domains=[],
             )
 
-            with patch.object(linter, "ensure_binary", side_effect=FileNotFoundError("not found")):
+            with patch.object(
+                linter, "ensure_binary", side_effect=FileNotFoundError("not found")
+            ):
                 result = linter.fix(context)
                 assert result.issues_fixed == 0
 
@@ -255,8 +291,12 @@ class TestESLintFix:
 
             mock_result = make_completed_process(returncode=0, stdout="[]")
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/eslint")):
-                with patch("lucidshark.plugins.linters.eslint.run_with_streaming") as mock_run:
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/eslint")
+            ):
+                with patch(
+                    "lucidshark.plugins.linters.eslint.run_with_streaming"
+                ) as mock_run:
                     # First call (pre_issues lint) succeeds, second call (fix) times out
                     mock_run.side_effect = [
                         mock_result,
@@ -279,31 +319,57 @@ class TestESLintFix:
             )
 
             # Pre-fix: 2 issues
-            pre_output = json.dumps([
-                {
-                    "filePath": "/test/file.js",
-                    "messages": [
-                        {"ruleId": "rule1", "severity": 2, "message": "Issue 1", "line": 1, "column": 1},
-                        {"ruleId": "rule2", "severity": 2, "message": "Issue 2", "line": 2, "column": 1},
-                    ],
-                }
-            ])
+            pre_output = json.dumps(
+                [
+                    {
+                        "filePath": "/test/file.js",
+                        "messages": [
+                            {
+                                "ruleId": "rule1",
+                                "severity": 2,
+                                "message": "Issue 1",
+                                "line": 1,
+                                "column": 1,
+                            },
+                            {
+                                "ruleId": "rule2",
+                                "severity": 2,
+                                "message": "Issue 2",
+                                "line": 2,
+                                "column": 1,
+                            },
+                        ],
+                    }
+                ]
+            )
 
             # Post-fix: 1 issue remaining
-            post_output = json.dumps([
-                {
-                    "filePath": "/test/file.js",
-                    "messages": [
-                        {"ruleId": "rule2", "severity": 2, "message": "Issue 2", "line": 2, "column": 1},
-                    ],
-                }
-            ])
+            post_output = json.dumps(
+                [
+                    {
+                        "filePath": "/test/file.js",
+                        "messages": [
+                            {
+                                "ruleId": "rule2",
+                                "severity": 2,
+                                "message": "Issue 2",
+                                "line": 2,
+                                "column": 1,
+                            },
+                        ],
+                    }
+                ]
+            )
 
             pre_result = make_completed_process(returncode=1, stdout=pre_output)
             post_result = make_completed_process(returncode=1, stdout=post_output)
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/eslint")):
-                with patch("lucidshark.plugins.linters.eslint.run_with_streaming") as mock_run:
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/eslint")
+            ):
+                with patch(
+                    "lucidshark.plugins.linters.eslint.run_with_streaming"
+                ) as mock_run:
                     mock_run.side_effect = [pre_result, post_result]
                     result = linter.fix(context)
                     assert result.issues_fixed == 1
@@ -334,20 +400,22 @@ class TestESLintOutputParsing:
     def test_parse_single_file_single_issue(self) -> None:
         """Test parsing single file with single issue."""
         linter = ESLintLinter()
-        output = json.dumps([
-            {
-                "filePath": "/test/file.js",
-                "messages": [
-                    {
-                        "ruleId": "no-unused-vars",
-                        "severity": 2,
-                        "message": "'x' is not used.",
-                        "line": 5,
-                        "column": 3,
-                    }
-                ],
-            }
-        ])
+        output = json.dumps(
+            [
+                {
+                    "filePath": "/test/file.js",
+                    "messages": [
+                        {
+                            "ruleId": "no-unused-vars",
+                            "severity": 2,
+                            "message": "'x' is not used.",
+                            "line": 5,
+                            "column": 3,
+                        }
+                    ],
+                }
+            ]
+        )
 
         issues = linter._parse_output(output, Path("/project"))
 
@@ -358,20 +426,34 @@ class TestESLintOutputParsing:
     def test_parse_multiple_files(self) -> None:
         """Test parsing multiple files."""
         linter = ESLintLinter()
-        output = json.dumps([
-            {
-                "filePath": "/test/a.js",
-                "messages": [
-                    {"ruleId": "rule1", "severity": 2, "message": "Error 1", "line": 1, "column": 1}
-                ],
-            },
-            {
-                "filePath": "/test/b.js",
-                "messages": [
-                    {"ruleId": "rule2", "severity": 1, "message": "Warning 1", "line": 5, "column": 1}
-                ],
-            },
-        ])
+        output = json.dumps(
+            [
+                {
+                    "filePath": "/test/a.js",
+                    "messages": [
+                        {
+                            "ruleId": "rule1",
+                            "severity": 2,
+                            "message": "Error 1",
+                            "line": 1,
+                            "column": 1,
+                        }
+                    ],
+                },
+                {
+                    "filePath": "/test/b.js",
+                    "messages": [
+                        {
+                            "ruleId": "rule2",
+                            "severity": 1,
+                            "message": "Warning 1",
+                            "line": 5,
+                            "column": 1,
+                        }
+                    ],
+                },
+            ]
+        )
 
         issues = linter._parse_output(output, Path("/project"))
 
@@ -380,12 +462,14 @@ class TestESLintOutputParsing:
     def test_parse_file_with_no_messages(self) -> None:
         """Test parsing file with no messages."""
         linter = ESLintLinter()
-        output = json.dumps([
-            {
-                "filePath": "/test/clean.js",
-                "messages": [],
-            }
-        ])
+        output = json.dumps(
+            [
+                {
+                    "filePath": "/test/clean.js",
+                    "messages": [],
+                }
+            ]
+        )
 
         issues = linter._parse_output(output, Path("/project"))
 
@@ -459,8 +543,12 @@ class TestIssueIdGeneration:
         """Test that issue IDs are deterministic."""
         linter = ESLintLinter()
 
-        id1 = linter._generate_issue_id("no-unused-vars", "test.js", 10, 5, "Variable not used")
-        id2 = linter._generate_issue_id("no-unused-vars", "test.js", 10, 5, "Variable not used")
+        id1 = linter._generate_issue_id(
+            "no-unused-vars", "test.js", 10, 5, "Variable not used"
+        )
+        id2 = linter._generate_issue_id(
+            "no-unused-vars", "test.js", 10, 5, "Variable not used"
+        )
 
         assert id1 == id2
 
@@ -477,7 +565,9 @@ class TestIssueIdGeneration:
         """Test issue ID format with rule."""
         linter = ESLintLinter()
 
-        issue_id = linter._generate_issue_id("no-unused-vars", "test.js", 10, 5, "Message")
+        issue_id = linter._generate_issue_id(
+            "no-unused-vars", "test.js", 10, 5, "Message"
+        )
 
         assert issue_id.startswith("eslint-no-unused-vars-")
 
@@ -578,7 +668,9 @@ class TestMessageToIssue:
             "column": 1,
         }
 
-        issue = linter._message_to_issue(message, "/absolute/path/file.js", Path("/project"))
+        issue = linter._message_to_issue(
+            message, "/absolute/path/file.js", Path("/project")
+        )
 
         assert issue is not None
         # Use Path for cross-platform comparison
@@ -775,7 +867,9 @@ class TestESLintPathFiltering:
                 enabled_domains=[],
             )
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/eslint")):
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/eslint")
+            ):
                 # Should return empty without calling ESLint
                 issues = linter.lint(context)
                 assert issues == []
@@ -797,7 +891,9 @@ class TestESLintPathFiltering:
                 enabled_domains=[],
             )
 
-            with patch.object(linter, "ensure_binary", return_value=Path("/usr/bin/eslint")):
+            with patch.object(
+                linter, "ensure_binary", return_value=Path("/usr/bin/eslint")
+            ):
                 result = linter.fix(context)
                 assert result.issues_fixed == 0
                 assert result.files_modified == 0

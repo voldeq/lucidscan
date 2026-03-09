@@ -108,19 +108,23 @@ class DoctorCommand(Command):
         config_path = find_project_config(project_root)
 
         if config_path is None:
-            results.append(CheckResult(
-                "config_file",
-                False,
-                "No lucidshark.yml found",
-                "Ask Claude Code: \"Autoconfigure LucidShark for this project\"",
-            ))
+            results.append(
+                CheckResult(
+                    "config_file",
+                    False,
+                    "No lucidshark.yml found",
+                    'Ask Claude Code: "Autoconfigure LucidShark for this project"',
+                )
+            )
             return results
 
-        results.append(CheckResult(
-            "config_file",
-            True,
-            f"Found {config_path.name}",
-        ))
+        results.append(
+            CheckResult(
+                "config_file",
+                True,
+                f"Found {config_path.name}",
+            )
+        )
 
         # Validate config
         is_valid, issues = validate_config_file(config_path)
@@ -128,24 +132,30 @@ class DoctorCommand(Command):
         warnings = [i for i in issues if i.severity.value == "warning"]
 
         if errors:
-            results.append(CheckResult(
-                "config_valid",
-                False,
-                f"Configuration has {len(errors)} error(s)",
-                "Run 'lucidshark validate' for details",
-            ))
+            results.append(
+                CheckResult(
+                    "config_valid",
+                    False,
+                    f"Configuration has {len(errors)} error(s)",
+                    "Run 'lucidshark validate' for details",
+                )
+            )
         elif warnings:
-            results.append(CheckResult(
-                "config_valid",
-                True,
-                f"Configuration valid ({len(warnings)} warning(s))",
-            ))
+            results.append(
+                CheckResult(
+                    "config_valid",
+                    True,
+                    f"Configuration valid ({len(warnings)} warning(s))",
+                )
+            )
         else:
-            results.append(CheckResult(
-                "config_valid",
-                True,
-                "Configuration is valid",
-            ))
+            results.append(
+                CheckResult(
+                    "config_valid",
+                    True,
+                    "Configuration is valid",
+                )
+            )
 
         return results
 
@@ -173,24 +183,30 @@ class DoctorCommand(Command):
 
                 status = validate_binary(binary_path)
                 if status == ToolStatus.PRESENT:
-                    results.append(CheckResult(
-                        f"tool_{name}",
-                        True,
-                        f"{name} v{plugin.get_version()} installed",
-                    ))
+                    results.append(
+                        CheckResult(
+                            f"tool_{name}",
+                            True,
+                            f"{name} v{plugin.get_version()} installed",
+                        )
+                    )
                 else:
-                    results.append(CheckResult(
+                    results.append(
+                        CheckResult(
+                            f"tool_{name}",
+                            False,
+                            f"{name} not installed",
+                            f"Will be downloaded on first scan using --{self._get_domain_flag(name)}",
+                        )
+                    )
+            except Exception as e:
+                results.append(
+                    CheckResult(
                         f"tool_{name}",
                         False,
-                        f"{name} not installed",
-                        f"Will be downloaded on first scan using --{self._get_domain_flag(name)}",
-                    ))
-            except Exception as e:
-                results.append(CheckResult(
-                    f"tool_{name}",
-                    False,
-                    f"{name} plugin error: {e}",
-                ))
+                        f"{name} plugin error: {e}",
+                    )
+                )
 
         # Check common linters/type checkers that should be pip-installed
         pip_tools = [
@@ -201,11 +217,13 @@ class DoctorCommand(Command):
 
         for tool, domain in pip_tools:
             if self._check_pip_tool(tool):
-                results.append(CheckResult(
-                    f"tool_{tool}",
-                    True,
-                    f"{tool} available in environment",
-                ))
+                results.append(
+                    CheckResult(
+                        f"tool_{tool}",
+                        True,
+                        f"{tool} available in environment",
+                    )
+                )
             # Don't report missing pip tools as errors - they're optional
 
         return results
@@ -222,40 +240,50 @@ class DoctorCommand(Command):
         # Python version
         py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
         if sys.version_info >= (3, 10):
-            results.append(CheckResult(
-                "python_version",
-                True,
-                f"Python {py_version}",
-            ))
+            results.append(
+                CheckResult(
+                    "python_version",
+                    True,
+                    f"Python {py_version}",
+                )
+            )
         else:
-            results.append(CheckResult(
-                "python_version",
-                False,
-                f"Python {py_version} (requires 3.10+)",
-                "Upgrade to Python 3.10 or later",
-            ))
+            results.append(
+                CheckResult(
+                    "python_version",
+                    False,
+                    f"Python {py_version} (requires 3.10+)",
+                    "Upgrade to Python 3.10 or later",
+                )
+            )
 
         # Platform
-        results.append(CheckResult(
-            "platform",
-            True,
-            f"Platform: {platform_info.os}-{platform_info.arch}",
-        ))
+        results.append(
+            CheckResult(
+                "platform",
+                True,
+                f"Platform: {platform_info.os}-{platform_info.arch}",
+            )
+        )
 
         # Git repository
         if self._is_git_repo():
-            results.append(CheckResult(
-                "git_repo",
-                True,
-                "Git repository detected",
-            ))
+            results.append(
+                CheckResult(
+                    "git_repo",
+                    True,
+                    "Git repository detected",
+                )
+            )
         else:
-            results.append(CheckResult(
-                "git_repo",
-                False,
-                "Not a git repository",
-                "LucidShark works best in a git repository for change detection",
-            ))
+            results.append(
+                CheckResult(
+                    "git_repo",
+                    False,
+                    "Not a git repository",
+                    "LucidShark works best in a git repository for change detection",
+                )
+            )
 
         return results
 
@@ -314,10 +342,12 @@ class DoctorCommand(Command):
         configs_to_check = []
         if project_mcp_json is not None:
             configs_to_check.append((project_mcp_json, "project"))
-        configs_to_check.extend([
-            (project_config, "project"),
-            (global_config, "global"),
-        ])
+        configs_to_check.extend(
+            [
+                (project_config, "project"),
+                (global_config, "global"),
+            ]
+        )
 
         for config_path, level in configs_to_check:
             if config_path.exists():

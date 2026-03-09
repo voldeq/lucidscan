@@ -26,11 +26,14 @@ TYPE_CHECKER_ENTRY_POINT_GROUP = "lucidshark.type_checkers"
 TEST_RUNNER_ENTRY_POINT_GROUP = "lucidshark.test_runners"
 COVERAGE_ENTRY_POINT_GROUP = "lucidshark.coverage"
 DUPLICATION_ENTRY_POINT_GROUP = "lucidshark.duplication"
+FORMATTER_ENTRY_POINT_GROUP = "lucidshark.formatters"
 
 T = TypeVar("T")
 
 
-def discover_plugins(group: str, base_class: Type[T] | None = None) -> Dict[str, Type[T]]:
+def discover_plugins(
+    group: str, base_class: Type[T] | None = None
+) -> Dict[str, Type[T]]:
     """Discover all installed plugins for a given entry point group.
 
     Plugins register themselves in their pyproject.toml:
@@ -125,4 +128,5 @@ def get_all_available_tools() -> Dict[str, List[str]]:
         "test_runners": list_available_plugins(TEST_RUNNER_ENTRY_POINT_GROUP),
         "coverage": list_available_plugins(COVERAGE_ENTRY_POINT_GROUP),
         "duplication": list_available_plugins(DUPLICATION_ENTRY_POINT_GROUP),
+        "formatters": list_available_plugins(FORMATTER_ENTRY_POINT_GROUP),
     }

@@ -92,8 +92,7 @@ class TableReporter(ReporterPlugin):
                 total_line += f" ({result.summary.ignored_total} ignored)"
             lines.append(total_line)
             sev_parts = [
-                f"{sev}: {count}"
-                for sev, count in result.summary.by_severity.items()
+                f"{sev}: {count}" for sev, count in result.summary.by_severity.items()
             ]
             if sev_parts:
                 lines.append(f"By severity: {', '.join(sev_parts)}")
@@ -102,19 +101,21 @@ class TableReporter(ReporterPlugin):
         if result.coverage_summary:
             cs = result.coverage_summary
             status = "PASSED" if cs.passed else "FAILED"
-            lines.append(f"Coverage: {cs.coverage_percentage:.1f}% (threshold: {cs.threshold}%) - {status}")
+            lines.append(
+                f"Coverage: {cs.coverage_percentage:.1f}% (threshold: {cs.threshold}%) - {status}"
+            )
 
         # Duplication summary
         if result.duplication_summary:
             ds = result.duplication_summary
             status = "PASSED" if ds.passed else "FAILED"
-            lines.append(f"Duplication: {ds.duplication_percent:.1f}% (threshold: {ds.threshold}%) - {status}")
+            lines.append(
+                f"Duplication: {ds.duplication_percent:.1f}% (threshold: {ds.threshold}%) - {status}"
+            )
 
         return lines
 
-    def _render_code_table(
-        self, issues: List[UnifiedIssue], lines: List[str]
-    ) -> None:
+    def _render_code_table(self, issues: List[UnifiedIssue], lines: List[str]) -> None:
         """Render issues using FILE:LINE + RULE + DESCRIPTION columns."""
         lines.append(f"{'SEVERITY':<10} {'FILE:LINE':<35} {'RULE':<20} {'DESCRIPTION'}")
         lines.append("-" * 100)

@@ -471,7 +471,9 @@ class TestGetChangedFilesSinceBranch:
         """Test handling of git command timeout."""
         subprocess.run(["git", "init"], cwd=tmp_path, capture_output=True)
 
-        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired(cmd=[], timeout=30)):
+        with patch(
+            "subprocess.run", side_effect=subprocess.TimeoutExpired(cmd=[], timeout=30)
+        ):
             result = get_changed_files_since_branch(tmp_path, "main")
             assert result is None
 
@@ -479,7 +481,9 @@ class TestGetChangedFilesSinceBranch:
         """Test handling of git command error."""
         subprocess.run(["git", "init"], cwd=tmp_path, capture_output=True)
 
-        with patch("subprocess.run", side_effect=subprocess.SubprocessError("git error")):
+        with patch(
+            "subprocess.run", side_effect=subprocess.SubprocessError("git error")
+        ):
             result = get_changed_files_since_branch(tmp_path, "main")
             assert result is None
 
@@ -517,7 +521,9 @@ class TestGetChangedFilesSinceBranch:
         # Add committed change on feature branch
         committed_file = tmp_path / "committed.py"
         committed_file.write_text("print('committed')")
-        subprocess.run(["git", "add", "committed.py"], cwd=tmp_path, capture_output=True)
+        subprocess.run(
+            ["git", "add", "committed.py"], cwd=tmp_path, capture_output=True
+        )
         subprocess.run(
             ["git", "commit", "-m", "add committed file"],
             cwd=tmp_path,
@@ -568,7 +574,9 @@ class TestGetChangedFilesSinceBranch:
         # Add committed change on feature branch
         committed_file = tmp_path / "committed.py"
         committed_file.write_text("print('committed')")
-        subprocess.run(["git", "add", "committed.py"], cwd=tmp_path, capture_output=True)
+        subprocess.run(
+            ["git", "add", "committed.py"], cwd=tmp_path, capture_output=True
+        )
         subprocess.run(
             ["git", "commit", "-m", "add committed file"],
             cwd=tmp_path,
@@ -580,7 +588,9 @@ class TestGetChangedFilesSinceBranch:
         uncommitted_file.write_text("print('uncommitted')")
 
         # Excluding uncommitted changes
-        result = get_changed_files_since_branch(tmp_path, "main", include_uncommitted=False)
+        result = get_changed_files_since_branch(
+            tmp_path, "main", include_uncommitted=False
+        )
         assert result is not None
         assert committed_file in result
         assert uncommitted_file not in result
@@ -685,7 +695,9 @@ class TestGetChangedFilesSinceBranch:
         # Committed change on feature branch
         committed_file = tmp_path / "committed.py"
         committed_file.write_text("print('committed')")
-        subprocess.run(["git", "add", "committed.py"], cwd=tmp_path, capture_output=True)
+        subprocess.run(
+            ["git", "add", "committed.py"], cwd=tmp_path, capture_output=True
+        )
         subprocess.run(
             ["git", "commit", "-m", "add committed"],
             cwd=tmp_path,

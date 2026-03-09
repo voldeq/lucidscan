@@ -136,7 +136,9 @@ class TestJaCoCoMeasureCoverage:
             # Create existing report
             report_dir = project_root / "target" / "site" / "jacoco"
             report_dir.mkdir(parents=True)
-            (report_dir / "jacoco.xml").write_text("""<?xml version="1.0" encoding="UTF-8"?>
+            (
+                report_dir / "jacoco.xml"
+            ).write_text("""<?xml version="1.0" encoding="UTF-8"?>
             <report name="test">
                 <counter type="LINE" missed="20" covered="80"/>
             </report>""")
@@ -368,7 +370,9 @@ class TestJaCoCoParseJacocoReport:
             project_root = Path(tmpdir)
             report_dir = project_root / "target" / "site" / "jacoco"
             report_dir.mkdir(parents=True)
-            (report_dir / "jacoco.xml").write_text("""<?xml version="1.0" encoding="UTF-8"?>
+            (
+                report_dir / "jacoco.xml"
+            ).write_text("""<?xml version="1.0" encoding="UTF-8"?>
             <report name="test">
                 <counter type="LINE" missed="10" covered="90"/>
             </report>""")
@@ -384,7 +388,9 @@ class TestJaCoCoParseJacocoReport:
             project_root = Path(tmpdir)
             report_dir = project_root / "build" / "reports" / "jacoco" / "test"
             report_dir.mkdir(parents=True)
-            (report_dir / "jacocoTestReport.xml").write_text("""<?xml version="1.0" encoding="UTF-8"?>
+            (
+                report_dir / "jacocoTestReport.xml"
+            ).write_text("""<?xml version="1.0" encoding="UTF-8"?>
             <report name="test">
                 <counter type="LINE" missed="30" covered="70"/>
             </report>""")
@@ -411,7 +417,9 @@ class TestJaCoCoParseJacocoReport:
             # Create module with report
             module_dir = project_root / "core" / "target" / "site" / "jacoco"
             module_dir.mkdir(parents=True)
-            (module_dir / "jacoco.xml").write_text("""<?xml version="1.0" encoding="UTF-8"?>
+            (
+                module_dir / "jacoco.xml"
+            ).write_text("""<?xml version="1.0" encoding="UTF-8"?>
             <report name="core">
                 <counter type="LINE" missed="5" covered="95"/>
             </report>""")
@@ -511,7 +519,16 @@ class TestJaCoCoSourcePathResolution:
             )
 
             # Should return best guess path
-            assert resolved == project_root / "src" / "main" / "java" / "com" / "example" / "Missing.java"
+            assert (
+                resolved
+                == project_root
+                / "src"
+                / "main"
+                / "java"
+                / "com"
+                / "example"
+                / "Missing.java"
+            )
 
 
 class TestJaCoCoNoDataIssue:

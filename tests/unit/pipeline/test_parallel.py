@@ -122,19 +122,13 @@ class TestParallelScannerExecutor:
         assert issues == []
         assert results == []
 
-    def test_parallel_execution_aggregates_results(
-        self, context: ScanContext
-    ) -> None:
+    def test_parallel_execution_aggregates_results(self, context: ScanContext) -> None:
         """Test that parallel execution aggregates all scanner results."""
-        with patch(
-            "lucidshark.pipeline.parallel.get_scanner_plugin"
-        ) as mock_get:
+        with patch("lucidshark.pipeline.parallel.get_scanner_plugin") as mock_get:
             mock_get.side_effect = lambda name, **kwargs: MockScanner(name, issues=2)
 
             executor = ParallelScannerExecutor(max_workers=2)
-            issues, results = executor.execute(
-                ["scanner1", "scanner2"], context
-            )
+            issues, results = executor.execute(["scanner1", "scanner2"], context)
 
             assert len(issues) == 4  # 2 scanners x 2 issues each
             assert len(results) == 2
@@ -178,9 +172,7 @@ class TestParallelScannerExecutor:
 
     def test_handles_scanner_exception(self, context: ScanContext) -> None:
         """Test handling of scanner that raises exception."""
-        with patch(
-            "lucidshark.pipeline.parallel.get_scanner_plugin"
-        ) as mock_get:
+        with patch("lucidshark.pipeline.parallel.get_scanner_plugin") as mock_get:
             mock_get.return_value = MockScanner("failing", should_fail=True)
 
             executor = ParallelScannerExecutor()
@@ -190,13 +182,9 @@ class TestParallelScannerExecutor:
             assert results[0].success is False
             assert "failed" in (results[0].error or "")
 
-    def test_scanner_result_includes_version(
-        self, context: ScanContext
-    ) -> None:
+    def test_scanner_result_includes_version(self, context: ScanContext) -> None:
         """Test that scanner results include version info."""
-        with patch(
-            "lucidshark.pipeline.parallel.get_scanner_plugin"
-        ) as mock_get:
+        with patch("lucidshark.pipeline.parallel.get_scanner_plugin") as mock_get:
             mock_get.return_value = MockScanner("test")
 
             executor = ParallelScannerExecutor()
@@ -205,13 +193,9 @@ class TestParallelScannerExecutor:
             assert results[0].scanner_version == "1.0.0"
             assert results[0].domains == ["sca"]
 
-    def test_scanner_result_includes_domains(
-        self, context: ScanContext
-    ) -> None:
+    def test_scanner_result_includes_domains(self, context: ScanContext) -> None:
         """Test that scanner results include domain info."""
-        with patch(
-            "lucidshark.pipeline.parallel.get_scanner_plugin"
-        ) as mock_get:
+        with patch("lucidshark.pipeline.parallel.get_scanner_plugin") as mock_get:
             mock_get.return_value = MockScanner("test")
 
             executor = ParallelScannerExecutor()

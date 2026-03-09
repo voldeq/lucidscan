@@ -124,7 +124,8 @@ class BiomeLinter(LinterPlugin):
         cmd = [
             str(binary),
             "lint",
-            "--reporter", "json",
+            "--reporter",
+            "json",
         ]
 
         # Add paths to check
@@ -201,11 +202,11 @@ class BiomeLinter(LinterPlugin):
         post_issues = self.lint(context)
 
         # Calculate stats
-        files_modified = len(set(
-            str(issue.file_path)
-            for issue in pre_issues
-            if issue not in post_issues
-        ))
+        files_modified = len(
+            set(
+                str(issue.file_path) for issue in pre_issues if issue not in post_issues
+            )
+        )
 
         return FixResult(
             files_modified=files_modified,
@@ -304,7 +305,9 @@ class BiomeLinter(LinterPlugin):
                 rule_id=category or "unknown",
                 title=title,
                 description=message,
-                documentation_url=f"https://biomejs.dev/linter/rules/{category.lower().replace('/', '-')}" if category else None,
+                documentation_url=f"https://biomejs.dev/linter/rules/{category.lower().replace('/', '-')}"
+                if category
+                else None,
                 file_path=file_path,
                 line_start=line_start,
                 line_end=line_end,

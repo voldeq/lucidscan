@@ -132,9 +132,7 @@ class PipelineExecutor:
         for enricher_name in enricher_order:
             enricher = get_enricher_plugin(enricher_name)
             if not enricher:
-                LOGGER.warning(
-                    f"Enricher plugin '{enricher_name}' not found, skipping"
-                )
+                LOGGER.warning(f"Enricher plugin '{enricher_name}' not found, skipping")
                 continue
 
             LOGGER.info(f"Running {enricher_name} enricher...")

@@ -70,7 +70,9 @@ class TestRuffExclusionPatterns:
                 cmd = mock_run.call_args[0][0]
                 assert "--extend-exclude" in cmd
                 # Verify both patterns are added (simplified forms)
-                exclude_indices = [i for i, x in enumerate(cmd) if x == "--extend-exclude"]
+                exclude_indices = [
+                    i for i, x in enumerate(cmd) if x == "--extend-exclude"
+                ]
                 assert len(exclude_indices) == 2
 
     def test_ruff_simplifies_glob_patterns_for_exclude(self) -> None:
@@ -78,13 +80,15 @@ class TestRuffExclusionPatterns:
         from lucidshark.plugins.linters.ruff import RuffLinter
 
         linter = RuffLinter()
-        ignore = IgnorePatterns([
-            "**/.venv/**",
-            "**/node_modules/**",
-            "**/__pycache__/**",
-            "tests/integration/projects/**",
-            "*.log",
-        ])
+        ignore = IgnorePatterns(
+            [
+                "**/.venv/**",
+                "**/node_modules/**",
+                "**/__pycache__/**",
+                "tests/integration/projects/**",
+                "*.log",
+            ]
+        )
         context = ScanContext(
             project_root=Path("/project"),
             paths=[],
@@ -147,7 +151,9 @@ class TestESLintExclusionPatterns:
 
                 cmd = mock_run.call_args[0][0]
                 assert "--ignore-pattern" in cmd
-                ignore_indices = [i for i, x in enumerate(cmd) if x == "--ignore-pattern"]
+                ignore_indices = [
+                    i for i, x in enumerate(cmd) if x == "--ignore-pattern"
+                ]
                 assert len(ignore_indices) == 2
 
 
@@ -228,7 +234,9 @@ class TestTrivyExclusionPatterns:
 
                 cmd = mock_run.call_args[0][0]
                 assert "--skip-files" in cmd
-                skip_files_indices = [i for i, x in enumerate(cmd) if x == "--skip-files"]
+                skip_files_indices = [
+                    i for i, x in enumerate(cmd) if x == "--skip-files"
+                ]
                 assert len(skip_files_indices) == 2
 
 
@@ -298,7 +306,9 @@ class TestCheckovExclusionPatterns:
 class TestCheckstyleExclusionPatterns:
     """Tests for Checkstyle linter exclusion pattern handling."""
 
-    def test_checkstyle_filters_files_with_ignore_patterns(self, tmp_path: Path) -> None:
+    def test_checkstyle_filters_files_with_ignore_patterns(
+        self, tmp_path: Path
+    ) -> None:
         """Test that Checkstyle uses IgnorePatterns.matches() to filter files."""
         from lucidshark.plugins.linters.checkstyle import CheckstyleLinter
 
@@ -361,8 +371,12 @@ class TestCheckstyleExclusionPatterns:
 
         java_file_names = [Path(f).name for f in java_files]
         assert "Main.java" in java_file_names
-        assert "TestFile.java" not in java_file_names  # Should be excluded by **/test/**
-        assert "Generated.java" not in java_file_names  # Should be excluded by generated/**
+        assert (
+            "TestFile.java" not in java_file_names
+        )  # Should be excluded by **/test/**
+        assert (
+            "Generated.java" not in java_file_names
+        )  # Should be excluded by generated/**
 
     def test_checkstyle_handles_no_ignore_patterns(self, tmp_path: Path) -> None:
         """Test that Checkstyle works when no ignore patterns are set."""

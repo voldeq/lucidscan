@@ -154,23 +154,25 @@ class PackageInstaller:
         # Check if [project.optional-dependencies] exists
         if "[project.optional-dependencies]" in content:
             # Check if dev section exists
-            if re.search(r'\[project\.optional-dependencies\].*?dev\s*=', content, re.DOTALL):
+            if re.search(
+                r"\[project\.optional-dependencies\].*?dev\s*=", content, re.DOTALL
+            ):
                 # Add to existing dev list
                 content = self._append_to_dev_deps(content, packages_to_add)
             else:
                 # Add dev section after [project.optional-dependencies]
-                dev_section = f'\ndev = [\n  {self._format_deps(packages_to_add)}\n]'
+                dev_section = f"\ndev = [\n  {self._format_deps(packages_to_add)}\n]"
                 content = content.replace(
                     "[project.optional-dependencies]",
-                    f"[project.optional-dependencies]{dev_section}"
+                    f"[project.optional-dependencies]{dev_section}",
                 )
         elif "[project]" in content:
             # Add optional-dependencies section
-            deps_section = f'\n[project.optional-dependencies]\ndev = [\n  {self._format_deps(packages_to_add)}\n]\n'
+            deps_section = f"\n[project.optional-dependencies]\ndev = [\n  {self._format_deps(packages_to_add)}\n]\n"
             # Find a good place to insert (after dependencies if exists, or at end)
             if "dependencies = [" in content:
                 # Find end of dependencies section
-                match = re.search(r'dependencies\s*=\s*\[.*?\]', content, re.DOTALL)
+                match = re.search(r"dependencies\s*=\s*\[.*?\]", content, re.DOTALL)
                 if match:
                     insert_pos = match.end()
                     content = content[:insert_pos] + deps_section + content[insert_pos:]
@@ -179,7 +181,7 @@ class PackageInstaller:
                 content += deps_section
         else:
             # No project section, add one
-            content += f'\n[project.optional-dependencies]\ndev = [\n  {self._format_deps(packages_to_add)}\n]\n'
+            content += f"\n[project.optional-dependencies]\ndev = [\n  {self._format_deps(packages_to_add)}\n]\n"
 
         pyproject_path.write_text(content)
         LOGGER.info(f"Added {len(added)} tools to {pyproject_path}")
@@ -188,14 +190,14 @@ class PackageInstaller:
     def _append_to_dev_deps(self, content: str, packages: List[str]) -> str:
         """Append packages to existing dev dependencies list."""
         # Find the dev = [...] section and append
-        pattern = r'(dev\s*=\s*\[)(.*?)(\])'
+        pattern = r"(dev\s*=\s*\[)(.*?)(\])"
 
         def replacer(match):
             existing = match.group(2).strip()
             if existing and not existing.endswith(","):
                 existing += ","
             new_deps = self._format_deps(packages)
-            return f'{match.group(1)}{existing}\n  {new_deps}\n{match.group(3)}'
+            return f"{match.group(1)}{existing}\n  {new_deps}\n{match.group(3)}"
 
         return re.sub(pattern, replacer, content, flags=re.DOTALL)
 
@@ -300,9 +302,7 @@ build-backend = "setuptools.build_meta"
                     added.append(tool)
 
         if added:
-            package_json_path.write_text(
-                json.dumps(data, indent=2) + "\n"
-            )
+            package_json_path.write_text(json.dumps(data, indent=2) + "\n")
             LOGGER.info(f"Added {len(added)} tools to {package_json_path}")
 
         return added

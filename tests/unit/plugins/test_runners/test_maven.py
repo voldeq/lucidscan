@@ -229,7 +229,11 @@ class TestMavenRunTests:
             context.project_root = project_root
             context.stream_handler = None
 
-            with patch.object(runner, "_run_maven_tests", return_value=TestResult(passed=5, tool="maven")) as mock:
+            with patch.object(
+                runner,
+                "_run_maven_tests",
+                return_value=TestResult(passed=5, tool="maven"),
+            ) as mock:
                 result = runner.run_tests(context)
                 mock.assert_called_once()
                 assert result.passed == 5
@@ -246,7 +250,11 @@ class TestMavenRunTests:
             context.project_root = project_root
             context.stream_handler = None
 
-            with patch.object(runner, "_run_gradle_tests", return_value=TestResult(passed=3, tool="maven")) as mock:
+            with patch.object(
+                runner,
+                "_run_gradle_tests",
+                return_value=TestResult(passed=3, tool="maven"),
+            ) as mock:
                 result = runner.run_tests(context)
                 mock.assert_called_once()
                 assert result.passed == 3
@@ -263,7 +271,10 @@ class TestMavenRunTests:
             context.project_root = project_root
             context.stream_handler = None
 
-            with patch("lucidshark.plugins.test_runners.maven.run_with_streaming", side_effect=subprocess.TimeoutExpired("cmd", 600)):
+            with patch(
+                "lucidshark.plugins.test_runners.maven.run_with_streaming",
+                side_effect=subprocess.TimeoutExpired("cmd", 600),
+            ):
                 result = runner._run_maven_tests(mvnw, context)
                 assert result.passed == 0
                 assert result.tool == "maven"
@@ -280,7 +291,10 @@ class TestMavenRunTests:
             context.project_root = project_root
             context.stream_handler = None
 
-            with patch("lucidshark.plugins.test_runners.maven.run_with_streaming", side_effect=subprocess.TimeoutExpired("cmd", 600)):
+            with patch(
+                "lucidshark.plugins.test_runners.maven.run_with_streaming",
+                side_effect=subprocess.TimeoutExpired("cmd", 600),
+            ):
                 result = runner._run_gradle_tests(gradlew, context)
                 assert result.passed == 0
                 assert result.tool == "maven"
@@ -301,9 +315,15 @@ class TestMavenRunTests:
             surefire_dir = project_root / "target" / "surefire-reports"
             surefire_dir.mkdir(parents=True)
 
-            with patch("lucidshark.plugins.test_runners.maven.run_with_streaming") as mock_run:
+            with patch(
+                "lucidshark.plugins.test_runners.maven.run_with_streaming"
+            ) as mock_run:
                 runner._run_maven_tests(mvnw, context)
-                cmd = mock_run.call_args[1]["cmd"] if "cmd" in mock_run.call_args[1] else mock_run.call_args[0][0]
+                cmd = (
+                    mock_run.call_args[1]["cmd"]
+                    if "cmd" in mock_run.call_args[1]
+                    else mock_run.call_args[0][0]
+                )
                 assert "jacoco:report" in cmd
 
     def test_run_gradle_tests_always_includes_jacoco(self) -> None:
@@ -318,9 +338,15 @@ class TestMavenRunTests:
             context.project_root = project_root
             context.stream_handler = None
 
-            with patch("lucidshark.plugins.test_runners.maven.run_with_streaming") as mock_run:
+            with patch(
+                "lucidshark.plugins.test_runners.maven.run_with_streaming"
+            ) as mock_run:
                 runner._run_gradle_tests(gradlew, context)
-                cmd = mock_run.call_args[1]["cmd"] if "cmd" in mock_run.call_args[1] else mock_run.call_args[0][0]
+                cmd = (
+                    mock_run.call_args[1]["cmd"]
+                    if "cmd" in mock_run.call_args[1]
+                    else mock_run.call_args[0][0]
+                )
                 assert "jacocoTestReport" in cmd
 
     def test_run_maven_tests_nonzero_exit_still_parses(self) -> None:
@@ -348,7 +374,10 @@ class TestMavenRunTests:
                 </testcase>
             </testsuite>""")
 
-            with patch("lucidshark.plugins.test_runners.maven.run_with_streaming", side_effect=Exception("exit code 1")):
+            with patch(
+                "lucidshark.plugins.test_runners.maven.run_with_streaming",
+                side_effect=Exception("exit code 1"),
+            ):
                 result = runner._run_maven_tests(mvnw, context)
                 assert result.passed == 2
                 assert result.failed == 1
@@ -652,9 +681,9 @@ class TestMavenTestcaseToIssue:
             )
             failure = ET.fromstring(
                 '<failure type="AssertionError" message="expected true">'
-                'java.lang.AssertionError: expected true\n'
-                '    at com.example.MyTest.testMethod(MyTest.java:42)'
-                '</failure>'
+                "java.lang.AssertionError: expected true\n"
+                "    at com.example.MyTest.testMethod(MyTest.java:42)"
+                "</failure>"
             )
 
             issue = runner._testcase_to_issue(testcase, failure, project_root, "failed")
@@ -716,9 +745,7 @@ class TestMavenTestcaseToIssue:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
 
-            testcase = ET.fromstring(
-                '<testcase name="testMethod" time="0.1"/>'
-            )
+            testcase = ET.fromstring('<testcase name="testMethod" time="0.1"/>')
             failure = ET.fromstring(
                 '<failure type="AssertionError" message="err">stack</failure>'
             )
@@ -755,9 +782,7 @@ class TestMavenLineExtraction:
     at java.util.HashMap.get(HashMap.java:100)
         """
 
-        line = runner._extract_line_from_stacktrace(
-            stacktrace, "com.example.MyTest"
-        )
+        line = runner._extract_line_from_stacktrace(stacktrace, "com.example.MyTest")
 
         assert line is None
 

@@ -68,9 +68,7 @@ class TestPythonTypeChecking:
     Note: mypy is installed in the project's venv by the fixture.
     """
 
-    def test_type_checking_scan_completes(
-        self, python_project_with_deps: Path
-    ) -> None:
+    def test_type_checking_scan_completes(self, python_project_with_deps: Path) -> None:
         """Test that type checking scan completes without errors."""
         result = run_lucidshark(python_project_with_deps, domains=["type_checking"])
 
@@ -85,9 +83,7 @@ class TestPythonTypeChecking:
                 assert "severity" in issue
                 assert "file_path" in issue
 
-    def test_type_checking_detects_errors(
-        self, python_project_with_deps: Path
-    ) -> None:
+    def test_type_checking_detects_errors(self, python_project_with_deps: Path) -> None:
         """Test that type checking runs and reports type errors when present."""
         result = run_lucidshark(python_project_with_deps, domains=["type_checking"])
 
@@ -99,8 +95,7 @@ class TestPythonTypeChecking:
         # models.py has intentional type errors; when mypy finds issues, expect models.py
         if type_issues:
             assert any(
-                "models.py" in str(issue.get("file_path", ""))
-                for issue in type_issues
+                "models.py" in str(issue.get("file_path", "")) for issue in type_issues
             ), "Expected type errors in models.py when type checker reports issues"
 
 

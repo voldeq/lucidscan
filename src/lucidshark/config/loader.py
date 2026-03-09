@@ -36,7 +36,12 @@ from lucidshark.bootstrap.paths import get_lucidshark_home
 LOGGER = get_logger(__name__)
 
 # Config file names
-PROJECT_CONFIG_NAMES = [".lucidshark.yml", ".lucidshark.yaml", "lucidshark.yml", "lucidshark.yaml"]
+PROJECT_CONFIG_NAMES = [
+    ".lucidshark.yml",
+    ".lucidshark.yaml",
+    "lucidshark.yml",
+    "lucidshark.yaml",
+]
 GLOBAL_CONFIG_NAME = "config.yml"
 
 # Environment variable pattern: ${VAR} or ${VAR:-default}
@@ -184,7 +189,9 @@ def load_yaml_file(path: Path) -> Dict[str, Any]:
         return {}
 
     if not isinstance(data, dict):
-        raise ConfigError(f"Config file must be a YAML mapping, got {type(data).__name__}")
+        raise ConfigError(
+            f"Config file must be a YAML mapping, got {type(data).__name__}"
+        )
 
     # Expand environment variables
     return expand_env_vars(data)
@@ -244,7 +251,11 @@ def merge_configs(base: Dict[str, Any], overlay: Dict[str, Any]) -> Dict[str, An
     result = base.copy()
 
     for key, overlay_value in overlay.items():
-        if key in result and isinstance(result[key], dict) and isinstance(overlay_value, dict):
+        if (
+            key in result
+            and isinstance(result[key], dict)
+            and isinstance(overlay_value, dict)
+        ):
             result[key] = merge_configs(result[key], overlay_value)
         else:
             result[key] = overlay_value
@@ -268,7 +279,8 @@ def _parse_tool_config(tool_data: Dict[str, Any]) -> ToolConfig:
 
     # Everything else is tool-specific options
     options = {
-        k: v for k, v in tool_data.items()
+        k: v
+        for k, v in tool_data.items()
         if k not in ("name", "config", "strict", "domains")
     }
 
@@ -282,7 +294,7 @@ def _parse_tool_config(tool_data: Dict[str, Any]) -> ToolConfig:
 
 
 def _parse_domain_pipeline_config(
-    domain_data: Optional[Dict[str, Any]]
+    domain_data: Optional[Dict[str, Any]],
 ) -> Optional[DomainPipelineConfig]:
     """Parse a domain pipeline configuration (linting, type_checking, etc.).
 
@@ -312,14 +324,18 @@ def _parse_domain_pipeline_config(
     pre_command = domain_data.get("pre_command")
     post_command = domain_data.get("post_command")
     return DomainPipelineConfig(
-        enabled=enabled, tools=tools, exclude=exclude,
+        enabled=enabled,
+        tools=tools,
+        exclude=exclude,
         threshold_scope=threshold_scope,
-        command=command, pre_command=pre_command, post_command=post_command,
+        command=command,
+        pre_command=pre_command,
+        post_command=post_command,
     )
 
 
 def _parse_coverage_pipeline_config(
-    coverage_data: Optional[Dict[str, Any]]
+    coverage_data: Optional[Dict[str, Any]],
 ) -> Optional[CoveragePipelineConfig]:
     """Parse coverage pipeline configuration.
 
@@ -356,7 +372,7 @@ def _parse_coverage_pipeline_config(
 
 
 def _parse_duplication_pipeline_config(
-    duplication_data: Optional[Dict[str, Any]]
+    duplication_data: Optional[Dict[str, Any]],
 ) -> Optional[DuplicationPipelineConfig]:
     """Parse duplication detection pipeline configuration.
 
@@ -421,7 +437,9 @@ def dict_to_config(data: Dict[str, Any]) -> LucidSharkConfig:
         plugin = domain_data.get("plugin", "")
 
         # Everything else is plugin-specific options
-        options = {k: v for k, v in domain_data.items() if k not in ("enabled", "plugin")}
+        options = {
+            k: v for k, v in domain_data.items() if k not in ("enabled", "plugin")
+        }
 
         scanners[domain] = ScannerDomainConfig(
             enabled=enabled,
@@ -442,7 +460,10 @@ def dict_to_config(data: Dict[str, Any]) -> LucidSharkConfig:
         testing=_parse_domain_pipeline_config(pipeline_data.get("testing")),
         coverage=_parse_coverage_pipeline_config(pipeline_data.get("coverage")),
         security=_parse_domain_pipeline_config(pipeline_data.get("security")),
-        duplication=_parse_duplication_pipeline_config(pipeline_data.get("duplication")),
+        duplication=_parse_duplication_pipeline_config(
+            pipeline_data.get("duplication")
+        ),
+        formatting=_parse_domain_pipeline_config(pipeline_data.get("formatting")),
     )
 
     # Parse project config
@@ -468,6 +489,7 @@ def dict_to_config(data: Dict[str, Any]) -> LucidSharkConfig:
                 testing=fail_on_data.get("testing"),
                 coverage=fail_on_data.get("coverage"),
                 duplication=fail_on_data.get("duplication"),
+                formatting=fail_on_data.get("formatting"),
             )
 
     # Parse ignore_issues
@@ -483,11 +505,13 @@ def dict_to_config(data: Dict[str, Any]) -> LucidSharkConfig:
                 raw_expires = item.get("expires")
                 if raw_expires is not None and not isinstance(raw_expires, str):
                     raw_expires = str(raw_expires)
-                ignore_issues.append(IgnoreIssueEntry(
-                    rule_id=item.get("rule_id", ""),
-                    reason=item.get("reason"),
-                    expires=raw_expires,
-                ))
+                ignore_issues.append(
+                    IgnoreIssueEntry(
+                        rule_id=item.get("rule_id", ""),
+                        reason=item.get("reason"),
+                        expires=raw_expires,
+                    )
+                )
 
     return LucidSharkConfig(
         project=project,

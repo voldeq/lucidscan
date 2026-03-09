@@ -109,6 +109,7 @@ class TestOpenGrepEnsureBinary:
 
     def test_download_triggered(self, scanner: OpenGrepScanner) -> None:
         with patch.object(scanner, "_download_binary") as mock_dl:
+
             def create_binary(dest_dir: Path) -> None:
                 dest_dir.mkdir(parents=True, exist_ok=True)
                 (dest_dir / _OPENGREP_BINARY).touch()
@@ -129,9 +130,7 @@ class TestOpenGrepEnsureBinary:
 
 class TestOpenGrepBinaryName:
     def test_unix(self, scanner: OpenGrepScanner) -> None:
-        with patch(
-            "lucidshark.plugins.scanners.opengrep.get_platform_info"
-        ) as mock_pi:
+        with patch("lucidshark.plugins.scanners.opengrep.get_platform_info") as mock_pi:
             mock_pi.return_value = MagicMock(os="linux", arch="amd64")
             assert scanner._get_binary_name() == "opengrep"
 
@@ -140,10 +139,10 @@ class TestOpenGrepBinaryName:
 
 
 class TestOpenGrepDownloadBinary:
-    def test_unsupported_platform(self, scanner: OpenGrepScanner, tmp_path: Path) -> None:
-        with patch(
-            "lucidshark.plugins.scanners.opengrep.get_platform_info"
-        ) as mock_pi:
+    def test_unsupported_platform(
+        self, scanner: OpenGrepScanner, tmp_path: Path
+    ) -> None:
+        with patch("lucidshark.plugins.scanners.opengrep.get_platform_info") as mock_pi:
             mock_pi.return_value = MagicMock(os="freebsd", arch="amd64")
             with pytest.raises(RuntimeError, match="Unsupported platform"):
                 scanner._download_binary(tmp_path / "dest")
@@ -152,9 +151,7 @@ class TestOpenGrepDownloadBinary:
         self, scanner: OpenGrepScanner, tmp_path: Path
     ) -> None:
         dest = tmp_path / "dest"
-        with patch(
-            "lucidshark.plugins.scanners.opengrep.get_platform_info"
-        ) as mock_pi:
+        with patch("lucidshark.plugins.scanners.opengrep.get_platform_info") as mock_pi:
             mock_pi.return_value = MagicMock(os="linux", arch="amd64")
             with patch(
                 "lucidshark.plugins.scanners.opengrep.secure_urlopen",
@@ -181,16 +178,10 @@ class TestOpenGrepScan:
     def test_calls_run_sast_scan(
         self, scanner: OpenGrepScanner, scan_context: ScanContext
     ) -> None:
-        with patch.object(
-            scanner, "ensure_binary", return_value=Path("/bin/opengrep")
-        ):
-            with patch.object(
-                scanner, "_run_sast_scan", return_value=[]
-            ) as mock_run:
+        with patch.object(scanner, "ensure_binary", return_value=Path("/bin/opengrep")):
+            with patch.object(scanner, "_run_sast_scan", return_value=[]) as mock_run:
                 scanner.scan(scan_context)
-                mock_run.assert_called_once_with(
-                    Path("/bin/opengrep"), scan_context
-                )
+                mock_run.assert_called_once_with(Path("/bin/opengrep"), scan_context)
 
 
 # --- _run_sast_scan ---
@@ -213,9 +204,7 @@ class TestOpenGrepRunSastScan:
             ) as mock_env:
                 mock_env.return_value.__enter__ = MagicMock()
                 mock_env.return_value.__exit__ = MagicMock(return_value=False)
-                issues = scanner._run_sast_scan(
-                    Path("/bin/opengrep"), scan_context
-                )
+                issues = scanner._run_sast_scan(Path("/bin/opengrep"), scan_context)
                 assert len(issues) == 1
                 assert issues[0].rule_id == "python.lang.security.audit.exec-used"
 
@@ -232,9 +221,7 @@ class TestOpenGrepRunSastScan:
             ) as mock_env:
                 mock_env.return_value.__enter__ = MagicMock()
                 mock_env.return_value.__exit__ = MagicMock(return_value=False)
-                issues = scanner._run_sast_scan(
-                    Path("/bin/opengrep"), scan_context
-                )
+                issues = scanner._run_sast_scan(Path("/bin/opengrep"), scan_context)
                 assert issues == []
 
     def test_nonzero_exit_with_stderr(
@@ -250,14 +237,10 @@ class TestOpenGrepRunSastScan:
             ) as mock_env:
                 mock_env.return_value.__enter__ = MagicMock()
                 mock_env.return_value.__exit__ = MagicMock(return_value=False)
-                issues = scanner._run_sast_scan(
-                    Path("/bin/opengrep"), scan_context
-                )
+                issues = scanner._run_sast_scan(Path("/bin/opengrep"), scan_context)
                 assert issues == []
 
-    def test_timeout(
-        self, scanner: OpenGrepScanner, scan_context: ScanContext
-    ) -> None:
+    def test_timeout(self, scanner: OpenGrepScanner, scan_context: ScanContext) -> None:
         with patch(
             "lucidshark.plugins.scanners.opengrep.run_with_streaming",
             side_effect=subprocess.TimeoutExpired("opengrep", 180),
@@ -267,9 +250,7 @@ class TestOpenGrepRunSastScan:
             ) as mock_env:
                 mock_env.return_value.__enter__ = MagicMock()
                 mock_env.return_value.__exit__ = MagicMock(return_value=False)
-                issues = scanner._run_sast_scan(
-                    Path("/bin/opengrep"), scan_context
-                )
+                issues = scanner._run_sast_scan(Path("/bin/opengrep"), scan_context)
                 assert issues == []
 
     def test_generic_exception(
@@ -284,14 +265,10 @@ class TestOpenGrepRunSastScan:
             ) as mock_env:
                 mock_env.return_value.__enter__ = MagicMock()
                 mock_env.return_value.__exit__ = MagicMock(return_value=False)
-                issues = scanner._run_sast_scan(
-                    Path("/bin/opengrep"), scan_context
-                )
+                issues = scanner._run_sast_scan(Path("/bin/opengrep"), scan_context)
                 assert issues == []
 
-    def test_custom_ruleset(
-        self, scanner: OpenGrepScanner, tmp_path: Path
-    ) -> None:
+    def test_custom_ruleset(self, scanner: OpenGrepScanner, tmp_path: Path) -> None:
         config = MagicMock()
         config.get_scanner_options.return_value = {
             "ruleset": ["p/security-audit"],
@@ -316,15 +293,15 @@ class TestOpenGrepRunSastScan:
                 mock_env.return_value.__enter__ = MagicMock()
                 mock_env.return_value.__exit__ = MagicMock(return_value=False)
                 scanner._run_sast_scan(Path("/bin/opengrep"), context)
-                cmd = mock_run.call_args.kwargs.get("cmd", mock_run.call_args[0][0] if mock_run.call_args[0] else [])
+                cmd = mock_run.call_args.kwargs.get(
+                    "cmd", mock_run.call_args[0][0] if mock_run.call_args[0] else []
+                )
                 assert "--config" in cmd
                 assert "p/security-audit" in cmd
                 assert "--timeout" in cmd
                 assert "60" in cmd
 
-    def test_auto_ruleset(
-        self, scanner: OpenGrepScanner, tmp_path: Path
-    ) -> None:
+    def test_auto_ruleset(self, scanner: OpenGrepScanner, tmp_path: Path) -> None:
         context = ScanContext(
             project_root=tmp_path,
             paths=[tmp_path],
@@ -343,13 +320,13 @@ class TestOpenGrepRunSastScan:
                 mock_env.return_value.__enter__ = MagicMock()
                 mock_env.return_value.__exit__ = MagicMock(return_value=False)
                 scanner._run_sast_scan(Path("/bin/opengrep"), context)
-                cmd = mock_run.call_args.kwargs.get("cmd", mock_run.call_args[0][0] if mock_run.call_args[0] else [])
+                cmd = mock_run.call_args.kwargs.get(
+                    "cmd", mock_run.call_args[0][0] if mock_run.call_args[0] else []
+                )
                 assert "--config" in cmd
                 assert "auto" in cmd
 
-    def test_exclude_patterns(
-        self, scanner: OpenGrepScanner, tmp_path: Path
-    ) -> None:
+    def test_exclude_patterns(self, scanner: OpenGrepScanner, tmp_path: Path) -> None:
         ignore = MagicMock()
         ignore.get_exclude_patterns.return_value = ["node_modules", "*.min.js"]
         context = ScanContext(
@@ -371,14 +348,14 @@ class TestOpenGrepRunSastScan:
                 mock_env.return_value.__enter__ = MagicMock()
                 mock_env.return_value.__exit__ = MagicMock(return_value=False)
                 scanner._run_sast_scan(Path("/bin/opengrep"), context)
-                cmd = mock_run.call_args.kwargs.get("cmd", mock_run.call_args[0][0] if mock_run.call_args[0] else [])
+                cmd = mock_run.call_args.kwargs.get(
+                    "cmd", mock_run.call_args[0][0] if mock_run.call_args[0] else []
+                )
                 assert cmd.count("--exclude") == 2
                 assert "node_modules" in cmd
                 assert "*.min.js" in cmd
 
-    def test_string_ruleset(
-        self, scanner: OpenGrepScanner, tmp_path: Path
-    ) -> None:
+    def test_string_ruleset(self, scanner: OpenGrepScanner, tmp_path: Path) -> None:
         """Test non-list ruleset config falls back to auto."""
         config = MagicMock()
         config.get_scanner_options.return_value = {
@@ -403,7 +380,9 @@ class TestOpenGrepRunSastScan:
                 mock_env.return_value.__enter__ = MagicMock()
                 mock_env.return_value.__exit__ = MagicMock(return_value=False)
                 scanner._run_sast_scan(Path("/bin/opengrep"), context)
-                cmd = mock_run.call_args.kwargs.get("cmd", mock_run.call_args[0][0] if mock_run.call_args[0] else [])
+                cmd = mock_run.call_args.kwargs.get(
+                    "cmd", mock_run.call_args[0][0] if mock_run.call_args[0] else []
+                )
                 assert "--config" in cmd
                 assert "auto" in cmd
 
@@ -432,9 +411,7 @@ class TestOpenGrepParseJson:
         data = json.dumps(
             {
                 "results": [],
-                "errors": [
-                    {"message": "Failed to parse file", "path": "bad.py"}
-                ],
+                "errors": [{"message": "Failed to parse file", "path": "bad.py"}],
             }
         )
         issues = scanner._parse_opengrep_json(data, tmp_path)

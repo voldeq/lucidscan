@@ -66,9 +66,7 @@ class TestJavaTypeChecking:
     Requires Maven to compile the project first.
     """
 
-    def test_type_checking_scan_completes(
-        self, java_project_with_deps: Path
-    ) -> None:
+    def test_type_checking_scan_completes(self, java_project_with_deps: Path) -> None:
         """Test that type checking scan completes without errors."""
         result = run_lucidshark(java_project_with_deps, domains=["type_checking"])
 
@@ -99,8 +97,7 @@ class TestJavaTypeChecking:
         if type_issues:
             # At least one issue should be in UserService
             user_service_issues = [
-                i for i in type_issues
-                if "UserService" in str(i.get("file_path", ""))
+                i for i in type_issues if "UserService" in str(i.get("file_path", ""))
             ]
             # May or may not find the specific bug depending on SpotBugs analysis
 
@@ -143,7 +140,10 @@ class TestJavaCoverage:
             coverage_summary = result.summary.get("coverage", {})
             # If coverage ran, we should have percentage
             if coverage_summary:
-                assert "percentage" in coverage_summary or "total_lines" in coverage_summary
+                assert (
+                    "percentage" in coverage_summary
+                    or "total_lines" in coverage_summary
+                )
 
 
 @java_available

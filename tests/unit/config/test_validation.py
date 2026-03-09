@@ -407,13 +407,19 @@ class TestValidateConfigPipeline:
 
     def test_warns_on_invalid_coverage_threshold_type(self) -> None:
         """Test warning for non-numeric coverage threshold."""
-        data = {"pipeline": {"coverage": {"tools": ["coverage_py"], "threshold": "80%"}}}
+        data = {
+            "pipeline": {"coverage": {"tools": ["coverage_py"], "threshold": "80%"}}
+        }
         warnings = validate_config(data, source="test.yml")
         assert any("threshold" in w.message and "number" in w.message for w in warnings)
 
     def test_domain_exclude_accepted_for_linting(self) -> None:
         """Test that exclude key is accepted in pipeline.linting."""
-        data = {"pipeline": {"linting": {"tools": [{"name": "ruff"}], "exclude": ["gen/**"]}}}
+        data = {
+            "pipeline": {
+                "linting": {"tools": [{"name": "ruff"}], "exclude": ["gen/**"]}
+            }
+        }
         warnings = validate_config(data, source="test.yml")
         assert not any(
             "pipeline.linting.exclude" in (w.key or "") and "Unknown" in w.message
@@ -422,7 +428,11 @@ class TestValidateConfigPipeline:
 
     def test_domain_exclude_accepted_for_type_checking(self) -> None:
         """Test that exclude key is accepted in pipeline.type_checking."""
-        data = {"pipeline": {"type_checking": {"tools": [{"name": "mypy"}], "exclude": ["stubs/**"]}}}
+        data = {
+            "pipeline": {
+                "type_checking": {"tools": [{"name": "mypy"}], "exclude": ["stubs/**"]}
+            }
+        }
         warnings = validate_config(data, source="test.yml")
         assert not any(
             "pipeline.type_checking.exclude" in (w.key or "") and "Unknown" in w.message
@@ -431,10 +441,15 @@ class TestValidateConfigPipeline:
 
     def test_warns_on_invalid_domain_exclude_type(self) -> None:
         """Test warning for non-list exclude in domain config."""
-        data = {"pipeline": {"linting": {"tools": [{"name": "ruff"}], "exclude": "not-a-list"}}}
+        data = {
+            "pipeline": {
+                "linting": {"tools": [{"name": "ruff"}], "exclude": "not-a-list"}
+            }
+        }
         warnings = validate_config(data, source="test.yml")
         assert any(
-            "pipeline.linting.exclude" in (w.key or "") and "must be a list" in w.message
+            "pipeline.linting.exclude" in (w.key or "")
+            and "must be a list" in w.message
             for w in warnings
         )
 
@@ -444,20 +459,26 @@ class TestValidateConfigCommand:
 
     def test_command_accepted_in_testing(self) -> None:
         """Test that command is accepted in pipeline.testing."""
-        data = {"pipeline": {"testing": {"tools": [{"name": "pytest"}], "command": "make test"}}}
+        data = {
+            "pipeline": {
+                "testing": {"tools": [{"name": "pytest"}], "command": "make test"}
+            }
+        }
         warnings = validate_config(data, source="test.yml")
         assert not any(
-            "command" in (w.key or "") and "Unknown" in w.message
-            for w in warnings
+            "command" in (w.key or "") and "Unknown" in w.message for w in warnings
         )
 
     def test_post_command_accepted_in_testing(self) -> None:
         """Test that post_command is accepted in pipeline.testing."""
-        data = {"pipeline": {"testing": {"tools": [{"name": "pytest"}], "post_command": "make clean"}}}
+        data = {
+            "pipeline": {
+                "testing": {"tools": [{"name": "pytest"}], "post_command": "make clean"}
+            }
+        }
         warnings = validate_config(data, source="test.yml")
         assert not any(
-            "post_command" in (w.key or "") and "Unknown" in w.message
-            for w in warnings
+            "post_command" in (w.key or "") and "Unknown" in w.message for w in warnings
         )
 
     def test_both_commands_accepted(self) -> None:
@@ -476,28 +497,45 @@ class TestValidateConfigCommand:
 
     def test_warns_on_non_string_command(self) -> None:
         """Test warning for non-string command."""
-        data = {"pipeline": {"testing": {"tools": [{"name": "pytest"}], "command": 123}}}
+        data = {
+            "pipeline": {"testing": {"tools": [{"name": "pytest"}], "command": 123}}
+        }
         warnings = validate_config(data, source="test.yml")
         assert any(
-            "pipeline.testing.command" in (w.key or "") and "must be a string" in w.message
+            "pipeline.testing.command" in (w.key or "")
+            and "must be a string" in w.message
             for w in warnings
         )
 
     def test_warns_on_non_string_post_command(self) -> None:
         """Test warning for non-string post_command."""
-        data = {"pipeline": {"testing": {"tools": [{"name": "pytest"}], "post_command": ["cmd1", "cmd2"]}}}
+        data = {
+            "pipeline": {
+                "testing": {
+                    "tools": [{"name": "pytest"}],
+                    "post_command": ["cmd1", "cmd2"],
+                }
+            }
+        }
         warnings = validate_config(data, source="test.yml")
         assert any(
-            "pipeline.testing.post_command" in (w.key or "") and "must be a string" in w.message
+            "pipeline.testing.post_command" in (w.key or "")
+            and "must be a string" in w.message
             for w in warnings
         )
 
     def test_command_valid_in_all_domains(self) -> None:
         """Test that command is accepted in all pipeline domains."""
         for domain in ["linting", "type_checking", "testing", "coverage"]:
-            data = {"pipeline": {domain: {"tools": [{"name": "some_tool"}], "command": "make check"}}}
+            data = {
+                "pipeline": {
+                    domain: {"tools": [{"name": "some_tool"}], "command": "make check"}
+                }
+            }
             warnings = validate_config(data, source="test.yml")
-            assert not any("Unknown" in w.message and "command" in w.message for w in warnings)
+            assert not any(
+                "Unknown" in w.message and "command" in w.message for w in warnings
+            )
 
 
 class TestValidateConfigAI:
@@ -593,7 +631,8 @@ class TestValidateConfigSecurity:
         }
         warnings = validate_config(data, source="test.yml")
         unknown_warnings = [
-            w for w in warnings
+            w
+            for w in warnings
             if "pipeline.security.exclude" in (w.key or "") and "Unknown" in w.message
         ]
         assert not unknown_warnings
@@ -753,12 +792,16 @@ class TestValidateConfigIgnoreIssues:
     def test_warns_on_non_string_reason(self) -> None:
         data = {"ignore_issues": [{"rule_id": "E501", "reason": 123}]}
         warnings = validate_config(data, source="test.yml")
-        assert any("reason" in w.message and "must be a string" in w.message for w in warnings)
+        assert any(
+            "reason" in w.message and "must be a string" in w.message for w in warnings
+        )
 
     def test_warns_on_non_string_expires(self) -> None:
         data = {"ignore_issues": [{"rule_id": "E501", "expires": 20261231}]}
         warnings = validate_config(data, source="test.yml")
-        assert any("expires" in w.message and "must be a string" in w.message for w in warnings)
+        assert any(
+            "expires" in w.message and "must be a string" in w.message for w in warnings
+        )
 
     def test_warns_on_invalid_expires_format(self) -> None:
         data = {"ignore_issues": [{"rule_id": "E501", "expires": "12/31/2026"}]}
@@ -768,7 +811,9 @@ class TestValidateConfigIgnoreIssues:
     def test_warns_on_unknown_keys_in_structured_entry(self) -> None:
         data = {"ignore_issues": [{"rule_id": "E501", "unknown_key": "value"}]}
         warnings = validate_config(data, source="test.yml")
-        assert any("Unknown key" in w.message and "unknown_key" in w.message for w in warnings)
+        assert any(
+            "Unknown key" in w.message and "unknown_key" in w.message for w in warnings
+        )
 
     def test_warns_on_invalid_entry_type(self) -> None:
         data = {"ignore_issues": [123]}
@@ -789,11 +834,7 @@ class TestValidateConfigIgnoreIssues:
         """PyYAML parses bare dates as datetime.date; validation should accept them."""
         from datetime import date
 
-        data = {
-            "ignore_issues": [
-                {"rule_id": "E501", "expires": date(2026, 12, 31)}
-            ]
-        }
+        data = {"ignore_issues": [{"rule_id": "E501", "expires": date(2026, 12, 31)}]}
         warnings = validate_config(data, source="test.yml")
         assert len(warnings) == 0
 
@@ -817,31 +858,48 @@ class TestValidateConfigExclude:
 
     def test_domain_exclude_is_valid_for_linting(self) -> None:
         """pipeline.linting.exclude should not trigger unknown key warning."""
-        data = {"pipeline": {"linting": {"tools": ["ruff"], "exclude": ["generated/**"]}}}
+        data = {
+            "pipeline": {"linting": {"tools": ["ruff"], "exclude": ["generated/**"]}}
+        }
         warnings = validate_config(data, source="test.yml")
         assert not any("unknown" in w.message.lower() for w in warnings)
 
     def test_domain_exclude_is_valid_for_type_checking(self) -> None:
         """pipeline.type_checking.exclude should not trigger unknown key warning."""
-        data = {"pipeline": {"type_checking": {"tools": ["mypy"], "exclude": ["stubs/**"]}}}
+        data = {
+            "pipeline": {"type_checking": {"tools": ["mypy"], "exclude": ["stubs/**"]}}
+        }
         warnings = validate_config(data, source="test.yml")
         assert not any("unknown" in w.message.lower() for w in warnings)
 
     def test_domain_exclude_is_valid_for_testing(self) -> None:
         """pipeline.testing.exclude should not trigger unknown key warning."""
-        data = {"pipeline": {"testing": {"tools": ["pytest"], "exclude": ["slow_tests/**"]}}}
+        data = {
+            "pipeline": {"testing": {"tools": ["pytest"], "exclude": ["slow_tests/**"]}}
+        }
         warnings = validate_config(data, source="test.yml")
         assert not any("unknown" in w.message.lower() for w in warnings)
 
     def test_domain_exclude_is_valid_for_coverage(self) -> None:
         """pipeline.coverage.exclude should not trigger unknown key warning."""
-        data = {"pipeline": {"coverage": {"tools": ["coverage_py"], "exclude": ["tests/**"]}}}
+        data = {
+            "pipeline": {
+                "coverage": {"tools": ["coverage_py"], "exclude": ["tests/**"]}
+            }
+        }
         warnings = validate_config(data, source="test.yml")
         assert not any("unknown" in w.message.lower() for w in warnings)
 
     def test_domain_exclude_is_valid_for_security(self) -> None:
         """pipeline.security.exclude should not trigger unknown key warning."""
-        data = {"pipeline": {"security": {"tools": [{"name": "trivy", "domains": ["sca"]}], "exclude": ["fixtures/**"]}}}
+        data = {
+            "pipeline": {
+                "security": {
+                    "tools": [{"name": "trivy", "domains": ["sca"]}],
+                    "exclude": ["fixtures/**"],
+                }
+            }
+        }
         warnings = validate_config(data, source="test.yml")
         assert not any("unknown" in w.message.lower() for w in warnings)
 
@@ -849,19 +907,31 @@ class TestValidateConfigExclude:
         """pipeline.linting.exclude must be a list."""
         data = {"pipeline": {"linting": {"tools": ["ruff"], "exclude": "not-a-list"}}}
         warnings = validate_config(data, source="test.yml")
-        assert any("pipeline.linting.exclude" in (w.key or "") and "must be a list" in w.message for w in warnings)
+        assert any(
+            "pipeline.linting.exclude" in (w.key or "")
+            and "must be a list" in w.message
+            for w in warnings
+        )
 
     def test_domain_exclude_must_be_list_for_coverage(self) -> None:
         """pipeline.coverage.exclude must be a list."""
         data = {"pipeline": {"coverage": {"tools": ["coverage_py"], "exclude": 123}}}
         warnings = validate_config(data, source="test.yml")
-        assert any("pipeline.coverage.exclude" in (w.key or "") and "must be a list" in w.message for w in warnings)
+        assert any(
+            "pipeline.coverage.exclude" in (w.key or "")
+            and "must be a list" in w.message
+            for w in warnings
+        )
 
     def test_domain_exclude_must_be_list_for_security(self) -> None:
         """pipeline.security.exclude must be a list."""
         data = {"pipeline": {"security": {"exclude": "not-a-list"}}}
         warnings = validate_config(data, source="test.yml")
-        assert any("pipeline.security.exclude" in (w.key or "") and "must be a list" in w.message for w in warnings)
+        assert any(
+            "pipeline.security.exclude" in (w.key or "")
+            and "must be a list" in w.message
+            for w in warnings
+        )
 
     def test_both_ignore_and_exclude_are_valid_top_level_keys(self) -> None:
         """Both 'ignore' and 'exclude' should be accepted as top-level keys."""

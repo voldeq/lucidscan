@@ -73,4 +73,3 @@ def validate_binary(path: Path) -> ToolStatus:
         return ToolStatus.NOT_EXECUTABLE
 
     return ToolStatus.PRESENT
-

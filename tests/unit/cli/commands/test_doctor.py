@@ -102,7 +102,9 @@ class TestDoctorExecute:
     @patch.object(DoctorCommand, "_check_environment", return_value=[])
     @patch.object(DoctorCommand, "_check_tools", return_value=[])
     @patch.object(DoctorCommand, "_check_configuration", return_value=[])
-    def test_prints_version(self, mock_conf, mock_tools, mock_env, mock_int, capsys) -> None:
+    def test_prints_version(
+        self, mock_conf, mock_tools, mock_env, mock_int, capsys
+    ) -> None:
         cmd = DoctorCommand(version="0.5.26")
         cmd.execute(Namespace())
 
@@ -144,9 +146,7 @@ class TestCheckConfiguration:
 
     @patch("lucidshark.cli.commands.doctor.validate_config_file")
     @patch("lucidshark.cli.commands.doctor.find_project_config")
-    def test_config_with_errors(
-        self, mock_find, mock_validate, tmp_path: Path
-    ) -> None:
+    def test_config_with_errors(self, mock_find, mock_validate, tmp_path: Path) -> None:
         mock_find.return_value = tmp_path / "lucidshark.yml"
         error = ConfigValidationIssue(
             message="Bad key",
@@ -193,7 +193,10 @@ class TestCheckConfiguration:
 class TestCheckTools:
     """Tests for _check_tools."""
 
-    @patch("lucidshark.cli.commands.doctor.validate_binary", return_value=ToolStatus.PRESENT)
+    @patch(
+        "lucidshark.cli.commands.doctor.validate_binary",
+        return_value=ToolStatus.PRESENT,
+    )
     @patch("lucidshark.cli.commands.doctor.discover_scanner_plugins")
     @patch.object(DoctorCommand, "_check_pip_tool", return_value=True)
     def test_all_tools_installed(
@@ -211,7 +214,10 @@ class TestCheckTools:
         assert scanner_results[0].passed is True
         assert "installed" in scanner_results[0].message
 
-    @patch("lucidshark.cli.commands.doctor.validate_binary", return_value=ToolStatus.MISSING)
+    @patch(
+        "lucidshark.cli.commands.doctor.validate_binary",
+        return_value=ToolStatus.MISSING,
+    )
     @patch("lucidshark.cli.commands.doctor.discover_scanner_plugins")
     @patch.object(DoctorCommand, "_check_pip_tool", return_value=False)
     def test_scanner_not_installed(
@@ -248,9 +254,7 @@ class TestCheckTools:
 
     @patch("lucidshark.cli.commands.doctor.discover_scanner_plugins", return_value={})
     @patch.object(DoctorCommand, "_check_pip_tool")
-    def test_pip_tool_available(
-        self, mock_pip, mock_discover, tmp_path: Path
-    ) -> None:
+    def test_pip_tool_available(self, mock_pip, mock_discover, tmp_path: Path) -> None:
         mock_pip.return_value = True
 
         cmd = DoctorCommand(version="1.0.0")

@@ -6,7 +6,11 @@ from argparse import Namespace
 from pathlib import Path
 
 from lucidshark.cli.commands.validate import ValidateCommand
-from lucidshark.cli.exit_codes import EXIT_ISSUES_FOUND, EXIT_INVALID_USAGE, EXIT_SUCCESS
+from lucidshark.cli.exit_codes import (
+    EXIT_ISSUES_FOUND,
+    EXIT_INVALID_USAGE,
+    EXIT_SUCCESS,
+)
 
 
 class TestValidateCommand:
@@ -17,7 +21,9 @@ class TestValidateCommand:
         cmd = ValidateCommand()
         assert cmd.name == "validate"
 
-    def test_valid_config_returns_success(self, tmp_path: Path, monkeypatch, capsys) -> None:
+    def test_valid_config_returns_success(
+        self, tmp_path: Path, monkeypatch, capsys
+    ) -> None:
         """Test valid config returns exit code 0."""
         config_file = tmp_path / "lucidshark.yml"
         config_file.write_text("fail_on: high\nignore:\n  - tests/**\n")
@@ -32,7 +38,9 @@ class TestValidateCommand:
         captured = capsys.readouterr()
         assert "valid" in captured.out.lower()
 
-    def test_invalid_config_returns_issues_found(self, tmp_path: Path, monkeypatch, capsys) -> None:
+    def test_invalid_config_returns_issues_found(
+        self, tmp_path: Path, monkeypatch, capsys
+    ) -> None:
         """Test config with errors returns exit code 1."""
         config_file = tmp_path / "lucidshark.yml"
         config_file.write_text("fail_on: 123\n")  # Wrong type
@@ -47,7 +55,9 @@ class TestValidateCommand:
         captured = capsys.readouterr()
         assert "error" in captured.out.lower()
 
-    def test_missing_config_returns_invalid_usage(self, tmp_path: Path, monkeypatch, capsys) -> None:
+    def test_missing_config_returns_invalid_usage(
+        self, tmp_path: Path, monkeypatch, capsys
+    ) -> None:
         """Test missing config file returns exit code 3."""
         monkeypatch.chdir(tmp_path)
         cmd = ValidateCommand()
@@ -88,10 +98,14 @@ class TestValidateCommand:
         captured = capsys.readouterr()
         assert "error" in captured.out.lower()
 
-    def test_warnings_dont_fail_validation(self, tmp_path: Path, monkeypatch, capsys) -> None:
+    def test_warnings_dont_fail_validation(
+        self, tmp_path: Path, monkeypatch, capsys
+    ) -> None:
         """Test that warnings alone don't cause validation failure."""
         config_file = tmp_path / "lucidshark.yml"
-        config_file.write_text("unknown_key: value\nfail_on: high\n")  # Unknown key is just a warning
+        config_file.write_text(
+            "unknown_key: value\nfail_on: high\n"
+        )  # Unknown key is just a warning
 
         monkeypatch.chdir(tmp_path)
         cmd = ValidateCommand()

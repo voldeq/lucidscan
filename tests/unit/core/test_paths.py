@@ -43,8 +43,7 @@ class TestDetermineScanPaths:
 
             # Include both existing and nonexistent files
             result = determine_scan_paths(
-                project_root,
-                files=["exists.py", "nonexistent.py"]
+                project_root, files=["exists.py", "nonexistent.py"]
             )
 
             # Only the existing file should be returned
@@ -57,8 +56,7 @@ class TestDetermineScanPaths:
             project_root = Path(tmpdir)
 
             result = determine_scan_paths(
-                project_root,
-                files=["nonexistent1.py", "nonexistent2.py"]
+                project_root, files=["nonexistent1.py", "nonexistent2.py"]
             )
 
             # Should return empty list (consistent with no changed files behavior)
@@ -94,8 +92,7 @@ class TestDetermineScanPaths:
             changed_file.touch()
 
             with patch(
-                "lucidshark.core.paths.get_changed_files",
-                return_value=[changed_file]
+                "lucidshark.core.paths.get_changed_files", return_value=[changed_file]
             ):
                 result = determine_scan_paths(project_root)
 
@@ -136,4 +133,3 @@ class TestResolveNodeBin:
             result = resolve_node_bin(project_root, "eslint")
 
             assert result is None
-

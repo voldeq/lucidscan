@@ -238,9 +238,7 @@ class TestCLIRunner:
             )
 
             with patch("traceback.print_exc") as mock_traceback:
-                result = runner.run(
-                    ["--debug", "scan", str(tmp_path), "--sca"]
-                )
+                result = runner.run(["--debug", "scan", str(tmp_path), "--sca"])
                 assert result == EXIT_SCANNER_ERROR
                 mock_traceback.assert_called_once()
 

@@ -21,7 +21,9 @@ class TestTypeScriptAvailability:
     """Tests for TypeScript availability."""
 
     @tsc_available
-    def test_ensure_binary_finds_tsc(self, typescript_checker: TypeScriptChecker) -> None:
+    def test_ensure_binary_finds_tsc(
+        self, typescript_checker: TypeScriptChecker
+    ) -> None:
         """Test that ensure_binary finds tsc if installed."""
         binary_path = typescript_checker.ensure_binary()
         assert binary_path.exists()
@@ -33,7 +35,9 @@ class TestTypeScriptAvailability:
 class TestTypeScriptTypeChecking:
     """Integration tests for TypeScript type checking."""
 
-    def test_check_file_with_type_errors(self, typescript_checker: TypeScriptChecker) -> None:
+    def test_check_file_with_type_errors(
+        self, typescript_checker: TypeScriptChecker
+    ) -> None:
         """Test checking a TypeScript file with type errors."""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir_path = Path(tmpdir)
@@ -41,12 +45,12 @@ class TestTypeScriptTypeChecking:
             # Create tsconfig.json (required for TypeScript)
             tsconfig = tmpdir_path / "tsconfig.json"
             tsconfig.write_text(
-                '{\n'
+                "{\n"
                 '  "compilerOptions": {\n'
                 '    "strict": true,\n'
                 '    "noEmit": true\n'
-                '  }\n'
-                '}\n'
+                "  }\n"
+                "}\n"
             )
 
             # Create a TypeScript file with type errors
@@ -73,7 +77,9 @@ class TestTypeScriptTypeChecking:
                 assert issue.source_tool == "typescript"
                 assert issue.domain == ToolDomain.TYPE_CHECKING
 
-    def test_check_clean_typescript_file(self, typescript_checker: TypeScriptChecker) -> None:
+    def test_check_clean_typescript_file(
+        self, typescript_checker: TypeScriptChecker
+    ) -> None:
         """Test checking a cleanly typed TypeScript file returns no issues."""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir_path = Path(tmpdir)
@@ -81,12 +87,12 @@ class TestTypeScriptTypeChecking:
             # Create tsconfig.json
             tsconfig = tmpdir_path / "tsconfig.json"
             tsconfig.write_text(
-                '{\n'
+                "{\n"
                 '  "compilerOptions": {\n'
                 '    "strict": true,\n'
                 '    "noEmit": true\n'
-                '  }\n'
-                '}\n'
+                "  }\n"
+                "}\n"
             )
 
             # Create a cleanly typed TypeScript file
@@ -134,12 +140,12 @@ class TestTypeScriptTypeChecking:
             # Create tsconfig.json
             tsconfig = tmpdir_path / "tsconfig.json"
             tsconfig.write_text(
-                '{\n'
+                "{\n"
                 '  "compilerOptions": {\n'
                 '    "strict": true,\n'
                 '    "noEmit": true\n'
-                '  }\n'
-                '}\n'
+                "  }\n"
+                "}\n"
             )
 
             # Create a file with multiple type errors
@@ -176,12 +182,12 @@ class TestTypeScriptOutputParsing:
             # Create tsconfig.json
             tsconfig = tmpdir_path / "tsconfig.json"
             tsconfig.write_text(
-                '{\n'
+                "{\n"
                 '  "compilerOptions": {\n'
                 '    "strict": true,\n'
                 '    "noEmit": true\n'
-                '  }\n'
-                '}\n'
+                "  }\n"
+                "}\n"
             )
 
             test_file = tmpdir_path / "severity.ts"
@@ -215,12 +221,12 @@ class TestTypeScriptOutputParsing:
             # Create tsconfig.json
             tsconfig = tmpdir_path / "tsconfig.json"
             tsconfig.write_text(
-                '{\n'
+                "{\n"
                 '  "compilerOptions": {\n'
                 '    "strict": true,\n'
                 '    "noEmit": true\n'
-                '  }\n'
-                '}\n'
+                "  }\n"
+                "}\n"
             )
 
             test_file = tmpdir_path / "test_path.ts"

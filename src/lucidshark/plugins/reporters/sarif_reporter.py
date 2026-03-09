@@ -72,10 +72,7 @@ class SARIFReporter(ReporterPlugin):
         rules = self._collect_rules(result.issues)
 
         # Convert issues to SARIF results
-        results = [
-            self._issue_to_result(issue)
-            for issue in result.issues
-        ]
+        results = [self._issue_to_result(issue) for issue in result.issues]
 
         return {
             "$schema": SARIF_SCHEMA,

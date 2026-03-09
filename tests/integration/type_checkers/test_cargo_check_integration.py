@@ -39,9 +39,7 @@ class TestCargoCheckAvailability:
 class TestCargoCheckTypeChecking:
     """Integration tests for cargo check type checking."""
 
-    def test_check_valid_project(
-        self, cargo_check_checker: CargoCheckChecker
-    ) -> None:
+    def test_check_valid_project(self, cargo_check_checker: CargoCheckChecker) -> None:
         """Test checking a valid Rust project."""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir_path = Path(tmpdir)
@@ -52,9 +50,7 @@ class TestCargoCheckTypeChecking:
             src_dir = tmpdir_path / "src"
             src_dir.mkdir()
             (src_dir / "lib.rs").write_text(
-                "pub fn add(a: i32, b: i32) -> i32 {\n"
-                "    a + b\n"
-                "}\n"
+                "pub fn add(a: i32, b: i32) -> i32 {\n    a + b\n}\n"
             )
 
             context = ScanContext(
@@ -82,9 +78,7 @@ class TestCargoCheckTypeChecking:
             src_dir.mkdir()
             # Intentional type error: returning &str where i32 expected
             (src_dir / "lib.rs").write_text(
-                "pub fn add(a: i32, b: i32) -> i32 {\n"
-                '    "not a number"\n'
-                "}\n"
+                'pub fn add(a: i32, b: i32) -> i32 {\n    "not a number"\n}\n'
             )
 
             context = ScanContext(
@@ -102,9 +96,7 @@ class TestCargoCheckTypeChecking:
                 assert issue.source_tool == "cargo_check"
                 assert issue.domain == ToolDomain.TYPE_CHECKING
 
-    def test_check_no_cargo_toml(
-        self, cargo_check_checker: CargoCheckChecker
-    ) -> None:
+    def test_check_no_cargo_toml(self, cargo_check_checker: CargoCheckChecker) -> None:
         """Test checking a directory without Cargo.toml returns no issues."""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir_path = Path(tmpdir)
@@ -120,13 +112,12 @@ class TestCargoCheckTypeChecking:
             assert isinstance(issues, list)
             assert len(issues) == 0
 
-    def test_check_sample_project(
-        self, cargo_check_checker: CargoCheckChecker
-    ) -> None:
+    def test_check_sample_project(self, cargo_check_checker: CargoCheckChecker) -> None:
         """Test checking the rust-cli sample project."""
         project_path = Path(__file__).parent.parent / "projects" / "rust-cli"
         if not project_path.exists():
             import pytest
+
             pytest.skip("rust-cli sample project not found")
 
         context = ScanContext(
@@ -161,9 +152,7 @@ class TestCargoCheckIssueGeneration:
             src_dir = tmpdir_path / "src"
             src_dir.mkdir()
             (src_dir / "lib.rs").write_text(
-                "pub fn add(a: i32, b: i32) -> i32 {\n"
-                '    "not a number"\n'
-                "}\n"
+                'pub fn add(a: i32, b: i32) -> i32 {\n    "not a number"\n}\n'
             )
 
             context = ScanContext(
