@@ -1,6 +1,6 @@
 # LucidShark Reference Documentation
 
-LucidShark is a unified code quality tool that combines linting, type checking, security scanning, testing, coverage analysis, and duplication detection into a single pipeline.
+LucidShark is a unified code quality tool that combines linting, type checking, formatting, security scanning, testing, coverage analysis, and duplication detection into a single pipeline.
 
 ## Quick Start
 
@@ -86,8 +86,9 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 
 | Flag | Domain | Description |
 |------|--------|-------------|
-| `--linting` | linting | Code style and linting (Ruff, ESLint, Biome, Checkstyle, Clippy) |
+| `--linting` | linting | Code style and linting (Ruff, ESLint, Biome, Clippy, Checkstyle) |
 | `--type-checking` | type_checking | Static type analysis (mypy, pyright, TypeScript, SpotBugs, cargo check) |
+| `--formatting` | formatting | Code formatting (Ruff Format, Prettier, rustfmt, google-java-format) |
 | `--sca` | sca | Dependency vulnerability scanning (Trivy) |
 | `--sast` | sast | Code security patterns (OpenGrep) |
 | `--iac` | iac | Infrastructure-as-Code scanning (Checkov) |
@@ -133,7 +134,7 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 |--------|-------------|
 | `--dry-run` | Show what would be scanned without executing |
 | `--sequential` | Disable parallel execution |
-| `--fix` | Apply auto-fixes (linting only) |
+| `--fix` | Apply auto-fixes (linting and formatting) |
 | `--stream` | Stream tool output in real-time as scans run |
 
 **Examples:**
@@ -314,14 +315,14 @@ Run quality checks on the codebase or specific files. Supports partial scanning 
 | `domains` | array of strings | `["all"]` | Domains to check |
 | `files` | array of strings | (none) | Specific files to check (relative paths). When provided, only these files are scanned. |
 | `all_files` | boolean | `false` | Scan entire project instead of just changed files. By default, only uncommitted changes are scanned. |
-| `fix` | boolean | `false` | Apply auto-fixes for linting issues |
+| `fix` | boolean | `false` | Apply auto-fixes for linting and formatting issues |
 | `base_branch` | string | (none) | Filter results to files changed since this branch (e.g., `origin/main`). Full analysis runs; only reporting is filtered. |
 | `coverage_threshold_scope` | string | `"changed"` | With `base_branch`: apply coverage threshold to `changed`, `project`, or `both` |
 | `linting_threshold_scope` | string | `"changed"` | With `base_branch`: apply linting threshold to `changed`, `project`, or `both` |
 | `type_checking_threshold_scope` | string | `"changed"` | With `base_branch`: apply type checking threshold to `changed`, `project`, or `both` |
 | `duplication_threshold_scope` | string | `"changed"` | With `base_branch`: apply duplication threshold to `changed`, `project`, or `both` |
 
-**Valid domains:** `linting`, `type_checking`, `sast`, `sca`, `iac`, `container`, `testing`, `coverage`, `duplication`, `all`
+**Valid domains:** `linting`, `type_checking`, `formatting`, `sast`, `sca`, `iac`, `container`, `testing`, `coverage`, `duplication`, `all`
 
 **Default Behavior:** Partial scanning (changed files only) is the default. Use `all_files=true` for full project scans.
 
@@ -329,8 +330,9 @@ Run quality checks on the codebase or specific files. Supports partial scanning 
 
 | Domain | Partial Scan Support | Behavior |
 |--------|---------------------|----------|
-| `linting` | ⚠️ Partial support | Ruff/ESLint/Biome/Checkstyle support file args; Clippy is workspace-wide |
+| `linting` | ⚠️ Partial support | Ruff/ESLint/Biome support file args; Clippy is workspace-wide |
 | `type_checking` | ⚠️ Partial support | mypy/pyright support file args; tsc/SpotBugs/cargo check scan full project |
+| `formatting` | ⚠️ Partial support | Ruff Format/Prettier support file args; rustfmt takes individual files only |
 | `sast` | ✅ Full support | OpenGrep scans only specified/changed files |
 | `sca` | ❌ Project-wide only | Trivy dependency scan is inherently project-wide |
 | `iac` | ❌ Project-wide only | Checkov scans entire project |
@@ -428,7 +430,7 @@ get_fix_instructions(issue_id="security-123")
 
 ### `apply_fix`
 
-Apply auto-fix for a fixable issue. Currently only supports linting issues.
+Apply auto-fix for a fixable issue. Supports linting and formatting issues.
 
 **Parameters:**
 
@@ -453,7 +455,8 @@ Get current LucidShark status and configuration.
   "project_root": "/path/to/project",
   "available_tools": {
     "scanners": ["trivy", "opengrep", "checkov"],
-    "linters": ["ruff", "eslint", "biome", "checkstyle", "clippy"],
+    "linters": ["ruff", "eslint", "biome", "clippy"],
+    "formatters": ["ruff_format", "prettier", "rustfmt", "google_java_format"],
     "type_checkers": ["mypy", "pyright", "typescript", "spotbugs", "cargo_check"],
     "test_runners": ["pytest", "jest", "vitest", "karma", "playwright", "maven", "cargo"],
     "coverage": ["coverage_py", "istanbul", "vitest_coverage", "jacoco", "tarpaulin"],
@@ -504,13 +507,13 @@ autoconfigure()
 
 **Tool recommendations by language:**
 
-| Language | Linter | Type Checker | Test Runner | Coverage |
-|----------|--------|-------------|-------------|----------|
-| Python | ruff | mypy or pyright | pytest | coverage_py |
-| JavaScript/TypeScript | eslint or biome | typescript (tsc) | jest, vitest, karma, or playwright | istanbul or vitest_coverage |
-| Java | checkstyle | spotbugs | maven (JUnit) | jacoco |
-| Kotlin | -- | -- | maven (JUnit) | jacoco |
-| Rust | clippy | cargo_check | cargo | tarpaulin |
+| Language | Linter | Formatter | Type Checker | Test Runner | Coverage |
+|----------|--------|-----------|-------------|-------------|----------|
+| Python | ruff | ruff_format | mypy or pyright | pytest | coverage_py |
+| JavaScript/TypeScript | eslint or biome | prettier | typescript (tsc) | jest, vitest, karma, or playwright | istanbul or vitest_coverage |
+| Java | checkstyle | google_java_format | spotbugs | maven (JUnit) | jacoco |
+| Kotlin | -- | -- | -- | maven (JUnit) | jacoco |
+| Rust | clippy | rustfmt | cargo_check | cargo | tarpaulin |
 
 **Security tools** (always recommended for all languages): trivy (SCA) + opengrep (SAST)
 
@@ -622,8 +625,8 @@ pipeline:
         config: ruff.toml  # Optional custom config path
       - name: eslint
       - name: biome
-      - name: checkstyle  # For Java projects
       - name: clippy      # For Rust projects
+      - name: checkstyle  # For Java projects
 
   type_checking:
     enabled: true
@@ -636,6 +639,14 @@ pipeline:
       - name: typescript
       - name: spotbugs     # For Java projects (requires compiled classes)
       - name: cargo_check  # For Rust projects
+
+  formatting:
+    enabled: true
+    tools:
+      - name: ruff_format
+      - name: prettier
+      - name: google_java_format
+      - name: rustfmt
 
   security:
     enabled: true
@@ -1047,7 +1058,7 @@ exclude:
 
 #### Java Project
 
-Checkstyle for linting, SpotBugs for type/bug analysis, Maven for testing, and JaCoCo for coverage.
+Checkstyle for linting, google-java-format for formatting, SpotBugs for type/bug analysis, Maven for testing, and JaCoCo for coverage.
 
 ```yaml
 version: 1
@@ -1059,6 +1070,10 @@ pipeline:
     enabled: true
     tools:
       - name: checkstyle
+  formatting:
+    enabled: true
+    tools:
+      - name: google_java_format
   type_checking:
     enabled: true
     tools:

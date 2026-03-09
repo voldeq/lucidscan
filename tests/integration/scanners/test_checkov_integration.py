@@ -32,9 +32,7 @@ class TestCheckovInstallation:
         assert binary_path.exists()
         assert "checkov" in binary_path.name
 
-    def test_checkov_binary_is_executable(
-        self, ensure_checkov_binary: Path
-    ) -> None:
+    def test_checkov_binary_is_executable(self, ensure_checkov_binary: Path) -> None:
         """Test that the installed Checkov binary is executable."""
         result = subprocess.run(
             [str(ensure_checkov_binary), "--version"],
@@ -62,7 +60,7 @@ class TestCheckovIaCScanning:
         # Create a Terraform file with a known insecure configuration
         # S3 bucket without encryption
         tf_file = tmp_path / "main.tf"
-        tf_file.write_text('''
+        tf_file.write_text("""
 resource "aws_s3_bucket" "example" {
   bucket = "my-test-bucket"
   acl    = "public-read"
@@ -79,7 +77,7 @@ resource "aws_security_group" "allow_all" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-''')
+""")
 
         context = ScanContext(
             project_root=tmp_path,
@@ -110,7 +108,7 @@ resource "aws_security_group" "allow_all" {
         """Test scanning a Kubernetes manifest with security issues."""
         # Create a Kubernetes deployment with security issues
         k8s_file = tmp_path / "deployment.yaml"
-        k8s_file.write_text('''
+        k8s_file.write_text("""
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -131,7 +129,7 @@ spec:
         securityContext:
           privileged: true
           runAsRoot: true
-''')
+""")
 
         context = ScanContext(
             project_root=tmp_path,
@@ -164,7 +162,7 @@ spec:
         """Test scanning a secure Terraform configuration."""
         # Create a more secure Terraform file
         tf_file = tmp_path / "main.tf"
-        tf_file.write_text('''
+        tf_file.write_text("""
 resource "aws_s3_bucket" "example" {
   bucket = "my-secure-bucket"
 }
@@ -187,7 +185,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "example" {
     }
   }
 }
-''')
+""")
 
         context = ScanContext(
             project_root=tmp_path,
@@ -210,7 +208,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "example" {
         tf_file.write_text('resource "aws_s3_bucket" "test" { bucket = "test" }')
 
         k8s_file = tmp_path / "pod.yaml"
-        k8s_file.write_text('''
+        k8s_file.write_text("""
 apiVersion: v1
 kind: Pod
 metadata:
@@ -219,7 +217,7 @@ spec:
   containers:
   - name: test
     image: nginx
-''')
+""")
 
         # Scan only Terraform
         config = LucidSharkConfig(
@@ -242,7 +240,8 @@ spec:
         # All issues should be from Terraform
         for issue in issues:
             assert issue.metadata.get("check_type") in [
-                "terraform", "terraform_plan"
+                "terraform",
+                "terraform_plan",
             ], f"Unexpected check_type: {issue.metadata.get('check_type')}"
 
 
@@ -256,7 +255,7 @@ class TestCheckovOutputParsing:
         """Test severity mapping, metadata, and issue structure in a single scan."""
         # Create Terraform with issues of varying severity
         tf_file = tmp_path / "main.tf"
-        tf_file.write_text('''
+        tf_file.write_text("""
 resource "aws_s3_bucket" "my_bucket" {
   bucket = "test-bucket"
   acl    = "public-read"
@@ -271,7 +270,7 @@ resource "aws_security_group" "allow_all" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-''')
+""")
 
         context = ScanContext(
             project_root=tmp_path,
@@ -301,24 +300,25 @@ resource "aws_security_group" "allow_all" {
 
         # Find S3 bucket issues and verify iac_resource
         s3_issues = [
-            i for i in issues
-            if i.iac_resource and "aws_s3_bucket" in i.iac_resource
+            i for i in issues if i.iac_resource and "aws_s3_bucket" in i.iac_resource
         ]
         if s3_issues:
             issue = s3_issues[0]
-            assert issue.iac_resource and "aws_s3_bucket.my_bucket" in issue.iac_resource
+            assert (
+                issue.iac_resource and "aws_s3_bucket.my_bucket" in issue.iac_resource
+            )
 
     def test_issue_id_is_deterministic(
         self, checkov_scanner: CheckovScanner, tmp_path: Path
     ) -> None:
         """Test that issue IDs are deterministic across scans."""
         tf_file = tmp_path / "main.tf"
-        tf_file.write_text('''
+        tf_file.write_text("""
 resource "aws_s3_bucket" "test" {
   bucket = "test"
   acl    = "public-read"
 }
-''')
+""")
 
         context = ScanContext(
             project_root=tmp_path,

@@ -115,4 +115,3 @@ class TestGetPlatformInfo:
                 assert info.os == "darwin"
                 assert info.arch == "arm64"
                 assert info.bundle_name == "darwin-arm64"
-

@@ -87,9 +87,7 @@ def test_subtract():
                 enabled_domains=[],
             )
 
-            result = coverage_py_plugin.measure_coverage(
-                context, threshold=80.0
-            )
+            result = coverage_py_plugin.measure_coverage(context, threshold=80.0)
 
             # Should have high coverage
             assert result.total_lines > 0
@@ -144,9 +142,7 @@ def test_add():
                 enabled_domains=[],
             )
 
-            result = coverage_py_plugin.measure_coverage(
-                context, threshold=80.0
-            )
+            result = coverage_py_plugin.measure_coverage(context, threshold=80.0)
 
             # Should be below 80% threshold
             assert result.total_lines > 0
@@ -195,9 +191,7 @@ def test_nothing():
                 enabled_domains=[],
             )
 
-            result = coverage_py_plugin.measure_coverage(
-                context, threshold=80.0
-            )
+            result = coverage_py_plugin.measure_coverage(context, threshold=80.0)
 
             # Should generate an issue due to low coverage
             if len(result.issues) > 0:

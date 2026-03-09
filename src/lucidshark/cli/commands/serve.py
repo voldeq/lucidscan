@@ -125,6 +125,7 @@ class ServeCommand(Command):
             def on_result(result):
                 """Print scan results to stdout."""
                 import json
+
                 print(json.dumps(result, indent=2))
 
             watcher.on_result(on_result)

@@ -86,9 +86,13 @@ class StatusCommand(Command):
         if all_tools["linters"]:
             print(f"\nLinter plugins: {', '.join(sorted(all_tools['linters']))}")
         if all_tools["type_checkers"]:
-            print(f"Type checker plugins: {', '.join(sorted(all_tools['type_checkers']))}")
+            print(
+                f"Type checker plugins: {', '.join(sorted(all_tools['type_checkers']))}"
+            )
         if all_tools["test_runners"]:
-            print(f"Test runner plugins: {', '.join(sorted(all_tools['test_runners']))}")
+            print(
+                f"Test runner plugins: {', '.join(sorted(all_tools['test_runners']))}"
+            )
         if all_tools["coverage"]:
             print(f"Coverage plugins: {', '.join(sorted(all_tools['coverage']))}")
 

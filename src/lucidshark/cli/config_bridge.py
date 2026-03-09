@@ -129,7 +129,10 @@ class ConfigBridge:
         type_checking = getattr(args, "type_checking", False)
         testing = getattr(args, "testing", False)
         coverage = getattr(args, "coverage", False)
-        non_security_domains_set = any([linting, type_checking, testing, coverage])
+        formatting = getattr(args, "formatting", False)
+        non_security_domains_set = any(
+            [linting, type_checking, testing, coverage, formatting]
+        )
 
         if non_security_domains_set and not all_domains:
             # User explicitly requested non-security domains only

@@ -33,12 +33,15 @@ class TestScanCommandLinting:
             sys.stdout = captured = io.StringIO()
 
             try:
-                cli.main([
-                    "scan",
-                    "--linting",
-                    "--format", "json",
-                    str(tmpdir_path),
-                ])
+                cli.main(
+                    [
+                        "scan",
+                        "--linting",
+                        "--format",
+                        "json",
+                        str(tmpdir_path),
+                    ]
+                )
             finally:
                 sys.stdout = old_stdout
 
@@ -62,12 +65,15 @@ class TestScanCommandLinting:
             sys.stdout = captured = io.StringIO()
 
             try:
-                cli.main([
-                    "scan",
-                    "--linting",
-                    "--format", "json",
-                    str(tmpdir_path),
-                ])
+                cli.main(
+                    [
+                        "scan",
+                        "--linting",
+                        "--format",
+                        "json",
+                        str(tmpdir_path),
+                    ]
+                )
             finally:
                 sys.stdout = old_stdout
 
@@ -100,12 +106,15 @@ class TestScanCommandTypeChecking:
             sys.stdout = captured = io.StringIO()
 
             try:
-                cli.main([
-                    "scan",
-                    "--type-checking",
-                    "--format", "json",
-                    str(tmpdir_path),
-                ])
+                cli.main(
+                    [
+                        "scan",
+                        "--type-checking",
+                        "--format",
+                        "json",
+                        str(tmpdir_path),
+                    ]
+                )
             finally:
                 sys.stdout = old_stdout
 
@@ -135,12 +144,15 @@ class TestScanCommandAllFlag:
             sys.stdout = captured = io.StringIO()
 
             try:
-                cli.main([
-                    "scan",
-                    "--all",
-                    "--format", "json",
-                    str(tmpdir_path),
-                ])
+                cli.main(
+                    [
+                        "scan",
+                        "--all",
+                        "--format",
+                        "json",
+                        str(tmpdir_path),
+                    ]
+                )
             finally:
                 sys.stdout = old_stdout
 
@@ -167,12 +179,15 @@ class TestScanCommandFormats:
             sys.stdout = captured = io.StringIO()
 
             try:
-                cli.main([
-                    "scan",
-                    "--linting",
-                    "--format", "sarif",
-                    str(tmpdir_path),
-                ])
+                cli.main(
+                    [
+                        "scan",
+                        "--linting",
+                        "--format",
+                        "sarif",
+                        str(tmpdir_path),
+                    ]
+                )
             finally:
                 sys.stdout = old_stdout
 
@@ -196,16 +211,23 @@ class TestScanCommandFormats:
             sys.stdout = captured = io.StringIO()
 
             try:
-                cli.main([
-                    "scan",
-                    "--linting",
-                    "--format", "summary",
-                    str(tmpdir_path),
-                ])
+                cli.main(
+                    [
+                        "scan",
+                        "--linting",
+                        "--format",
+                        "summary",
+                        str(tmpdir_path),
+                    ]
+                )
             finally:
                 sys.stdout = old_stdout
 
             output = captured.getvalue()
 
             # Summary format should contain text summary
-            assert "issues" in output.lower() or "scanned" in output.lower() or len(output) > 0
+            assert (
+                "issues" in output.lower()
+                or "scanned" in output.lower()
+                or len(output) > 0
+            )

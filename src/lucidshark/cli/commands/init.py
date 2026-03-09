@@ -28,7 +28,7 @@ LUCIDSHARK_MCP_ARGS = ["serve", "--mcp"]
 # Claude skill content for proactive lucidshark usage
 LUCIDSHARK_SKILL_CONTENT = """---
 name: lucidshark
-description: "Unified code quality pipeline: linting, type checking, security (SAST/SCA/IaC/container), testing, coverage, duplication. Run proactively after code changes."
+description: "Unified code quality pipeline: linting, type checking, formatting, security (SAST/SCA/IaC/container), testing, coverage, duplication. Run proactively after code changes."
 ---
 
 # LucidShark - Unified Code Quality Pipeline
@@ -39,7 +39,7 @@ Run scans proactively after code changes. Don't wait for user to ask.
 
 | Domain | What It Does | Tools |
 |--------|--------------|-------|
-| **linting** | Style issues, code smells, auto-fix | Ruff, ESLint, Biome, Checkstyle, Clippy |
+| **linting** | Style issues, code smells, auto-fix | Ruff, ESLint, Biome, Clippy, Checkstyle |
 | **type_checking** | Type errors, static analysis | mypy, Pyright, tsc, SpotBugs, cargo check |
 | **sast** | Security vulnerabilities in code | OpenGrep |
 | **sca** | Dependency vulnerabilities | Trivy |
@@ -47,6 +47,7 @@ Run scans proactively after code changes. Don't wait for user to ask.
 | **container** | Container image vulnerabilities | Trivy |
 | **testing** | Run tests, report failures | pytest, Jest, Karma, Playwright, JUnit, cargo test |
 | **coverage** | Code coverage analysis | coverage.py, Istanbul, JaCoCo, Tarpaulin |
+| **formatting** | Code formatting checks, auto-fix | ruff format, Prettier, rustfmt, google-java-format |
 | **duplication** | Detect code clones | Duplo |
 
 ## When to Scan
@@ -68,7 +69,7 @@ Pick domains based on what files changed:
 
 | Files Changed | MCP domains | CLI flags |
 |---|---|---|
-| `.py`, `.js`, `.ts`, `.rs`, `.go`, `.java`, `.kt` | `["linting","type_checking"]` | `--linting --type-checking` |
+| `.py`, `.js`, `.ts`, `.rs`, `.go`, `.java`, `.kt` | `["linting","type_checking","formatting"]` | `--linting --type-checking --formatting` |
 | `Dockerfile`, `docker-compose.*` | `["container"]` | `--container` |
 | `.tf`, `.yaml`/`.yml` (k8s/CloudFormation) | `["iac"]` | `--iac` |
 | `package.json`, `requirements.txt`, `Cargo.toml`, `go.mod` | `["sca"]` | `--sca` |
@@ -159,7 +160,7 @@ mcp__lucidshark__scan(files=["path/to/file.py"])          # specific files
 
 ### Domain Selection
 
-- **`.py` `.js` `.ts` `.rs` `.go` `.java` `.kt`** → `["linting", "type_checking"]`
+- **`.py` `.js` `.ts` `.rs` `.go` `.java` `.kt`** → `["linting", "type_checking", "formatting"]`
 - **Dockerfile / docker-compose** → `["container"]`
 - **Terraform / K8s / IaC YAML** → `["iac"]`
 - **`package.json` `requirements.txt` `Cargo.toml`** → `["sca"]`
@@ -549,7 +550,9 @@ class InitCommand(Command):
                 print(f"  Error reading {claude_md_path}: {e}")
                 return False
 
-        has_section = start_marker in existing_content and end_marker in existing_content
+        has_section = (
+            start_marker in existing_content and end_marker in existing_content
+        )
 
         if remove:
             if has_section:
@@ -566,7 +569,9 @@ class InitCommand(Command):
                             print(f"  Removed LucidShark section from {claude_md_path}")
                         else:
                             claude_md_path.unlink()
-                            print(f"  Removed {claude_md_path} (was empty after removal)")
+                            print(
+                                f"  Removed {claude_md_path} (was empty after removal)"
+                            )
                     except Exception as e:
                         print(f"  Error updating {claude_md_path}: {e}")
                         return False
@@ -595,7 +600,9 @@ class InitCommand(Command):
             )
         else:
             # Append to existing content (or create new file)
-            new_content = existing_content.rstrip() + "\n" + LUCIDSHARK_CLAUDE_MD_SECTION
+            new_content = (
+                existing_content.rstrip() + "\n" + LUCIDSHARK_CLAUDE_MD_SECTION
+            )
 
         try:
             claude_md_path.parent.mkdir(parents=True, exist_ok=True)
@@ -665,11 +672,11 @@ class InitCommand(Command):
                             print(f"  Error removing {settings_path}: {e}")
                             return False
                     else:
-                        success = self._write_json_config(settings_path, existing_settings)
+                        success = self._write_json_config(
+                            settings_path, existing_settings
+                        )
                         if success:
-                            print(
-                                f"  Removed LucidShark hooks from {settings_path}"
-                            )
+                            print(f"  Removed LucidShark hooks from {settings_path}")
                         return success
             else:
                 print(f"  LucidShark hooks not found in {settings_path}")
@@ -802,7 +809,9 @@ class InitCommand(Command):
         return "\n".join(result)
 
     @staticmethod
-    def _remove_managed_section(content: str, start_marker: str, end_marker: str) -> str:
+    def _remove_managed_section(
+        content: str, start_marker: str, end_marker: str
+    ) -> str:
         """Remove a managed section delimited by markers from content."""
         return InitCommand._process_managed_section(content, start_marker, end_marker)
 

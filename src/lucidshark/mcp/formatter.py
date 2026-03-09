@@ -111,9 +111,7 @@ class InstructionFormatter:
             else:
                 if domain_name not in issues_by_domain:
                     issues_by_domain[domain_name] = []
-                issues_by_domain[domain_name].append(
-                    self._issue_to_brief(issue)
-                )
+                issues_by_domain[domain_name].append(self._issue_to_brief(issue))
 
         # Build domain status (pass/fail for each checked domain)
         # Only active (non-ignored) issues count toward pass/fail
@@ -126,7 +124,9 @@ class InstructionFormatter:
                     threshold = duplication_result.threshold
                     passed = duplication_result.passed
                     status = "pass" if passed else "fail"
-                    status_display = f"{pct:.1f}% duplication (threshold: {threshold:.0f}%)"
+                    status_display = (
+                        f"{pct:.1f}% duplication (threshold: {threshold:.0f}%)"
+                    )
                     domain_status[domain] = {
                         "status": status,
                         "display": status_display,
@@ -146,7 +146,9 @@ class InstructionFormatter:
                 else:
                     status = "fail"
                     if fixable_count > 0:
-                        status_display = f"{issue_count} issues ({fixable_count} auto-fixable)"
+                        status_display = (
+                            f"{issue_count} issues ({fixable_count} auto-fixable)"
+                        )
                     else:
                         status_display = f"{issue_count} issues"
 
@@ -290,7 +292,11 @@ class InstructionFormatter:
         """
         file_part = ""
         if issue.file_path:
-            file_name = issue.file_path.name if hasattr(issue.file_path, "name") else str(issue.file_path).split("/")[-1]
+            file_name = (
+                issue.file_path.name
+                if hasattr(issue.file_path, "name")
+                else str(issue.file_path).split("/")[-1]
+            )
             if issue.line_start:
                 file_part = f" in {file_name}:{issue.line_start}"
             else:
@@ -395,7 +401,11 @@ class InstructionFormatter:
         Returns:
             List of generic fix steps.
         """
-        file_ref = f"{issue.file_path}:{issue.line_start}" if issue.file_path and issue.line_start else str(issue.file_path or "the file")
+        file_ref = (
+            f"{issue.file_path}:{issue.line_start}"
+            if issue.file_path and issue.line_start
+            else str(issue.file_path or "the file")
+        )
         domain = issue.domain
 
         # Handle both ScanDomain and ToolDomain
@@ -535,7 +545,9 @@ class InstructionFormatter:
         high_count = severity_counts.get("high", 0)
 
         if critical_count > 0:
-            return f"Fix {critical_count} critical issue(s) immediately before proceeding."
+            return (
+                f"Fix {critical_count} critical issue(s) immediately before proceeding."
+            )
 
         if high_count > 0:
             return f"Address {high_count} high-severity issue(s) before committing."
@@ -547,9 +559,7 @@ class InstructionFormatter:
             return f"Run `scan(fix=true)` to auto-fix {fixable_count} issue(s)."
 
         # Type errors or other issues
-        type_issues = sum(
-            1 for i in issues if i.domain == ToolDomain.TYPE_CHECKING
-        )
+        type_issues = sum(1 for i in issues if i.domain == ToolDomain.TYPE_CHECKING)
         if type_issues > 0:
             return f"Fix {type_issues} type error(s) by updating type annotations or handling None values."
 

@@ -4,7 +4,9 @@ import logging
 from typing import Optional
 
 
-def configure_logging(*, debug: bool = False, verbose: bool = False, quiet: bool = False) -> None:
+def configure_logging(
+    *, debug: bool = False, verbose: bool = False, quiet: bool = False
+) -> None:
     """Configure root logging level based on CLI flags.
 
     Precedence:
@@ -23,12 +25,12 @@ def configure_logging(*, debug: bool = False, verbose: bool = False, quiet: bool
     else:
         level = logging.WARNING
 
-    logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=level, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
 
 
 def get_logger(name: Optional[str] = None) -> logging.Logger:
     """Return a module-level logger."""
 
     return logging.getLogger(name if name is not None else __name__)
-
-

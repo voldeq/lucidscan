@@ -49,6 +49,7 @@ class TestLucidSharkMCPServer:
     def test_server_has_executor(self, server: LucidSharkMCPServer) -> None:
         """Test server has tool executor."""
         from lucidshark.mcp.tools import MCPToolExecutor
+
         assert isinstance(server.executor, MCPToolExecutor)
 
     def test_server_executor_uses_project_root(
@@ -63,11 +64,10 @@ class TestLucidSharkMCPServer:
         """Test server executor uses correct config."""
         assert server.executor.config == config
 
-    def test_server_creates_mcp_server(
-        self, server: LucidSharkMCPServer
-    ) -> None:
+    def test_server_creates_mcp_server(self, server: LucidSharkMCPServer) -> None:
         """Test server creates MCP Server instance."""
         from mcp.server import Server
+
         assert isinstance(server.server, Server)
 
     def test_server_initialization_with_different_configs(
@@ -124,10 +124,7 @@ class TestLucidSharkMCPServerToolRegistration:
         self, project_root: Path, config: LucidSharkConfig
     ) -> None:
         """Test multiple servers can be created."""
-        servers = [
-            LucidSharkMCPServer(project_root, config)
-            for _ in range(3)
-        ]
+        servers = [LucidSharkMCPServer(project_root, config) for _ in range(3)]
         assert len(servers) == 3
         for s in servers:
             assert s.server.name == "lucidshark"
@@ -154,9 +151,7 @@ class TestLucidSharkMCPServerAsync:
         return LucidSharkMCPServer(project_root, config)
 
     @pytest.mark.asyncio
-    async def test_server_run_method_exists(
-        self, server: LucidSharkMCPServer
-    ) -> None:
+    async def test_server_run_method_exists(self, server: LucidSharkMCPServer) -> None:
         """Test server has run method."""
         assert hasattr(server, "run")
         assert callable(server.run)
@@ -195,26 +190,20 @@ class TestLucidSharkMCPServerAsync:
         assert "error" in result
 
     @pytest.mark.asyncio
-    async def test_executor_get_status(
-        self, server: LucidSharkMCPServer
-    ) -> None:
+    async def test_executor_get_status(self, server: LucidSharkMCPServer) -> None:
         """Test executor get_status returns expected structure."""
         result = await server.executor.get_status()
         assert "project_root" in result
         assert "available_tools" in result
 
     @pytest.mark.asyncio
-    async def test_executor_get_help(
-        self, server: LucidSharkMCPServer
-    ) -> None:
+    async def test_executor_get_help(self, server: LucidSharkMCPServer) -> None:
         """Test executor get_help returns documentation."""
         result = await server.executor.get_help()
         assert "documentation" in result
 
     @pytest.mark.asyncio
-    async def test_executor_autoconfigure(
-        self, server: LucidSharkMCPServer
-    ) -> None:
+    async def test_executor_autoconfigure(self, server: LucidSharkMCPServer) -> None:
         """Test executor autoconfigure returns instructions."""
         result = await server.executor.autoconfigure()
         assert "instructions" in result or isinstance(result, dict)
@@ -249,9 +238,7 @@ class TestMCPServerToolDispatch:
         """Create a server instance."""
         return LucidSharkMCPServer(project_root, config)
 
-    def test_server_has_registered_handlers(
-        self, server: LucidSharkMCPServer
-    ) -> None:
+    def test_server_has_registered_handlers(self, server: LucidSharkMCPServer) -> None:
         """Test server has registered tool handlers."""
         # The server should have registered handlers via decorators
         # We can verify the server object exists and has expected attributes
@@ -259,9 +246,7 @@ class TestMCPServerToolDispatch:
         assert hasattr(server.server, "list_tools")
         assert hasattr(server.server, "call_tool")
 
-    def test_executor_has_all_methods(
-        self, server: LucidSharkMCPServer
-    ) -> None:
+    def test_executor_has_all_methods(self, server: LucidSharkMCPServer) -> None:
         """Test executor has all required methods."""
         required_methods = [
             "scan",
@@ -275,7 +260,9 @@ class TestMCPServerToolDispatch:
         ]
         for method in required_methods:
             assert hasattr(server.executor, method), f"Missing method: {method}"
-            assert callable(getattr(server.executor, method)), f"Method not callable: {method}"
+            assert callable(getattr(server.executor, method)), (
+                f"Method not callable: {method}"
+            )
 
     @pytest.mark.asyncio
     async def test_executor_scan_with_domains(
@@ -287,9 +274,7 @@ class TestMCPServerToolDispatch:
         assert "instructions" in result
 
     @pytest.mark.asyncio
-    async def test_executor_scan_with_fix(
-        self, server: LucidSharkMCPServer
-    ) -> None:
+    async def test_executor_scan_with_fix(self, server: LucidSharkMCPServer) -> None:
         """Test executor scan with fix=True."""
         result = await server.executor.scan(domains=["linting"], fix=True)
         assert "total_issues" in result

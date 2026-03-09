@@ -72,7 +72,13 @@ EXTENSION_MAP = {
 
 # Marker files that indicate a language
 MARKER_FILES = {
-    "python": ["pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "Pipfile"],
+    "python": [
+        "pyproject.toml",
+        "setup.py",
+        "setup.cfg",
+        "requirements.txt",
+        "Pipfile",
+    ],
     "javascript": ["package.json"],
     "typescript": ["tsconfig.json"],
     "go": ["go.mod"],
@@ -217,7 +223,11 @@ def _detect_python_version(project_root: Path) -> Optional[str]:
     if python_version_file.exists():
         try:
             version = python_version_file.read_text().strip()
-            return version.split(".")[0] + "." + version.split(".")[1] if "." in version else version
+            return (
+                version.split(".")[0] + "." + version.split(".")[1]
+                if "." in version
+                else version
+            )
         except Exception:
             pass
 
@@ -230,6 +240,7 @@ def _detect_typescript_version(project_root: Path) -> Optional[str]:
     if package_json.exists():
         try:
             import json
+
             data = json.loads(package_json.read_text())
             deps = {**data.get("dependencies", {}), **data.get("devDependencies", {})}
             if "typescript" in deps:

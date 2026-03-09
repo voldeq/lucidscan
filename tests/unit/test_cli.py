@@ -19,7 +19,9 @@ class TestBuildParser:
 
         # Global flags (at root level)
         for flag in ["--version", "--debug", "--verbose", "--quiet"]:
-            assert any(a.option_strings and flag in a.option_strings for a in parser._actions)
+            assert any(
+                a.option_strings and flag in a.option_strings for a in parser._actions
+            )
 
         # Subcommands should be available
         assert parser._subparsers is not None
@@ -63,7 +65,9 @@ class TestStatusCommand:
         home = tmp_path / ".lucidshark"
         home.mkdir(parents=True)
 
-        with patch("lucidshark.cli.commands.status.get_lucidshark_home", return_value=home):
+        with patch(
+            "lucidshark.cli.commands.status.get_lucidshark_home", return_value=home
+        ):
             exit_code = cli.main(["status"])
 
             captured = capsys.readouterr()
@@ -75,7 +79,9 @@ class TestStatusCommand:
         home = tmp_path / ".lucidshark"
         home.mkdir(parents=True)
 
-        with patch("lucidshark.cli.commands.status.get_lucidshark_home", return_value=home):
+        with patch(
+            "lucidshark.cli.commands.status.get_lucidshark_home", return_value=home
+        ):
             exit_code = cli.main(["status"])
 
             captured = capsys.readouterr()
@@ -89,7 +95,9 @@ class TestStatusCommand:
         home = tmp_path / ".lucidshark"
         home.mkdir(parents=True)
 
-        with patch("lucidshark.cli.commands.status.get_lucidshark_home", return_value=home):
+        with patch(
+            "lucidshark.cli.commands.status.get_lucidshark_home", return_value=home
+        ):
             exit_code = cli.main(["status"])
 
             captured = capsys.readouterr()
@@ -101,7 +109,9 @@ class TestStatusCommand:
         home = tmp_path / ".lucidshark"
         home.mkdir(parents=True)
 
-        with patch("lucidshark.cli.commands.status.get_lucidshark_home", return_value=home):
+        with patch(
+            "lucidshark.cli.commands.status.get_lucidshark_home", return_value=home
+        ):
             exit_code = cli.main(["status"])
 
             captured = capsys.readouterr()
@@ -124,6 +134,8 @@ class TestExitCodes:
         home = tmp_path / ".lucidshark"
         home.mkdir(parents=True)
 
-        with patch("lucidshark.cli.commands.status.get_lucidshark_home", return_value=home):
+        with patch(
+            "lucidshark.cli.commands.status.get_lucidshark_home", return_value=home
+        ):
             exit_code = cli.main(["status"])
             assert exit_code == 0

@@ -14,7 +14,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from lucidshark.core.models import ScanContext, Severity, ToolDomain
-from lucidshark.plugins.type_checkers.typescript import TypeScriptChecker, TSC_ERROR_PATTERN
+from lucidshark.plugins.type_checkers.typescript import (
+    TypeScriptChecker,
+    TSC_ERROR_PATTERN,
+)
 
 
 class TestTypeScriptChecker:
@@ -112,7 +115,9 @@ class TestTypeScriptChecker:
                 enabled_domains=[],
             )
 
-            with patch.object(checker, "ensure_binary", side_effect=FileNotFoundError("not found")):
+            with patch.object(
+                checker, "ensure_binary", side_effect=FileNotFoundError("not found")
+            ):
                 issues = checker.check(context)
                 assert issues == []
 
@@ -127,7 +132,9 @@ class TestTypeScriptChecker:
                 enabled_domains=[],
             )
 
-            with patch.object(checker, "ensure_binary", return_value=Path("/usr/bin/tsc")):
+            with patch.object(
+                checker, "ensure_binary", return_value=Path("/usr/bin/tsc")
+            ):
                 issues = checker.check(context)
                 assert issues == []
 
@@ -153,7 +160,9 @@ class TestTypeScriptChecker:
             mock_result.stdout = "src/test.ts(10,5): error TS2322: Type 'string' is not assignable to type 'number'."
             mock_result.stderr = ""
 
-            with patch.object(checker, "ensure_binary", return_value=Path("/usr/bin/tsc")):
+            with patch.object(
+                checker, "ensure_binary", return_value=Path("/usr/bin/tsc")
+            ):
                 with patch("subprocess.run", return_value=mock_result):
                     issues = checker.check(context)
 
@@ -179,8 +188,12 @@ class TestTypeScriptChecker:
                 enabled_domains=[],
             )
 
-            with patch.object(checker, "ensure_binary", return_value=Path("/usr/bin/tsc")):
-                with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("tsc", 180)):
+            with patch.object(
+                checker, "ensure_binary", return_value=Path("/usr/bin/tsc")
+            ):
+                with patch(
+                    "subprocess.run", side_effect=subprocess.TimeoutExpired("tsc", 180)
+                ):
                     issues = checker.check(context)
                     assert issues == []
 
@@ -199,7 +212,9 @@ class TestTypeScriptChecker:
                 enabled_domains=[],
             )
 
-            with patch.object(checker, "ensure_binary", return_value=Path("/usr/bin/tsc")):
+            with patch.object(
+                checker, "ensure_binary", return_value=Path("/usr/bin/tsc")
+            ):
                 with patch("subprocess.run", side_effect=OSError("command failed")):
                     issues = checker.check(context)
                     assert issues == []

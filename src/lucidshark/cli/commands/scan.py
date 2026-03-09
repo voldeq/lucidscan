@@ -132,9 +132,7 @@ class ScanCommand(Command):
             LOGGER.error(f"Scan failed: {e}")
             raise
 
-    def _run_scan(
-        self, args: Namespace, config: LucidSharkConfig
-    ) -> ScanResult:
+    def _run_scan(self, args: Namespace, config: LucidSharkConfig) -> ScanResult:
         """Execute the scan based on CLI arguments and config.
 
         Uses PipelineExecutor to run the scan pipeline:
@@ -164,7 +162,9 @@ class ScanCommand(Command):
 
         # Create stream handler if streaming is enabled
         stream_handler: Optional[StreamHandler] = None
-        stream_enabled = getattr(args, "stream", False) or getattr(args, "verbose", False)
+        stream_enabled = getattr(args, "stream", False) or getattr(
+            args, "verbose", False
+        )
         if stream_enabled:
             stream_handler = CLIStreamHandler(
                 output=sys.stderr,
@@ -211,13 +211,16 @@ class ScanCommand(Command):
                 linting_command = config.pipeline.linting.command
                 linting_pre_command = config.pipeline.linting.pre_command
                 linting_post_command = config.pipeline.linting.post_command
-            all_issues.extend(runner.run_linting(
-                context, fix_enabled,
-                exclude_patterns=linting_exclude,
-                command=linting_command,
-                pre_command=linting_pre_command,
-                post_command=linting_post_command,
-            ))
+            all_issues.extend(
+                runner.run_linting(
+                    context,
+                    fix_enabled,
+                    exclude_patterns=linting_exclude,
+                    command=linting_command,
+                    pre_command=linting_pre_command,
+                    post_command=linting_post_command,
+                )
+            )
 
         # Run type checking if requested or if --all and type_checking is configured
         type_checking_flag = getattr(args, "type_checking", False)
@@ -240,13 +243,45 @@ class ScanCommand(Command):
                 tc_command = config.pipeline.type_checking.command
                 tc_pre_command = config.pipeline.type_checking.pre_command
                 tc_post_command = config.pipeline.type_checking.post_command
-            all_issues.extend(runner.run_type_checking(
-                context,
-                exclude_patterns=tc_exclude,
-                command=tc_command,
-                pre_command=tc_pre_command,
-                post_command=tc_post_command,
-            ))
+            all_issues.extend(
+                runner.run_type_checking(
+                    context,
+                    exclude_patterns=tc_exclude,
+                    command=tc_command,
+                    pre_command=tc_pre_command,
+                    post_command=tc_post_command,
+                )
+            )
+
+        # Run formatting if requested or if --all and formatting is configured
+        formatting_flag = getattr(args, "formatting", False)
+        formatting_configured = (
+            config.pipeline.formatting is not None
+            and config.pipeline.formatting.enabled
+        )
+        formatting_enabled = formatting_flag or (all_flag and formatting_configured)
+
+        if formatting_enabled:
+            formatting_exclude = None
+            formatting_command = None
+            formatting_pre_command = None
+            formatting_post_command = None
+            if config.pipeline.formatting:
+                if config.pipeline.formatting.exclude:
+                    formatting_exclude = config.pipeline.formatting.exclude
+                formatting_command = config.pipeline.formatting.command
+                formatting_pre_command = config.pipeline.formatting.pre_command
+                formatting_post_command = config.pipeline.formatting.post_command
+            all_issues.extend(
+                runner.run_formatting(
+                    context,
+                    fix_enabled,
+                    exclude_patterns=formatting_exclude,
+                    command=formatting_command,
+                    pre_command=formatting_pre_command,
+                    post_command=formatting_post_command,
+                )
+            )
 
         # Run tests if requested or if --all and testing is configured
         testing_flag = getattr(args, "testing", False)
@@ -277,13 +312,15 @@ class ScanCommand(Command):
                 testing_command = config.pipeline.testing.command
                 testing_pre_command = config.pipeline.testing.pre_command
                 testing_post_command = config.pipeline.testing.post_command
-            all_issues.extend(runner.run_tests(
-                context,
-                exclude_patterns=testing_exclude,
-                command=testing_command,
-                pre_command=testing_pre_command,
-                post_command=testing_post_command,
-            ))
+            all_issues.extend(
+                runner.run_tests(
+                    context,
+                    exclude_patterns=testing_exclude,
+                    command=testing_command,
+                    pre_command=testing_pre_command,
+                    post_command=testing_post_command,
+                )
+            )
 
         coverage_summary: Optional[CoverageSummary] = None
         if coverage_enabled:
@@ -303,7 +340,8 @@ class ScanCommand(Command):
                 coverage_post_command = config.pipeline.coverage.post_command
             all_issues.extend(
                 runner.run_coverage(
-                    context, coverage_threshold,
+                    context,
+                    coverage_threshold,
                     exclude_patterns=coverage_exclude,
                     command=coverage_command,
                     pre_command=coverage_pre_command,
@@ -605,6 +643,7 @@ class ScanCommand(Command):
         domain_mapping: dict[ScanDomain | ToolDomain, str] = {
             ToolDomain.LINTING: "linting",
             ToolDomain.TYPE_CHECKING: "type_checking",
+            ToolDomain.FORMATTING: "formatting",
             ToolDomain.SECURITY: "security",
             ToolDomain.TESTING: "testing",
             ToolDomain.COVERAGE: "coverage",
@@ -665,10 +704,16 @@ class ScanCommand(Command):
                 if threshold == "any":
                     # Check changed files first
                     if check_issues:
-                        LOGGER.debug(f"Domain {domain_name}: {len(check_issues)} issues exceed 'any' threshold")
+                        LOGGER.debug(
+                            f"Domain {domain_name}: {len(check_issues)} issues exceed 'any' threshold"
+                        )
                         return True
                     # For "both" scope, also check full issues even if changed files have none
-                    if base_branch and scope == "both" and domain_name in full_issues_by_domain:
+                    if (
+                        base_branch
+                        and scope == "both"
+                        and domain_name in full_issues_by_domain
+                    ):
                         full_check = full_issues_by_domain[domain_name]
                         if full_check:
                             LOGGER.debug(
@@ -678,15 +723,27 @@ class ScanCommand(Command):
                             return True
                 elif threshold == "error":
                     # For linting/type_checking: fail on any HIGH severity (errors)
-                    has_errors = any(i.severity.value in ("high", "critical") for i in check_issues)
+                    has_errors = any(
+                        i.severity.value in ("high", "critical") for i in check_issues
+                    )
                     if has_errors:
-                        LOGGER.debug(f"Domain {domain_name}: issues exceed 'error' threshold")
+                        LOGGER.debug(
+                            f"Domain {domain_name}: issues exceed 'error' threshold"
+                        )
                         return True
                     # For "both" scope, also check full issues
-                    if base_branch and scope == "both" and domain_name in full_issues_by_domain:
+                    if (
+                        base_branch
+                        and scope == "both"
+                        and domain_name in full_issues_by_domain
+                    ):
                         full_check = full_issues_by_domain[domain_name]
-                        if any(i.severity.value in ("high", "critical") for i in full_check):
-                            LOGGER.debug(f"Domain {domain_name}: full project issues exceed 'error' threshold (scope=both)")
+                        if any(
+                            i.severity.value in ("high", "critical") for i in full_check
+                        ):
+                            LOGGER.debug(
+                                f"Domain {domain_name}: full project issues exceed 'error' threshold (scope=both)"
+                            )
                             return True
                 elif threshold == "none":
                     # Never fail
@@ -714,7 +771,10 @@ class ScanCommand(Command):
                     try:
                         threshold_pct = float(threshold.rstrip("%"))
                         if domain_name == "duplication" and result.duplication_summary:
-                            if result.duplication_summary.duplication_percent > threshold_pct:
+                            if (
+                                result.duplication_summary.duplication_percent
+                                > threshold_pct
+                            ):
                                 LOGGER.debug(
                                     f"Domain {domain_name}: {result.duplication_summary.duplication_percent:.1f}% "
                                     f"exceeds '{threshold}' threshold"
@@ -723,7 +783,9 @@ class ScanCommand(Command):
                     except ValueError:
                         LOGGER.warning(f"Invalid percentage threshold: {threshold}")
                 elif check_severity_threshold(domain_issues, threshold):
-                    LOGGER.debug(f"Domain {domain_name}: issues exceed '{threshold}' threshold")
+                    LOGGER.debug(
+                        f"Domain {domain_name}: issues exceed '{threshold}' threshold"
+                    )
                     return True
 
         return False
@@ -784,6 +846,21 @@ class ScanCommand(Command):
                     tools_to_run.append(("type_checking", tool_name))
             else:
                 tools_to_run.append(("type_checking", "mypy (default)"))
+
+        # Formatting
+        formatting_flag = getattr(args, "formatting", False)
+        formatting_configured = (
+            config.pipeline.formatting is not None
+            and config.pipeline.formatting.enabled
+        )
+        if formatting_flag or (all_flag and formatting_configured):
+            domains_to_run.append("formatting")
+            if config.pipeline.formatting and config.pipeline.formatting.tools:
+                for tool in config.pipeline.formatting.tools:
+                    tool_name = tool.name if hasattr(tool, "name") else str(tool)
+                    tools_to_run.append(("formatting", tool_name))
+            else:
+                tools_to_run.append(("formatting", "ruff_format (default)"))
 
         # Testing
         testing_flag = getattr(args, "testing", False)
@@ -938,6 +1015,15 @@ class ScanCommand(Command):
         )
         if duplication_flag or (all_flag and duplication_configured):
             enabled_domains.append("duplication")
+
+        # Formatting
+        formatting_flag = getattr(args, "formatting", False)
+        formatting_configured = (
+            config.pipeline.formatting is not None
+            and config.pipeline.formatting.enabled
+        )
+        if formatting_flag or (all_flag and formatting_configured):
+            enabled_domains.append("formatting")
 
         return validate_configured_tools(config, project_root, enabled_domains)
 

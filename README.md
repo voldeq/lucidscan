@@ -24,7 +24,7 @@ AI writes code → LucidShark checks → AI fixes → repeat
 
 - **AI-native** - MCP integration with Claude Code. Structured feedback that AI agents can act on directly.
 
-- **Unified pipeline** - Linting, type checking, security (SAST/SCA/IaC), tests, coverage, and duplication detection in one tool. Stop configuring 5+ separate tools.
+- **Unified pipeline** - Linting, type checking, formatting, security (SAST/SCA/IaC), tests, coverage, and duplication detection in one tool. Stop configuring 5+ separate tools.
 
 - **Open source & extensible** - Apache 2.0 licensed. Add your own tools via the plugin system.
 
@@ -69,7 +69,7 @@ lucidshark scan --linting --fix     # Auto-fix linting issues
 lucidshark scan --all --dry-run     # Preview what would be scanned
 ```
 
-Scan domains: `--linting`, `--type-checking`, `--sast`, `--sca`, `--iac`, `--container`, `--testing`, `--coverage`, `--duplication`
+Scan domains: `--linting`, `--type-checking`, `--formatting`, `--sast`, `--sca`, `--iac`, `--container`, `--testing`, `--coverage`, `--duplication`
 
 ### Incremental Scanning
 
@@ -149,7 +149,7 @@ LucidShark supports 15 programming languages with varying levels of tool coverag
 
 | Tier | Languages | What's Included |
 |------|-----------|-----------------|
-| **Full** | Python, TypeScript, JavaScript, Java, Rust | Linting, type checking, testing, coverage, security, duplication |
+| **Full** | Python, TypeScript, JavaScript, Java, Rust | Linting, type checking, formatting, testing, coverage, security, duplication |
 | **Partial** | Kotlin | Testing, coverage, security (via shared Java tooling) |
 | **Basic** | Go, Ruby, C, C++, C# | Security scanning, duplication detection |
 | **Minimal** | PHP, Swift, Scala | Security scanning |
@@ -160,7 +160,8 @@ For detailed per-language tool coverage, configuration examples, and detection i
 
 | Domain | Tools | What It Catches |
 |--------|-------|-----------------|
-| **Linting** | Ruff, ESLint, Biome, Checkstyle, Clippy | Style issues, code smells |
+| **Linting** | Ruff, ESLint, Biome, Clippy, Checkstyle | Style issues, code smells |
+| **Formatting** | Ruff Format, Prettier, rustfmt, google-java-format | Code formatting, whitespace style |
 | **Type Checking** | mypy, Pyright, TypeScript (tsc), SpotBugs, cargo check | Type errors, static analysis bugs |
 | **Security (SAST)** | OpenGrep | Code vulnerabilities |
 | **Security (SCA)** | Trivy | Dependency vulnerabilities |
@@ -185,6 +186,9 @@ pipeline:
   type_checking:
     enabled: true
     tools: [{ name: mypy, strict: true }]
+  formatting:
+    enabled: true
+    tools: [{ name: ruff_format }]
   security:
     enabled: true
     tools:
@@ -221,6 +225,7 @@ See [docs/help.md](docs/help.md) for the full configuration reference.
 |---------|-------------|
 | `lucidshark scan --all` | Run all quality checks |
 | `lucidshark scan --linting --fix` | Lint and auto-fix |
+| `lucidshark scan --formatting --fix` | Format and auto-fix |
 | `lucidshark init` | Configure Claude Code integration |
 | `lucidshark doctor` | Check setup and environment health |
 | `lucidshark validate` | Validate `lucidshark.yml` |

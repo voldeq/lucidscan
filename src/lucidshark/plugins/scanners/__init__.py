@@ -11,7 +11,11 @@ from lucidshark.plugins.scanners.trivy import TrivyScanner
 from lucidshark.plugins.scanners.opengrep import OpenGrepScanner
 from lucidshark.plugins.scanners.checkov import CheckovScanner
 from lucidshark.plugins import SCANNER_ENTRY_POINT_GROUP
-from lucidshark.plugins.discovery import discover_plugins, get_plugin, list_available_plugins as _list_plugins
+from lucidshark.plugins.discovery import (
+    discover_plugins,
+    get_plugin,
+    list_available_plugins as _list_plugins,
+)
 
 
 def discover_scanner_plugins() -> Dict[str, Type[ScannerPlugin]]:
@@ -53,5 +57,3 @@ __all__ = [
     "get_scanner_plugin",
     "list_available_scanners",
 ]
-
-

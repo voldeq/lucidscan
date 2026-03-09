@@ -75,7 +75,10 @@ class TestJestGetVersion:
             jest_bin.chmod(0o755)
 
             runner = JestRunner(project_root=project_root)
-            with patch("lucidshark.plugins.test_runners.base.get_cli_version", return_value="29.7.0"):
+            with patch(
+                "lucidshark.plugins.test_runners.base.get_cli_version",
+                return_value="29.7.0",
+            ):
                 version = runner.get_version()
                 assert version == "29.7.0"
 
@@ -115,7 +118,9 @@ class TestJestRunTests:
             context.project_root = project_root
             context.paths = []
 
-            with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("jest", 600)):
+            with patch(
+                "subprocess.run", side_effect=subprocess.TimeoutExpired("jest", 600)
+            ):
                 result = runner.run_tests(context)
                 assert result.passed == 0
 
@@ -310,8 +315,20 @@ class TestJestReportProcessing:
             "numPendingTests": 0,
             "numTodoTests": 0,
             "testResults": [
-                {"name": "a.test.js", "status": "passed", "startTime": 1000, "endTime": 1500, "assertionResults": []},
-                {"name": "b.test.js", "status": "passed", "startTime": 1500, "endTime": 2500, "assertionResults": []},
+                {
+                    "name": "a.test.js",
+                    "status": "passed",
+                    "startTime": 1000,
+                    "endTime": 1500,
+                    "assertionResults": [],
+                },
+                {
+                    "name": "b.test.js",
+                    "status": "passed",
+                    "startTime": 1500,
+                    "endTime": 2500,
+                    "assertionResults": [],
+                },
             ],
         }
 
@@ -339,13 +356,15 @@ class TestJestJsonOutput:
 
     def test_parse_json_output_valid(self) -> None:
         runner = JestRunner()
-        output = json.dumps({
-            "numPassedTests": 5,
-            "numFailedTests": 0,
-            "numPendingTests": 0,
-            "numTodoTests": 0,
-            "testResults": [],
-        })
+        output = json.dumps(
+            {
+                "numPassedTests": 5,
+                "numFailedTests": 0,
+                "numPendingTests": 0,
+                "numTodoTests": 0,
+                "testResults": [],
+            }
+        )
         result = runner._parse_json_output(output, Path("/project"))
         assert result.passed == 5
 

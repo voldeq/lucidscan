@@ -20,7 +20,9 @@ from lucidshark.plugins.duplication.duplo import (
 _DUPLO_BINARY = "lucidshark-duplo"
 
 
-def make_completed_process(returncode: int, stdout: str, stderr: str = "") -> subprocess.CompletedProcess:
+def make_completed_process(
+    returncode: int, stdout: str, stderr: str = ""
+) -> subprocess.CompletedProcess:
     """Create a CompletedProcess for testing."""
     return subprocess.CompletedProcess(
         args=[],
@@ -32,15 +34,17 @@ def make_completed_process(returncode: int, stdout: str, stderr: str = "") -> su
 
 def _make_empty_duplo_output(files_analyzed: int = 0, total_lines: int = 0) -> str:
     """Create a minimal duplo JSON output string."""
-    return json.dumps({
-        "summary": {
-            "files_analyzed": files_analyzed,
-            "total_lines": total_lines,
-            "duplicate_blocks": 0,
-            "duplicate_lines": 0,
-        },
-        "duplicates": [],
-    })
+    return json.dumps(
+        {
+            "summary": {
+                "files_analyzed": files_analyzed,
+                "total_lines": total_lines,
+                "duplicate_blocks": 0,
+                "duplicate_lines": 0,
+            },
+            "duplicates": [],
+        }
+    )
 
 
 def _run_detect_with_mocks(
@@ -64,8 +68,13 @@ def _run_detect_with_mocks(
     mock_result = make_completed_process(0, duplo_output)
 
     with patch.object(plugin, "ensure_binary", return_value=Path("/usr/bin/duplo")):
-        with patch("lucidshark.plugins.duplication.duplo.is_git_repo", return_value=is_git):
-            with patch("lucidshark.plugins.duplication.duplo.run_with_streaming", return_value=mock_result) as mock_run:
+        with patch(
+            "lucidshark.plugins.duplication.duplo.is_git_repo", return_value=is_git
+        ):
+            with patch(
+                "lucidshark.plugins.duplication.duplo.run_with_streaming",
+                return_value=mock_result,
+            ) as mock_run:
                 plugin.detect_duplication(
                     context,
                     use_git=use_git,
@@ -78,7 +87,11 @@ def _run_detect_with_mocks(
 
 def _extract_cmd(mock_run) -> list[str]:
     """Extract the command list from a ``run_with_streaming`` mock."""
-    return mock_run.call_args[1]["cmd"] if "cmd" in mock_run.call_args[1] else mock_run.call_args[0][0]
+    return (
+        mock_run.call_args[1]["cmd"]
+        if "cmd" in mock_run.call_args[1]
+        else mock_run.call_args[0][0]
+    )
 
 
 class TestDuploPluginProperties:
@@ -352,7 +365,9 @@ class TestDuploCollectSourceFiles:
             )
 
             plugin = DuploPlugin()
-            files = plugin._collect_source_files(context, extra_exclude_patterns=["generated/**"])
+            files = plugin._collect_source_files(
+                context, extra_exclude_patterns=["generated/**"]
+            )
             assert gen_file not in files
 
     def test_returns_empty_for_empty_directory(self) -> None:
@@ -398,28 +413,30 @@ class TestDuploParseOutput:
     def test_parse_valid_output(self) -> None:
         """Test parsing valid duplo JSON output."""
         plugin = DuploPlugin()
-        output = json.dumps({
-            "summary": {
-                "files_analyzed": 10,
-                "total_lines": 500,
-                "duplicate_blocks": 2,
-                "duplicate_lines": 30,
-            },
-            "duplicates": [
-                {
-                    "file1": {"path": "src/a.py", "start_line": 10, "end_line": 20},
-                    "file2": {"path": "src/b.py", "start_line": 30, "end_line": 40},
-                    "line_count": 10,
-                    "lines": ["line1", "line2", "line3"],
+        output = json.dumps(
+            {
+                "summary": {
+                    "files_analyzed": 10,
+                    "total_lines": 500,
+                    "duplicate_blocks": 2,
+                    "duplicate_lines": 30,
                 },
-                {
-                    "file1": {"path": "src/c.py", "start_line": 5, "end_line": 15},
-                    "file2": {"path": "src/d.py", "start_line": 50, "end_line": 60},
-                    "line_count": 10,
-                    "lines": [],
-                },
-            ],
-        })
+                "duplicates": [
+                    {
+                        "file1": {"path": "src/a.py", "start_line": 10, "end_line": 20},
+                        "file2": {"path": "src/b.py", "start_line": 30, "end_line": 40},
+                        "line_count": 10,
+                        "lines": ["line1", "line2", "line3"],
+                    },
+                    {
+                        "file1": {"path": "src/c.py", "start_line": 5, "end_line": 15},
+                        "file2": {"path": "src/d.py", "start_line": 50, "end_line": 60},
+                        "line_count": 10,
+                        "lines": [],
+                    },
+                ],
+            }
+        )
 
         result = plugin._parse_output(output, Path("/project"), 10.0)
 
@@ -433,22 +450,32 @@ class TestDuploParseOutput:
     def test_parse_output_creates_issues(self) -> None:
         """Test that parsed output creates proper UnifiedIssues."""
         plugin = DuploPlugin()
-        output = json.dumps({
-            "summary": {
-                "files_analyzed": 5,
-                "total_lines": 200,
-                "duplicate_blocks": 1,
-                "duplicate_lines": 10,
-            },
-            "duplicates": [
-                {
-                    "file1": {"path": "src/main.py", "start_line": 1, "end_line": 10},
-                    "file2": {"path": "src/utils.py", "start_line": 20, "end_line": 30},
-                    "line_count": 10,
-                    "lines": ["import os", "import sys"],
+        output = json.dumps(
+            {
+                "summary": {
+                    "files_analyzed": 5,
+                    "total_lines": 200,
+                    "duplicate_blocks": 1,
+                    "duplicate_lines": 10,
                 },
-            ],
-        })
+                "duplicates": [
+                    {
+                        "file1": {
+                            "path": "src/main.py",
+                            "start_line": 1,
+                            "end_line": 10,
+                        },
+                        "file2": {
+                            "path": "src/utils.py",
+                            "start_line": 20,
+                            "end_line": 30,
+                        },
+                        "line_count": 10,
+                        "lines": ["import os", "import sys"],
+                    },
+                ],
+            }
+        )
 
         result = plugin._parse_output(output, Path("/project"), 10.0)
 
@@ -465,17 +492,27 @@ class TestDuploParseOutput:
     def test_parse_output_with_absolute_paths(self) -> None:
         """Test parsing with absolute file paths in output."""
         plugin = DuploPlugin()
-        output = json.dumps({
-            "summary": {},
-            "duplicates": [
-                {
-                    "file1": {"path": "/project/src/a.py", "start_line": 1, "end_line": 5},
-                    "file2": {"path": "/project/src/b.py", "start_line": 1, "end_line": 5},
-                    "line_count": 5,
-                    "lines": [],
-                },
-            ],
-        })
+        output = json.dumps(
+            {
+                "summary": {},
+                "duplicates": [
+                    {
+                        "file1": {
+                            "path": "/project/src/a.py",
+                            "start_line": 1,
+                            "end_line": 5,
+                        },
+                        "file2": {
+                            "path": "/project/src/b.py",
+                            "start_line": 1,
+                            "end_line": 5,
+                        },
+                        "line_count": 5,
+                        "lines": [],
+                    },
+                ],
+            }
+        )
 
         result = plugin._parse_output(output, Path("/project"), 10.0)
         assert len(result.duplicates) == 1
@@ -485,17 +522,19 @@ class TestDuploParseOutput:
     def test_parse_output_with_relative_paths(self) -> None:
         """Test parsing with relative file paths in output."""
         plugin = DuploPlugin()
-        output = json.dumps({
-            "summary": {},
-            "duplicates": [
-                {
-                    "file1": {"path": "src/a.py", "start_line": 1, "end_line": 5},
-                    "file2": {"path": "src/b.py", "start_line": 1, "end_line": 5},
-                    "line_count": 5,
-                    "lines": [],
-                },
-            ],
-        })
+        output = json.dumps(
+            {
+                "summary": {},
+                "duplicates": [
+                    {
+                        "file1": {"path": "src/a.py", "start_line": 1, "end_line": 5},
+                        "file2": {"path": "src/b.py", "start_line": 1, "end_line": 5},
+                        "line_count": 5,
+                        "lines": [],
+                    },
+                ],
+            }
+        )
 
         result = plugin._parse_output(output, Path("/project"), 10.0)
         assert len(result.duplicates) == 1
@@ -505,17 +544,27 @@ class TestDuploParseOutput:
     def test_parse_output_code_snippet_limited_to_5_lines(self) -> None:
         """Test that code snippets are limited to first 5 lines."""
         plugin = DuploPlugin()
-        output = json.dumps({
-            "summary": {},
-            "duplicates": [
-                {
-                    "file1": {"path": "a.py", "start_line": 1, "end_line": 10},
-                    "file2": {"path": "b.py", "start_line": 1, "end_line": 10},
-                    "line_count": 10,
-                    "lines": ["line1", "line2", "line3", "line4", "line5", "line6", "line7"],
-                },
-            ],
-        })
+        output = json.dumps(
+            {
+                "summary": {},
+                "duplicates": [
+                    {
+                        "file1": {"path": "a.py", "start_line": 1, "end_line": 10},
+                        "file2": {"path": "b.py", "start_line": 1, "end_line": 10},
+                        "line_count": 10,
+                        "lines": [
+                            "line1",
+                            "line2",
+                            "line3",
+                            "line4",
+                            "line5",
+                            "line6",
+                            "line7",
+                        ],
+                    },
+                ],
+            }
+        )
 
         result = plugin._parse_output(output, Path("/project"), 10.0)
         block = result.duplicates[0]
@@ -625,9 +674,16 @@ class TestDuploDetectDuplication:
                 enabled_domains=[],
             )
 
-            with patch.object(plugin, "ensure_binary", return_value=Path("/usr/bin/duplo")):
-                with patch("lucidshark.plugins.duplication.duplo.is_git_repo", return_value=False):
-                    result = plugin.detect_duplication(context, use_baseline=False, use_cache=False, use_git=False)
+            with patch.object(
+                plugin, "ensure_binary", return_value=Path("/usr/bin/duplo")
+            ):
+                with patch(
+                    "lucidshark.plugins.duplication.duplo.is_git_repo",
+                    return_value=False,
+                ):
+                    result = plugin.detect_duplication(
+                        context, use_baseline=False, use_cache=False, use_git=False
+                    )
                     assert isinstance(result, DuplicationResult)
                     assert result.duplicate_blocks == 0
 
@@ -647,22 +703,34 @@ class TestDuploDetectDuplication:
                 enabled_domains=[],
             )
 
-            duplo_output = json.dumps({
-                "summary": {
-                    "files_analyzed": 1,
-                    "total_lines": 10,
-                    "duplicate_blocks": 0,
-                    "duplicate_lines": 0,
-                },
-                "duplicates": [],
-            })
+            duplo_output = json.dumps(
+                {
+                    "summary": {
+                        "files_analyzed": 1,
+                        "total_lines": 10,
+                        "duplicate_blocks": 0,
+                        "duplicate_lines": 0,
+                    },
+                    "duplicates": [],
+                }
+            )
 
             mock_result = make_completed_process(0, duplo_output)
 
-            with patch.object(plugin, "ensure_binary", return_value=Path("/usr/bin/duplo")):
-                with patch("lucidshark.plugins.duplication.duplo.is_git_repo", return_value=False):
-                    with patch("lucidshark.plugins.duplication.duplo.run_with_streaming", return_value=mock_result):
-                        result = plugin.detect_duplication(context, use_baseline=False, use_cache=False, use_git=False)
+            with patch.object(
+                plugin, "ensure_binary", return_value=Path("/usr/bin/duplo")
+            ):
+                with patch(
+                    "lucidshark.plugins.duplication.duplo.is_git_repo",
+                    return_value=False,
+                ):
+                    with patch(
+                        "lucidshark.plugins.duplication.duplo.run_with_streaming",
+                        return_value=mock_result,
+                    ):
+                        result = plugin.detect_duplication(
+                            context, use_baseline=False, use_cache=False, use_git=False
+                        )
                         assert result.files_analyzed == 1
 
     def test_detect_timeout(self) -> None:
@@ -680,13 +748,20 @@ class TestDuploDetectDuplication:
                 enabled_domains=[],
             )
 
-            with patch.object(plugin, "ensure_binary", return_value=Path("/usr/bin/duplo")):
-                with patch("lucidshark.plugins.duplication.duplo.is_git_repo", return_value=False):
+            with patch.object(
+                plugin, "ensure_binary", return_value=Path("/usr/bin/duplo")
+            ):
+                with patch(
+                    "lucidshark.plugins.duplication.duplo.is_git_repo",
+                    return_value=False,
+                ):
                     with patch(
                         "lucidshark.plugins.duplication.duplo.run_with_streaming",
                         side_effect=subprocess.TimeoutExpired("duplo", 300),
                     ):
-                        result = plugin.detect_duplication(context, use_baseline=False, use_cache=False, use_git=False)
+                        result = plugin.detect_duplication(
+                            context, use_baseline=False, use_cache=False, use_git=False
+                        )
                         assert isinstance(result, DuplicationResult)
                         assert result.duplicate_blocks == 0
 
@@ -705,13 +780,20 @@ class TestDuploDetectDuplication:
                 enabled_domains=[],
             )
 
-            with patch.object(plugin, "ensure_binary", return_value=Path("/usr/bin/duplo")):
-                with patch("lucidshark.plugins.duplication.duplo.is_git_repo", return_value=False):
+            with patch.object(
+                plugin, "ensure_binary", return_value=Path("/usr/bin/duplo")
+            ):
+                with patch(
+                    "lucidshark.plugins.duplication.duplo.is_git_repo",
+                    return_value=False,
+                ):
                     with patch(
                         "lucidshark.plugins.duplication.duplo.run_with_streaming",
                         side_effect=OSError("command failed"),
                     ):
-                        result = plugin.detect_duplication(context, use_baseline=False, use_cache=False, use_git=False)
+                        result = plugin.detect_duplication(
+                            context, use_baseline=False, use_cache=False, use_git=False
+                        )
                         assert isinstance(result, DuplicationResult)
                         assert result.duplicate_blocks == 0
 
@@ -803,9 +885,13 @@ class TestDuploGitMode:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             plugin = DuploPlugin(project_root=project_root)
-            context = ScanContext(project_root=project_root, paths=[project_root], enabled_domains=[])
+            context = ScanContext(
+                project_root=project_root, paths=[project_root], enabled_domains=[]
+            )
 
-            mock_run = _run_detect_with_mocks(plugin, context, is_git=True, use_git=True)
+            mock_run = _run_detect_with_mocks(
+                plugin, context, is_git=True, use_git=True
+            )
             assert "--git" in _extract_cmd(mock_run)
 
     def test_fallback_to_file_list_when_not_git_repo(self) -> None:
@@ -814,10 +900,15 @@ class TestDuploGitMode:
             project_root = Path(tmpdir)
             (project_root / "main.py").write_text("code")
             plugin = DuploPlugin(project_root=project_root)
-            context = ScanContext(project_root=project_root, paths=[project_root], enabled_domains=[])
+            context = ScanContext(
+                project_root=project_root, paths=[project_root], enabled_domains=[]
+            )
 
             mock_run = _run_detect_with_mocks(
-                plugin, context, is_git=False, use_git=True,
+                plugin,
+                context,
+                is_git=False,
+                use_git=True,
                 duplo_output=_make_empty_duplo_output(files_analyzed=1, total_lines=1),
             )
             assert "--git" not in _extract_cmd(mock_run)
@@ -828,10 +919,15 @@ class TestDuploGitMode:
             project_root = Path(tmpdir)
             (project_root / "main.py").write_text("code")
             plugin = DuploPlugin(project_root=project_root)
-            context = ScanContext(project_root=project_root, paths=[project_root], enabled_domains=[])
+            context = ScanContext(
+                project_root=project_root, paths=[project_root], enabled_domains=[]
+            )
 
             mock_run = _run_detect_with_mocks(
-                plugin, context, is_git=True, use_git=False,
+                plugin,
+                context,
+                is_git=True,
+                use_git=False,
                 duplo_output=_make_empty_duplo_output(files_analyzed=1, total_lines=1),
             )
             assert "--git" not in _extract_cmd(mock_run)
@@ -842,15 +938,27 @@ class TestDuploGitMode:
             project_root = Path(tmpdir)
             (project_root / "main.py").write_text("code")
             plugin = DuploPlugin(project_root=project_root)
-            context = ScanContext(project_root=project_root, paths=[project_root], enabled_domains=[])
+            context = ScanContext(
+                project_root=project_root, paths=[project_root], enabled_domains=[]
+            )
 
             # Mock git ls-files to return the file we created
-            git_result = subprocess.CompletedProcess(args=[], returncode=0, stdout="main.py\n", stderr="")
-            with patch("lucidshark.plugins.duplication.duplo.subprocess.run", return_value=git_result):
+            git_result = subprocess.CompletedProcess(
+                args=[], returncode=0, stdout="main.py\n", stderr=""
+            )
+            with patch(
+                "lucidshark.plugins.duplication.duplo.subprocess.run",
+                return_value=git_result,
+            ):
                 mock_run = _run_detect_with_mocks(
-                    plugin, context, is_git=True, use_git=True,
+                    plugin,
+                    context,
+                    is_git=True,
+                    use_git=True,
                     exclude_patterns=["tests/**"],
-                    duplo_output=_make_empty_duplo_output(files_analyzed=1, total_lines=1),
+                    duplo_output=_make_empty_duplo_output(
+                        files_analyzed=1, total_lines=1
+                    ),
                 )
                 # Should NOT use --git since exclude patterns need to be applied
                 assert "--git" not in _extract_cmd(mock_run)
@@ -873,11 +981,21 @@ class TestDuploGitMode:
             )
 
             # Mock git ls-files to return the file we created
-            git_result = subprocess.CompletedProcess(args=[], returncode=0, stdout="main.py\n", stderr="")
-            with patch("lucidshark.plugins.duplication.duplo.subprocess.run", return_value=git_result):
+            git_result = subprocess.CompletedProcess(
+                args=[], returncode=0, stdout="main.py\n", stderr=""
+            )
+            with patch(
+                "lucidshark.plugins.duplication.duplo.subprocess.run",
+                return_value=git_result,
+            ):
                 mock_run = _run_detect_with_mocks(
-                    plugin, context, is_git=True, use_git=True,
-                    duplo_output=_make_empty_duplo_output(files_analyzed=1, total_lines=1),
+                    plugin,
+                    context,
+                    is_git=True,
+                    use_git=True,
+                    duplo_output=_make_empty_duplo_output(
+                        files_analyzed=1, total_lines=1
+                    ),
                 )
                 # Should NOT use --git since global exclude patterns need to be applied
                 assert "--git" not in _extract_cmd(mock_run)
@@ -891,7 +1009,9 @@ class TestDuploCacheMode:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             plugin = DuploPlugin(project_root=project_root)
-            context = ScanContext(project_root=project_root, paths=[project_root], enabled_domains=[])
+            context = ScanContext(
+                project_root=project_root, paths=[project_root], enabled_domains=[]
+            )
 
             cmd = _extract_cmd(_run_detect_with_mocks(plugin, context, use_cache=True))
             assert "--cache" in cmd
@@ -902,7 +1022,9 @@ class TestDuploCacheMode:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             plugin = DuploPlugin(project_root=project_root)
-            context = ScanContext(project_root=project_root, paths=[project_root], enabled_domains=[])
+            context = ScanContext(
+                project_root=project_root, paths=[project_root], enabled_domains=[]
+            )
 
             cmd = _extract_cmd(_run_detect_with_mocks(plugin, context, use_cache=False))
             assert "--cache" not in cmd
@@ -916,7 +1038,9 @@ class TestDuploCacheMode:
             cache_dir = plugin._get_cache_dir()
             assert not cache_dir.exists()
 
-            context = ScanContext(project_root=project_root, paths=[project_root], enabled_domains=[])
+            context = ScanContext(
+                project_root=project_root, paths=[project_root], enabled_domains=[]
+            )
             _run_detect_with_mocks(plugin, context, use_cache=True)
             assert cache_dir.exists()
 
@@ -931,8 +1055,12 @@ class TestDuploBaselineMode:
             plugin = DuploPlugin(project_root=project_root)
             assert not plugin._get_baseline_path().exists()
 
-            context = ScanContext(project_root=project_root, paths=[project_root], enabled_domains=[])
-            cmd = _extract_cmd(_run_detect_with_mocks(plugin, context, use_baseline=True))
+            context = ScanContext(
+                project_root=project_root, paths=[project_root], enabled_domains=[]
+            )
+            cmd = _extract_cmd(
+                _run_detect_with_mocks(plugin, context, use_baseline=True)
+            )
             assert "--save-baseline" in cmd
             assert "--baseline" not in cmd
 
@@ -947,8 +1075,12 @@ class TestDuploBaselineMode:
             baseline_path.parent.mkdir(parents=True, exist_ok=True)
             baseline_path.write_text("{}")
 
-            context = ScanContext(project_root=project_root, paths=[project_root], enabled_domains=[])
-            cmd = _extract_cmd(_run_detect_with_mocks(plugin, context, use_baseline=True))
+            context = ScanContext(
+                project_root=project_root, paths=[project_root], enabled_domains=[]
+            )
+            cmd = _extract_cmd(
+                _run_detect_with_mocks(plugin, context, use_baseline=True)
+            )
             assert "--baseline" in cmd
             assert "--save-baseline" in cmd
 
@@ -957,9 +1089,13 @@ class TestDuploBaselineMode:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             plugin = DuploPlugin(project_root=project_root)
-            context = ScanContext(project_root=project_root, paths=[project_root], enabled_domains=[])
+            context = ScanContext(
+                project_root=project_root, paths=[project_root], enabled_domains=[]
+            )
 
-            cmd = _extract_cmd(_run_detect_with_mocks(plugin, context, use_baseline=False))
+            cmd = _extract_cmd(
+                _run_detect_with_mocks(plugin, context, use_baseline=False)
+            )
             assert "--baseline" not in cmd
             assert "--save-baseline" not in cmd
 

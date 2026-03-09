@@ -169,10 +169,12 @@ class TestDictToConfig:
 
     def test_top_level_exclude_takes_precedence_over_ignore(self) -> None:
         """When both 'exclude' and 'ignore' are present, 'exclude' wins."""
-        config = dict_to_config({
-            "ignore": ["old_pattern/**"],
-            "exclude": ["new_pattern/**"],
-        })
+        config = dict_to_config(
+            {
+                "ignore": ["old_pattern/**"],
+                "exclude": ["new_pattern/**"],
+            }
+        )
         assert config.ignore == ["new_pattern/**"]
 
     def test_top_level_ignore_still_works_without_exclude(self) -> None:
@@ -365,11 +367,7 @@ class TestLoadConfig:
 
     def test_env_vars_expanded_in_config(self, tmp_path: Path) -> None:
         config_file = tmp_path / ".lucidshark.yml"
-        config_file.write_text(
-            "scanners:\n"
-            "  sca:\n"
-            "    api_token: ${TEST_TOKEN}\n"
-        )
+        config_file.write_text("scanners:\n  sca:\n    api_token: ${TEST_TOKEN}\n")
         with patch.dict(os.environ, {"TEST_TOKEN": "secret123"}):
             config = load_config(tmp_path)
         assert config.scanners["sca"].options["api_token"] == "secret123"
@@ -381,10 +379,7 @@ class TestLoadConfigMerging:
     def test_scanner_options_merged(self, tmp_path: Path) -> None:
         config_file = tmp_path / ".lucidshark.yml"
         config_file.write_text(
-            "scanners:\n"
-            "  sca:\n"
-            "    enabled: true\n"
-            "    ignore_unfixed: true\n"
+            "scanners:\n  sca:\n    enabled: true\n    ignore_unfixed: true\n"
         )
         config = load_config(
             tmp_path,
@@ -577,9 +572,7 @@ class TestDictToConfigIgnoreIssues:
         from datetime import date
 
         data = {
-            "ignore_issues": [
-                {"rule_id": "CVE-2021-1234", "expires": date(2026, 6, 1)}
-            ]
+            "ignore_issues": [{"rule_id": "CVE-2021-1234", "expires": date(2026, 6, 1)}]
         }
         config = dict_to_config(data)
         assert config.ignore_issues[0].expires == "2026-06-01"

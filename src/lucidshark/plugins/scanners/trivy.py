@@ -174,7 +174,9 @@ class TrivyScanner(ScannerPlugin):
             image_targets = container_config.get("images", [])
             for image in image_targets:
                 issues.extend(
-                    self._run_image_scan(binary, image, cache_dir, context.stream_handler)
+                    self._run_image_scan(
+                        binary, image, cache_dir, context.stream_handler
+                    )
                 )
 
         return issues
@@ -198,10 +200,13 @@ class TrivyScanner(ScannerPlugin):
         cmd = [
             str(binary),
             "fs",
-            "--cache-dir", str(cache_dir),
-            "--format", "json",
+            "--cache-dir",
+            str(cache_dir),
+            "--format",
+            "json",
             "--quiet",
-            "--scanners", "vuln",
+            "--scanners",
+            "vuln",
         ]
 
         # Apply config options
@@ -277,10 +282,13 @@ class TrivyScanner(ScannerPlugin):
         cmd = [
             str(binary),
             "image",
-            "--cache-dir", str(cache_dir),
-            "--format", "json",
+            "--cache-dir",
+            str(cache_dir),
+            "--format",
+            "json",
             "--quiet",
-            "--scanners", "vuln",
+            "--scanners",
+            "vuln",
             image,
         ]
 
@@ -440,7 +448,9 @@ class TrivyScanner(ScannerPlugin):
                 dependency=dependency,
                 recommendation=recommendation,
                 fixable=bool(fixed_version),
-                suggested_fix=f"Upgrade to version {fixed_version}" if fixed_version else None,
+                suggested_fix=f"Upgrade to version {fixed_version}"
+                if fixed_version
+                else None,
                 metadata=scanner_metadata,
             )
 

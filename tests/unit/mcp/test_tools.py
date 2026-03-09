@@ -30,7 +30,9 @@ def create_full_pipeline_config() -> PipelineConfig:
     """Create a pipeline config with all domains enabled."""
     return PipelineConfig(
         linting=DomainPipelineConfig(enabled=True, tools=[ToolConfig(name="ruff")]),
-        type_checking=DomainPipelineConfig(enabled=True, tools=[ToolConfig(name="mypy")]),
+        type_checking=DomainPipelineConfig(
+            enabled=True, tools=[ToolConfig(name="mypy")]
+        ),
         testing=DomainPipelineConfig(enabled=True, tools=[ToolConfig(name="pytest")]),
         coverage=CoveragePipelineConfig(enabled=True, threshold=80),
         security=DomainPipelineConfig(
@@ -64,9 +66,7 @@ class TestMCPToolExecutor:
         return LucidSharkConfig(pipeline=create_full_pipeline_config())
 
     @pytest.fixture
-    def executor(
-        self, project_root: Path, config: LucidSharkConfig
-    ) -> MCPToolExecutor:
+    def executor(self, project_root: Path, config: LucidSharkConfig) -> MCPToolExecutor:
         """Create an executor instance."""
         return MCPToolExecutor(project_root, config)
 
@@ -77,15 +77,15 @@ class TestMCPToolExecutor:
         """Create an executor instance with full config."""
         return MCPToolExecutor(project_root, full_config)
 
-    def test_domain_map_contains_all_domains(
-        self, executor: MCPToolExecutor
-    ) -> None:
+    def test_domain_map_contains_all_domains(self, executor: MCPToolExecutor) -> None:
         """Test that shared domain map covers all expected canonical domains."""
         expected_domains = [
             "linting",
             "type_checking",
             "sast",
-            "sca", "iac", "container",
+            "sca",
+            "iac",
+            "container",
             "testing",
             "coverage",
         ]
@@ -168,7 +168,8 @@ class TestMCPToolExecutor:
         """Test that issues are cached for later retrieval."""
         issue = UnifiedIssue(
             id="cached-issue-1",
-            domain=ScanDomain.SAST, rule_id="test-rule",
+            domain=ScanDomain.SAST,
+            rule_id="test-rule",
             source_tool="test",
             severity=Severity.HIGH,
             title="Test issue",
@@ -194,9 +195,7 @@ class TestMCPToolExecutorAsync:
         return LucidSharkConfig()
 
     @pytest.fixture
-    def executor(
-        self, project_root: Path, config: LucidSharkConfig
-    ) -> MCPToolExecutor:
+    def executor(self, project_root: Path, config: LucidSharkConfig) -> MCPToolExecutor:
         """Create an executor instance."""
         return MCPToolExecutor(project_root, config)
 
@@ -217,13 +216,12 @@ class TestMCPToolExecutorAsync:
         assert "not found" in result["error"].lower()
 
     @pytest.mark.asyncio
-    async def test_get_fix_instructions_found(
-        self, executor: MCPToolExecutor
-    ) -> None:
+    async def test_get_fix_instructions_found(self, executor: MCPToolExecutor) -> None:
         """Test getting fix instructions for cached issue."""
         issue = UnifiedIssue(
             id="test-issue-1",
-            domain=ScanDomain.SAST, rule_id="test-rule",
+            domain=ScanDomain.SAST,
+            rule_id="test-rule",
             source_tool="test",
             severity=Severity.HIGH,
             title="Test vulnerability",
@@ -249,7 +247,8 @@ class TestMCPToolExecutorAsync:
         """Test that apply_fix only works for linting issues."""
         issue = UnifiedIssue(
             id="security-issue",
-            domain=ScanDomain.SAST, rule_id="test-rule",
+            domain=ScanDomain.SAST,
+            rule_id="test-rule",
             source_tool="test",
             severity=Severity.HIGH,
             title="Security issue",
@@ -285,12 +284,10 @@ class TestMCPToolExecutorAsync:
         assert "MCP Tools Reference" in result["documentation"]
 
     @pytest.mark.asyncio
-    async def test_scan_with_empty_results(
-        self, executor: MCPToolExecutor
-    ) -> None:
+    async def test_scan_with_empty_results(self, executor: MCPToolExecutor) -> None:
         """Test scan that returns no issues."""
         # Mock the internal run methods to return empty lists
-        with patch.object(executor, '_run_linting', return_value=[]):
+        with patch.object(executor, "_run_linting", return_value=[]):
             result = await executor.scan(["linting"])
 
             assert result["total_issues"] == 0
@@ -301,13 +298,14 @@ class TestMCPToolExecutorAsync:
         """Test scan that returns issues."""
         mock_issue = UnifiedIssue(
             id="test-issue",
-            domain=ToolDomain.LINTING, rule_id="F401",
+            domain=ToolDomain.LINTING,
+            rule_id="F401",
             source_tool="test",
             severity=Severity.HIGH,
             title="Test issue",
             description="Test description",
         )
-        with patch.object(executor, '_run_linting', return_value=[mock_issue]):
+        with patch.object(executor, "_run_linting", return_value=[mock_issue]):
             result = await executor.scan(["linting"])
 
             assert result["total_issues"] == 1
@@ -316,7 +314,9 @@ class TestMCPToolExecutorAsync:
     @pytest.mark.asyncio
     async def test_scan_with_exception(self, executor: MCPToolExecutor) -> None:
         """Test scan handles exceptions gracefully."""
-        with patch.object(executor, '_run_linting', side_effect=Exception("Test error")):
+        with patch.object(
+            executor, "_run_linting", side_effect=Exception("Test error")
+        ):
             result = await executor.scan(["linting"])
             # Should not raise, just return empty
             assert result["total_issues"] == 0
@@ -324,8 +324,10 @@ class TestMCPToolExecutorAsync:
     @pytest.mark.asyncio
     async def test_scan_multiple_domains(self, executor: MCPToolExecutor) -> None:
         """Test scan with multiple domains."""
-        with patch.object(executor, '_run_linting', return_value=[]), \
-             patch.object(executor, '_run_type_checking', return_value=[]):
+        with (
+            patch.object(executor, "_run_linting", return_value=[]),
+            patch.object(executor, "_run_type_checking", return_value=[]),
+        ):
             result = await executor.scan(["linting", "type_checking"])
             assert result["total_issues"] == 0
 
@@ -338,7 +340,9 @@ class TestMCPToolExecutorAsync:
         test_file = project_root / "test.py"
         test_file.write_text("print('hello')")
 
-        with patch.object(executor, 'scan', return_value={"total_issues": 0, "instructions": []}):
+        with patch.object(
+            executor, "scan", return_value={"total_issues": 0, "instructions": []}
+        ):
             result = await executor.check_file("test.py")
             assert "error" not in result
 
@@ -347,7 +351,8 @@ class TestMCPToolExecutorAsync:
         """Test apply_fix when issue has no file path."""
         issue = UnifiedIssue(
             id="linting-issue",
-            domain=ToolDomain.LINTING, rule_id="F401",
+            domain=ToolDomain.LINTING,
+            rule_id="F401",
             source_tool="ruff",
             severity=Severity.LOW,
             title="Linting issue",
@@ -370,7 +375,8 @@ class TestMCPToolExecutorAsync:
 
         issue = UnifiedIssue(
             id="linting-issue",
-            domain=ToolDomain.LINTING, rule_id="F401",
+            domain=ToolDomain.LINTING,
+            rule_id="F401",
             source_tool="ruff",
             severity=Severity.LOW,
             title="Linting issue",
@@ -379,7 +385,7 @@ class TestMCPToolExecutorAsync:
         )
         executor._issue_cache["linting-issue"] = issue
 
-        with patch.object(executor, '_run_linting', return_value=[]):
+        with patch.object(executor, "_run_linting", return_value=[]):
             result = await executor.apply_fix("linting-issue")
             assert result["success"] is True
 
@@ -393,7 +399,8 @@ class TestMCPToolExecutorAsync:
 
         issue = UnifiedIssue(
             id="linting-issue",
-            domain=ToolDomain.LINTING, rule_id="F401",
+            domain=ToolDomain.LINTING,
+            rule_id="F401",
             source_tool="ruff",
             severity=Severity.LOW,
             title="Linting issue",
@@ -402,7 +409,7 @@ class TestMCPToolExecutorAsync:
         )
         executor._issue_cache["linting-issue"] = issue
 
-        with patch.object(executor, '_run_linting', side_effect=Exception("Failed")):
+        with patch.object(executor, "_run_linting", side_effect=Exception("Failed")):
             result = await executor.apply_fix("linting-issue")
             assert "error" in result
 
@@ -421,9 +428,7 @@ class TestMCPToolExecutorRunMethods:
         return LucidSharkConfig()
 
     @pytest.fixture
-    def executor(
-        self, project_root: Path, config: LucidSharkConfig
-    ) -> MCPToolExecutor:
+    def executor(self, project_root: Path, config: LucidSharkConfig) -> MCPToolExecutor:
         """Create an executor instance."""
         return MCPToolExecutor(project_root, config)
 
@@ -445,7 +450,10 @@ class TestMCPToolExecutorRunMethods:
         mock_linter = MagicMock()
         mock_linter.lint.return_value = []
 
-        with patch('lucidshark.plugins.linters.discover_linter_plugins', return_value={'mock': lambda **k: mock_linter}):
+        with patch(
+            "lucidshark.plugins.linters.discover_linter_plugins",
+            return_value={"mock": lambda **k: mock_linter},
+        ):
             result = await executor._run_linting(mock_context)
             assert result == []
 
@@ -454,12 +462,16 @@ class TestMCPToolExecutorRunMethods:
         self, executor: MCPToolExecutor, mock_context: ScanContext
     ) -> None:
         """Test _run_linting handles exceptions."""
+
         def create_failing_linter(**kwargs):
             linter = MagicMock()
             linter.lint.side_effect = Exception("Linter failed")
             return linter
 
-        with patch('lucidshark.plugins.linters.discover_linter_plugins', return_value={'mock': create_failing_linter}):
+        with patch(
+            "lucidshark.plugins.linters.discover_linter_plugins",
+            return_value={"mock": create_failing_linter},
+        ):
             result = await executor._run_linting(mock_context)
             assert result == []
 
@@ -471,7 +483,10 @@ class TestMCPToolExecutorRunMethods:
         mock_checker = MagicMock()
         mock_checker.check.return_value = []
 
-        with patch('lucidshark.plugins.type_checkers.discover_type_checker_plugins', return_value={'mock': lambda **k: mock_checker}):
+        with patch(
+            "lucidshark.plugins.type_checkers.discover_type_checker_plugins",
+            return_value={"mock": lambda **k: mock_checker},
+        ):
             result = await executor._run_type_checking(mock_context)
             assert result == []
 
@@ -480,12 +495,16 @@ class TestMCPToolExecutorRunMethods:
         self, executor: MCPToolExecutor, mock_context: ScanContext
     ) -> None:
         """Test _run_type_checking handles exceptions."""
+
         def create_failing_checker(**kwargs):
             checker = MagicMock()
             checker.check.side_effect = Exception("Checker failed")
             return checker
 
-        with patch('lucidshark.plugins.type_checkers.discover_type_checker_plugins', return_value={'mock': create_failing_checker}):
+        with patch(
+            "lucidshark.plugins.type_checkers.discover_type_checker_plugins",
+            return_value={"mock": create_failing_checker},
+        ):
             result = await executor._run_type_checking(mock_context)
             assert result == []
 
@@ -498,7 +517,10 @@ class TestMCPToolExecutorRunMethods:
         mock_scanner.domains = [ScanDomain.SAST]
         mock_scanner.scan.return_value = []
 
-        with patch('lucidshark.plugins.scanners.discover_scanner_plugins', return_value={'mock': lambda **k: mock_scanner}):
+        with patch(
+            "lucidshark.plugins.scanners.discover_scanner_plugins",
+            return_value={"mock": lambda **k: mock_scanner},
+        ):
             result = await executor._run_security(mock_context, ScanDomain.SAST)
             assert result == []
 
@@ -511,7 +533,10 @@ class TestMCPToolExecutorRunMethods:
         mock_scanner.domains = [ScanDomain.SCA]  # Not SAST
         mock_scanner.scan.return_value = []
 
-        with patch('lucidshark.plugins.scanners.discover_scanner_plugins', return_value={'mock': lambda **k: mock_scanner}):
+        with patch(
+            "lucidshark.plugins.scanners.discover_scanner_plugins",
+            return_value={"mock": lambda **k: mock_scanner},
+        ):
             await executor._run_security(mock_context, ScanDomain.SAST)
             mock_scanner.scan.assert_not_called()
 
@@ -524,7 +549,10 @@ class TestMCPToolExecutorRunMethods:
         mock_scanner.domains = [ScanDomain.SCA]
         mock_scanner.scan.return_value = []
 
-        with patch('lucidshark.plugins.scanners.discover_scanner_plugins', return_value={'mock': lambda **k: mock_scanner}):
+        with patch(
+            "lucidshark.plugins.scanners.discover_scanner_plugins",
+            return_value={"mock": lambda **k: mock_scanner},
+        ):
             result = await executor._run_security(mock_context, ScanDomain.SCA)
             assert result == []
 
@@ -537,7 +565,10 @@ class TestMCPToolExecutorRunMethods:
         mock_scanner.domains = [ScanDomain.IAC]
         mock_scanner.scan.return_value = []
 
-        with patch('lucidshark.plugins.scanners.discover_scanner_plugins', return_value={'mock': lambda **k: mock_scanner}):
+        with patch(
+            "lucidshark.plugins.scanners.discover_scanner_plugins",
+            return_value={"mock": lambda **k: mock_scanner},
+        ):
             result = await executor._run_security(mock_context, ScanDomain.IAC)
             assert result == []
 
@@ -550,7 +581,10 @@ class TestMCPToolExecutorRunMethods:
         mock_scanner.domains = [ScanDomain.CONTAINER]
         mock_scanner.scan.return_value = []
 
-        with patch('lucidshark.plugins.scanners.discover_scanner_plugins', return_value={'mock': lambda **k: mock_scanner}):
+        with patch(
+            "lucidshark.plugins.scanners.discover_scanner_plugins",
+            return_value={"mock": lambda **k: mock_scanner},
+        ):
             result = await executor._run_security(mock_context, ScanDomain.CONTAINER)
             assert result == []
 
@@ -562,7 +596,10 @@ class TestMCPToolExecutorRunMethods:
         mock_runner = MagicMock()
         mock_runner.run_tests.return_value = MagicMock(issues=[])
 
-        with patch('lucidshark.plugins.test_runners.discover_test_runner_plugins', return_value={'mock': lambda **k: mock_runner}):
+        with patch(
+            "lucidshark.plugins.test_runners.discover_test_runner_plugins",
+            return_value={"mock": lambda **k: mock_runner},
+        ):
             result = await executor._run_testing(mock_context)
             assert result == []
 
@@ -571,12 +608,16 @@ class TestMCPToolExecutorRunMethods:
         self, executor: MCPToolExecutor, mock_context: ScanContext
     ) -> None:
         """Test _run_testing handles exceptions."""
+
         def create_failing_runner(**kwargs):
             runner = MagicMock()
             runner.run_tests.side_effect = Exception("Runner failed")
             return runner
 
-        with patch('lucidshark.plugins.test_runners.discover_test_runner_plugins', return_value={'mock': create_failing_runner}):
+        with patch(
+            "lucidshark.plugins.test_runners.discover_test_runner_plugins",
+            return_value={"mock": create_failing_runner},
+        ):
             result = await executor._run_testing(mock_context)
             assert result == []
 
@@ -588,7 +629,10 @@ class TestMCPToolExecutorRunMethods:
         mock_plugin = MagicMock()
         mock_plugin.measure_coverage.return_value = MagicMock(issues=[])
 
-        with patch('lucidshark.plugins.coverage.discover_coverage_plugins', return_value={'mock': lambda **k: mock_plugin}):
+        with patch(
+            "lucidshark.plugins.coverage.discover_coverage_plugins",
+            return_value={"mock": lambda **k: mock_plugin},
+        ):
             result = await executor._run_coverage(mock_context)
             assert result == []
 
@@ -597,12 +641,16 @@ class TestMCPToolExecutorRunMethods:
         self, executor: MCPToolExecutor, mock_context: ScanContext
     ) -> None:
         """Test _run_coverage handles exceptions."""
+
         def create_failing_plugin(**kwargs):
             plugin = MagicMock()
             plugin.measure_coverage.side_effect = Exception("Coverage failed")
             return plugin
 
-        with patch('lucidshark.plugins.coverage.discover_coverage_plugins', return_value={'mock': create_failing_plugin}):
+        with patch(
+            "lucidshark.plugins.coverage.discover_coverage_plugins",
+            return_value={"mock": create_failing_plugin},
+        ):
             result = await executor._run_coverage(mock_context)
             assert result == []
 

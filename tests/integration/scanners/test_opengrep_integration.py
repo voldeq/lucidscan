@@ -32,9 +32,7 @@ class TestOpenGrepBinaryDownload:
         assert binary_path.exists()
         assert "opengrep" in binary_path.name
 
-    def test_opengrep_binary_is_executable(
-        self, ensure_opengrep_binary: Path
-    ) -> None:
+    def test_opengrep_binary_is_executable(self, ensure_opengrep_binary: Path) -> None:
         """Test that the downloaded OpenGrep binary is executable."""
         result = subprocess.run(
             [str(ensure_opengrep_binary), "--version"],
@@ -45,7 +43,11 @@ class TestOpenGrepBinaryDownload:
 
         # OpenGrep should respond to --version
         # Note: exit code might be non-zero for some versions
-        assert "opengrep" in result.stdout.lower() or "semgrep" in result.stdout.lower() or result.returncode == 0
+        assert (
+            "opengrep" in result.stdout.lower()
+            or "semgrep" in result.stdout.lower()
+            or result.returncode == 0
+        )
 
 
 @opengrep_available
@@ -82,7 +84,7 @@ class TestOpenGrepSASTScanning:
         """Test scanning a directory with known security issues."""
         # Create a Python file with a hardcoded password (security issue)
         vulnerable_file = tmp_path / "app.py"
-        vulnerable_file.write_text('''
+        vulnerable_file.write_text("""
 # Bad security practice: hardcoded credentials
 PASSWORD = "super_secret_password123"
 API_KEY = "sk-1234567890abcdef"
@@ -97,7 +99,7 @@ def get_data():
     # Command injection vulnerability
     user_input = input("Enter command: ")
     subprocess.call(user_input, shell=True)
-''')
+""")
 
         context = ScanContext(
             project_root=tmp_path,
@@ -145,7 +147,7 @@ def get_data():
         """Test scanning JavaScript code with security issues."""
         # Create a JavaScript file with potential security issues
         js_file = tmp_path / "app.js"
-        js_file.write_text('''
+        js_file.write_text("""
 // Security issue: eval usage
 function processUserInput(input) {
     return eval(input);  // Dangerous!
@@ -158,7 +160,7 @@ function displayMessage(msg) {
 
 // Security issue: hardcoded secret
 const API_SECRET = "hardcoded_secret_key_12345";
-''')
+""")
 
         context = ScanContext(
             project_root=tmp_path,
@@ -214,7 +216,7 @@ class TestOpenGrepOutputParsing:
         """Test severity mapping, metadata, and code snippet extraction in a single scan."""
         # Create code that should trigger various severity findings
         py_file = tmp_path / "security.py"
-        py_file.write_text('''
+        py_file.write_text("""
 import subprocess
 import os
 
@@ -226,7 +228,7 @@ def run_command(cmd):
 
 def dangerous_exec(code):
     exec(code)  # Code execution risk
-''')
+""")
 
         context = ScanContext(
             project_root=tmp_path,
@@ -299,12 +301,15 @@ class TestOpenGrepCLIIntegration:
         sys.stdout = captured = io.StringIO()
 
         try:
-            exit_code = cli.main([
-                "scan",
-                "--sast",
-                "--format", "json",
-                str(project_root),
-            ])
+            exit_code = cli.main(
+                [
+                    "scan",
+                    "--sast",
+                    "--format",
+                    "json",
+                    str(project_root),
+                ]
+            )
         finally:
             sys.stdout = old_stdout
 
@@ -328,12 +333,15 @@ class TestOpenGrepCLIIntegration:
         sys.stdout = captured = io.StringIO()
 
         try:
-            exit_code = cli.main([
-                "scan",
-                "--sast",
-                "--format", "table",
-                str(project_root),
-            ])
+            exit_code = cli.main(
+                [
+                    "scan",
+                    "--sast",
+                    "--format",
+                    "table",
+                    str(project_root),
+                ]
+            )
         finally:
             sys.stdout = old_stdout
 
@@ -353,12 +361,15 @@ class TestOpenGrepCLIIntegration:
         sys.stdout = captured = io.StringIO()
 
         try:
-            exit_code = cli.main([
-                "scan",
-                "--sast",
-                "--format", "summary",
-                str(project_root),
-            ])
+            exit_code = cli.main(
+                [
+                    "scan",
+                    "--sast",
+                    "--format",
+                    "summary",
+                    str(project_root),
+                ]
+            )
         finally:
             sys.stdout = old_stdout
 
@@ -375,11 +386,15 @@ class TestOpenGrepCLIIntegration:
 
         # Create both package.json (for SCA) and .py file (for SAST)
         package_json = tmp_path / "package.json"
-        package_json.write_text(json.dumps({
-            "name": "test",
-            "version": "1.0.0",
-            "dependencies": {"lodash": "4.17.15"}
-        }))
+        package_json.write_text(
+            json.dumps(
+                {
+                    "name": "test",
+                    "version": "1.0.0",
+                    "dependencies": {"lodash": "4.17.15"},
+                }
+            )
+        )
 
         py_file = tmp_path / "app.py"
         py_file.write_text('SECRET = "password"\n')
@@ -388,13 +403,16 @@ class TestOpenGrepCLIIntegration:
         sys.stdout = captured = io.StringIO()
 
         try:
-            exit_code = cli.main([
-                "scan",
-                "--sca",
-                "--sast",
-                "--format", "json",
-                str(tmp_path),
-            ])
+            exit_code = cli.main(
+                [
+                    "scan",
+                    "--sca",
+                    "--sast",
+                    "--format",
+                    "json",
+                    str(tmp_path),
+                ]
+            )
         finally:
             sys.stdout = old_stdout
 
@@ -412,24 +430,28 @@ class TestOpenGrepCLIIntegration:
 
         # Create code with high-severity security issues
         py_file = tmp_path / "dangerous.py"
-        py_file.write_text('''
+        py_file.write_text("""
 import subprocess
 def run(cmd):
     subprocess.call(cmd, shell=True)  # Command injection
     exec(cmd)  # Code execution
-''')
+""")
 
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
 
         try:
-            exit_code = cli.main([
-                "scan",
-                "--sast",
-                "--format", "json",
-                "--fail-on", "high",
-                str(tmp_path),
-            ])
+            exit_code = cli.main(
+                [
+                    "scan",
+                    "--sast",
+                    "--format",
+                    "json",
+                    "--fail-on",
+                    "high",
+                    str(tmp_path),
+                ]
+            )
         finally:
             sys.stdout = old_stdout
 
@@ -455,9 +477,9 @@ class TestOpenGrepMultiLanguage:
 
         # Create Go file
         go_file = tmp_path / "server.go"
-        go_file.write_text('''package main
+        go_file.write_text("""package main
 var secretKey = "hardcoded"
-''')
+""")
 
         context = ScanContext(
             project_root=tmp_path,

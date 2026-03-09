@@ -62,6 +62,7 @@ def _glob_to_regex(pattern: str) -> str:
 
     return result
 
+
 # Default version from pyproject.toml [tool.lucidshark.tools]
 DEFAULT_VERSION = get_tool_version("checkov")
 
@@ -208,9 +209,7 @@ class CheckovScanner(ScannerPlugin):
         binary = self.ensure_binary()
         return self._run_iac_scan(binary, context)
 
-    def _run_iac_scan(
-        self, binary: Path, context: ScanContext
-    ) -> List[UnifiedIssue]:
+    def _run_iac_scan(self, binary: Path, context: ScanContext) -> List[UnifiedIssue]:
         """Run Checkov IaC scan.
 
         Args:
@@ -225,8 +224,10 @@ class CheckovScanner(ScannerPlugin):
 
         cmd = [
             str(binary),
-            "--directory", str(context.project_root),
-            "--output", "json",
+            "--directory",
+            str(context.project_root),
+            "--output",
+            "json",
             "--quiet",
             "--compact",
         ]

@@ -136,7 +136,9 @@ def _is_binary_executable(binary_path: Path) -> bool:
             # Read the shebang line
             f.seek(0)
             first_line = f.readline().decode("utf-8", errors="replace").strip()
-            interpreter = first_line[2:].strip().split()[0] if len(first_line) > 2 else ""
+            interpreter = (
+                first_line[2:].strip().split()[0] if len(first_line) > 2 else ""
+            )
             if interpreter and not Path(interpreter).exists():
                 return False
         return True
@@ -234,7 +236,9 @@ def find_java_build_tool(project_root: Path) -> Tuple[Path, str]:
         return mvnw, "maven"
 
     # Check for build.gradle (Gradle project)
-    if (project_root / "build.gradle").exists() or (project_root / "build.gradle.kts").exists():
+    if (project_root / "build.gradle").exists() or (
+        project_root / "build.gradle.kts"
+    ).exists():
         gradle_path = shutil.which("gradle")
         if gradle_path:
             return Path(gradle_path), "gradle"
@@ -288,9 +292,7 @@ def detect_source_directory(project_root: Path) -> Optional[str]:
             with open(pyproject, "rb") as f:
                 data = _tomllib.load(f)
             # Check [tool.setuptools.packages.find] where = [...]
-            packages = (
-                data.get("tool", {}).get("setuptools", {}).get("packages", {})
-            )
+            packages = data.get("tool", {}).get("setuptools", {}).get("packages", {})
             if isinstance(packages, dict):
                 # Handle nested: [tool.setuptools.packages.find] where = [...]
                 find = packages.get("find", {})
@@ -328,10 +330,7 @@ def coverage_has_source_config(project_root: Path) -> bool:
             with open(pyproject, "rb") as f:
                 data = _tomllib.load(f)
             source = (
-                data.get("tool", {})
-                .get("coverage", {})
-                .get("run", {})
-                .get("source")
+                data.get("tool", {}).get("coverage", {}).get("run", {}).get("source")
             )
             if source:
                 return True
@@ -429,5 +428,3 @@ def create_coverage_threshold_issue(
             "gap_percentage": round(gap, 2),
         },
     )
-
-

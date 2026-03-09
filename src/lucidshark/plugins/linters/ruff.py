@@ -32,61 +32,61 @@ PYTHON_EXTENSIONS = {".py", ".pyi", ".pyw"}
 # Ruff outputs: E=error, W=warning, F=flake8, I=isort, etc.
 # We map based on rule category
 SEVERITY_MAP = {
-    "E": Severity.MEDIUM,   # pycodestyle error
-    "W": Severity.LOW,      # pycodestyle warning
-    "F": Severity.MEDIUM,   # pyflakes
-    "I": Severity.LOW,      # isort
-    "N": Severity.LOW,      # pep8-naming
-    "D": Severity.LOW,      # pydocstyle
-    "UP": Severity.LOW,     # pyupgrade
-    "YTT": Severity.MEDIUM, # flake8-2020
-    "ANN": Severity.LOW,    # flake8-annotations
+    "E": Severity.MEDIUM,  # pycodestyle error
+    "W": Severity.LOW,  # pycodestyle warning
+    "F": Severity.MEDIUM,  # pyflakes
+    "I": Severity.LOW,  # isort
+    "N": Severity.LOW,  # pep8-naming
+    "D": Severity.LOW,  # pydocstyle
+    "UP": Severity.LOW,  # pyupgrade
+    "YTT": Severity.MEDIUM,  # flake8-2020
+    "ANN": Severity.LOW,  # flake8-annotations
     "ASYNC": Severity.MEDIUM,
-    "S": Severity.HIGH,     # flake8-bandit (security)
-    "BLE": Severity.MEDIUM, # flake8-blind-except
-    "FBT": Severity.LOW,    # flake8-boolean-trap
-    "B": Severity.MEDIUM,   # flake8-bugbear
-    "A": Severity.LOW,      # flake8-builtins
-    "COM": Severity.LOW,    # flake8-commas
-    "C4": Severity.LOW,     # flake8-comprehensions
-    "DTZ": Severity.MEDIUM, # flake8-datetimez
-    "T10": Severity.HIGH,   # flake8-debugger
+    "S": Severity.HIGH,  # flake8-bandit (security)
+    "BLE": Severity.MEDIUM,  # flake8-blind-except
+    "FBT": Severity.LOW,  # flake8-boolean-trap
+    "B": Severity.MEDIUM,  # flake8-bugbear
+    "A": Severity.LOW,  # flake8-builtins
+    "COM": Severity.LOW,  # flake8-commas
+    "C4": Severity.LOW,  # flake8-comprehensions
+    "DTZ": Severity.MEDIUM,  # flake8-datetimez
+    "T10": Severity.HIGH,  # flake8-debugger
     "DJ": Severity.MEDIUM,  # flake8-django
-    "EM": Severity.LOW,     # flake8-errmsg
-    "EXE": Severity.LOW,    # flake8-executable
-    "FA": Severity.LOW,     # flake8-future-annotations
-    "ISC": Severity.LOW,    # flake8-implicit-str-concat
-    "ICN": Severity.LOW,    # flake8-import-conventions
-    "LOG": Severity.LOW,    # flake8-logging
-    "G": Severity.LOW,      # flake8-logging-format
-    "INP": Severity.LOW,    # flake8-no-pep420
-    "PIE": Severity.LOW,    # flake8-pie
-    "T20": Severity.LOW,    # flake8-print
-    "PYI": Severity.LOW,    # flake8-pyi
-    "PT": Severity.LOW,     # flake8-pytest-style
-    "Q": Severity.LOW,      # flake8-quotes
-    "RSE": Severity.LOW,    # flake8-raise
-    "RET": Severity.LOW,    # flake8-return
-    "SLF": Severity.MEDIUM, # flake8-self
-    "SLOT": Severity.LOW,   # flake8-slots
-    "SIM": Severity.LOW,    # flake8-simplify
-    "TID": Severity.LOW,    # flake8-tidy-imports
-    "TCH": Severity.LOW,    # flake8-type-checking
-    "INT": Severity.LOW,    # flake8-gettext
-    "ARG": Severity.LOW,    # flake8-unused-arguments
-    "PTH": Severity.LOW,    # flake8-use-pathlib
-    "TD": Severity.INFO,    # flake8-todos
-    "FIX": Severity.INFO,   # flake8-fixme
-    "ERA": Severity.LOW,    # eradicate
-    "PD": Severity.LOW,     # pandas-vet
-    "PGH": Severity.LOW,    # pygrep-hooks
+    "EM": Severity.LOW,  # flake8-errmsg
+    "EXE": Severity.LOW,  # flake8-executable
+    "FA": Severity.LOW,  # flake8-future-annotations
+    "ISC": Severity.LOW,  # flake8-implicit-str-concat
+    "ICN": Severity.LOW,  # flake8-import-conventions
+    "LOG": Severity.LOW,  # flake8-logging
+    "G": Severity.LOW,  # flake8-logging-format
+    "INP": Severity.LOW,  # flake8-no-pep420
+    "PIE": Severity.LOW,  # flake8-pie
+    "T20": Severity.LOW,  # flake8-print
+    "PYI": Severity.LOW,  # flake8-pyi
+    "PT": Severity.LOW,  # flake8-pytest-style
+    "Q": Severity.LOW,  # flake8-quotes
+    "RSE": Severity.LOW,  # flake8-raise
+    "RET": Severity.LOW,  # flake8-return
+    "SLF": Severity.MEDIUM,  # flake8-self
+    "SLOT": Severity.LOW,  # flake8-slots
+    "SIM": Severity.LOW,  # flake8-simplify
+    "TID": Severity.LOW,  # flake8-tidy-imports
+    "TCH": Severity.LOW,  # flake8-type-checking
+    "INT": Severity.LOW,  # flake8-gettext
+    "ARG": Severity.LOW,  # flake8-unused-arguments
+    "PTH": Severity.LOW,  # flake8-use-pathlib
+    "TD": Severity.INFO,  # flake8-todos
+    "FIX": Severity.INFO,  # flake8-fixme
+    "ERA": Severity.LOW,  # eradicate
+    "PD": Severity.LOW,  # pandas-vet
+    "PGH": Severity.LOW,  # pygrep-hooks
     "PL": Severity.MEDIUM,  # Pylint
-    "TRY": Severity.LOW,    # tryceratops
-    "FLY": Severity.LOW,    # flynt
-    "NPY": Severity.MEDIUM, # NumPy
-    "PERF": Severity.LOW,   # Perflint
-    "FURB": Severity.LOW,   # refurb
-    "RUF": Severity.MEDIUM, # Ruff-specific
+    "TRY": Severity.LOW,  # tryceratops
+    "FLY": Severity.LOW,  # flynt
+    "NPY": Severity.MEDIUM,  # NumPy
+    "PERF": Severity.LOW,  # Perflint
+    "FURB": Severity.LOW,  # refurb
+    "RUF": Severity.MEDIUM,  # Ruff-specific
 }
 
 
@@ -163,7 +163,8 @@ class RuffLinter(LinterPlugin):
         cmd = [
             str(binary),
             "check",
-            "--output-format", "json",
+            "--output-format",
+            "json",
         ]
 
         # Filter and add paths to check
@@ -172,7 +173,8 @@ class RuffLinter(LinterPlugin):
             paths_to_use = context.paths
             if context.ignore_patterns is not None:
                 paths_to_use = [
-                    p for p in paths_to_use
+                    p
+                    for p in paths_to_use
                     if not context.ignore_patterns.matches(p, context.project_root)
                 ]
             paths = self._filter_paths(paths_to_use, context.project_root)
@@ -238,7 +240,8 @@ class RuffLinter(LinterPlugin):
             str(binary),
             "check",
             "--fix",
-            "--output-format", "json",
+            "--output-format",
+            "json",
         ]
 
         # Filter and add paths (same ignore filtering as lint)
@@ -246,7 +249,8 @@ class RuffLinter(LinterPlugin):
             paths_to_use = context.paths
             if context.ignore_patterns is not None:
                 paths_to_use = [
-                    p for p in paths_to_use
+                    p
+                    for p in paths_to_use
                     if not context.ignore_patterns.matches(p, context.project_root)
                 ]
             paths = self._filter_paths(paths_to_use, context.project_root)
@@ -285,11 +289,11 @@ class RuffLinter(LinterPlugin):
         post_issues = self._parse_output(result.stdout, context.project_root)
 
         # Calculate stats
-        files_modified = len(set(
-            str(issue.file_path)
-            for issue in pre_issues
-            if issue not in post_issues
-        ))
+        files_modified = len(
+            set(
+                str(issue.file_path) for issue in pre_issues if issue not in post_issues
+            )
+        )
 
         return FixResult(
             files_modified=files_modified,
@@ -403,7 +407,9 @@ class RuffLinter(LinterPlugin):
         issues = []
         for violation in violations:
             if not isinstance(violation, dict):
-                LOGGER.warning(f"Skipping non-dict violation: {type(violation).__name__}")
+                LOGGER.warning(
+                    f"Skipping non-dict violation: {type(violation).__name__}"
+                )
                 continue
             issue = self._violation_to_issue(violation, project_root)
             if issue:
@@ -449,7 +455,9 @@ class RuffLinter(LinterPlugin):
 
             # Extract fix information
             fix_info = violation.get("fix") or {}
-            is_fixable = fix_info.get("applicability") == "safe" or bool(fix_info.get("edits"))
+            is_fixable = fix_info.get("applicability") == "safe" or bool(
+                fix_info.get("edits")
+            )
             fix_message = fix_info.get("message")
 
             return UnifiedIssue(

@@ -13,7 +13,11 @@ if TYPE_CHECKING:
     from lucidshark.config.models import LucidSharkConfig
 
 from lucidshark.cli.commands import Command
-from lucidshark.cli.exit_codes import EXIT_ISSUES_FOUND, EXIT_INVALID_USAGE, EXIT_SUCCESS
+from lucidshark.cli.exit_codes import (
+    EXIT_ISSUES_FOUND,
+    EXIT_INVALID_USAGE,
+    EXIT_SUCCESS,
+)
 from lucidshark.config.validation import (
     ConfigValidationIssue,
     validate_config_at_path,
@@ -46,7 +50,9 @@ class ValidateCommand(Command):
         if result.error_message:
             print(result.error_message)
             if result.config_path is None:
-                print("Looked for: .lucidshark.yml, .lucidshark.yaml, lucidshark.yml, lucidshark.yaml")
+                print(
+                    "Looked for: .lucidshark.yml, .lucidshark.yaml, lucidshark.yml, lucidshark.yaml"
+                )
             return EXIT_INVALID_USAGE
 
         print(f"Validating {result.config_path}...")

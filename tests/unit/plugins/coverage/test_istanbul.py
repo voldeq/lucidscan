@@ -87,7 +87,10 @@ class TestIstanbulGetVersion:
 
             plugin = IstanbulPlugin(project_root=project_root)
 
-            with patch("lucidshark.plugins.coverage.base.get_cli_version", return_value="15.1.0"):
+            with patch(
+                "lucidshark.plugins.coverage.base.get_cli_version",
+                return_value="15.1.0",
+            ):
                 version = plugin.get_version()
                 assert version == "15.1.0"
 
@@ -103,7 +106,9 @@ class TestIstanbulMeasureCoverage:
     """Tests for measure_coverage flow."""
 
     @patch("shutil.which", return_value=None)
-    def test_measure_coverage_binary_not_found_no_direct_files(self, mock_which: MagicMock) -> None:
+    def test_measure_coverage_binary_not_found_no_direct_files(
+        self, mock_which: MagicMock
+    ) -> None:
         """Test measure_coverage when nyc not found and no direct coverage files exist."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
@@ -160,9 +165,18 @@ class TestIstanbulMeasureCoverage:
                 f"{tmpdir}/src/index.js": {
                     "path": f"{tmpdir}/src/index.js",
                     "statementMap": {
-                        "0": {"start": {"line": 1, "column": 0}, "end": {"line": 1, "column": 20}},
-                        "1": {"start": {"line": 2, "column": 0}, "end": {"line": 2, "column": 20}},
-                        "2": {"start": {"line": 5, "column": 0}, "end": {"line": 5, "column": 15}},
+                        "0": {
+                            "start": {"line": 1, "column": 0},
+                            "end": {"line": 1, "column": 20},
+                        },
+                        "1": {
+                            "start": {"line": 2, "column": 0},
+                            "end": {"line": 2, "column": 20},
+                        },
+                        "2": {
+                            "start": {"line": 5, "column": 0},
+                            "end": {"line": 5, "column": 15},
+                        },
                     },
                     "s": {"0": 5, "1": 3, "2": 0},
                     "fnMap": {},
@@ -218,7 +232,9 @@ class TestIstanbulMeasureCoverage:
             assert result.total_lines == 200
             assert result.covered_lines == 190
 
-    def test_measure_coverage_no_coverage_or_nyc_output_returns_no_data_issue(self) -> None:
+    def test_measure_coverage_no_coverage_or_nyc_output_returns_no_data_issue(
+        self,
+    ) -> None:
         """Test measure_coverage when neither coverage/ nor .nyc_output/ exist."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
@@ -281,12 +297,18 @@ class TestIstanbulGenerateAndParseReport:
                         report = {
                             "total": {
                                 "lines": {"total": 100, "covered": 85, "pct": 85.0},
-                                "statements": {"total": 100, "covered": 85, "pct": 85.0},
+                                "statements": {
+                                    "total": 100,
+                                    "covered": 85,
+                                    "pct": 85.0,
+                                },
                                 "branches": {"total": 50, "covered": 40, "pct": 80.0},
                                 "functions": {"total": 20, "covered": 18, "pct": 90.0},
                             }
                         }
-                        (report_dir / "coverage-summary.json").write_text(json.dumps(report))
+                        (report_dir / "coverage-summary.json").write_text(
+                            json.dumps(report)
+                        )
                 result = MagicMock()
                 result.returncode = 0
                 return result
@@ -350,7 +372,9 @@ class TestIstanbulJsonParsing:
             },
         }
 
-        result = plugin._parse_istanbul_summary(report, Path("/tmp/project"), threshold=80.0)
+        result = plugin._parse_istanbul_summary(
+            report, Path("/tmp/project"), threshold=80.0
+        )
 
         assert result.total_lines == 100
         assert result.covered_lines == 70
@@ -377,7 +401,9 @@ class TestIstanbulJsonParsing:
             },
         }
 
-        result = plugin._parse_istanbul_summary(report, Path("/tmp/project"), threshold=80.0)
+        result = plugin._parse_istanbul_summary(
+            report, Path("/tmp/project"), threshold=80.0
+        )
 
         assert result.percentage == 90.0
         assert result.passed is True
@@ -402,7 +428,9 @@ class TestIstanbulJsonParsing:
             },
         }
 
-        result = plugin._parse_istanbul_summary(report, Path("/tmp/project"), threshold=80.0)
+        result = plugin._parse_istanbul_summary(
+            report, Path("/tmp/project"), threshold=80.0
+        )
 
         assert len(result.files) == 2
         assert "src/app.js" in result.files
@@ -422,10 +450,22 @@ class TestIstanbulFinalReportParsing:
                 f"{tmpdir}/src/index.js": {
                     "path": f"{tmpdir}/src/index.js",
                     "statementMap": {
-                        "0": {"start": {"line": 1, "column": 0}, "end": {"line": 1, "column": 20}},
-                        "1": {"start": {"line": 3, "column": 0}, "end": {"line": 3, "column": 20}},
-                        "2": {"start": {"line": 5, "column": 0}, "end": {"line": 5, "column": 15}},
-                        "3": {"start": {"line": 7, "column": 0}, "end": {"line": 7, "column": 10}},
+                        "0": {
+                            "start": {"line": 1, "column": 0},
+                            "end": {"line": 1, "column": 20},
+                        },
+                        "1": {
+                            "start": {"line": 3, "column": 0},
+                            "end": {"line": 3, "column": 20},
+                        },
+                        "2": {
+                            "start": {"line": 5, "column": 0},
+                            "end": {"line": 5, "column": 15},
+                        },
+                        "3": {
+                            "start": {"line": 7, "column": 0},
+                            "end": {"line": 7, "column": 10},
+                        },
                     },
                     "s": {"0": 10, "1": 5, "2": 0, "3": 0},
                     "fnMap": {},
@@ -455,13 +495,19 @@ class TestIstanbulFinalReportParsing:
             report = {
                 f"{tmpdir}/src/a.js": {
                     "statementMap": {
-                        "0": {"start": {"line": 1, "column": 0}, "end": {"line": 1, "column": 10}},
+                        "0": {
+                            "start": {"line": 1, "column": 0},
+                            "end": {"line": 1, "column": 10},
+                        },
                     },
                     "s": {"0": 1},
                 },
                 f"{tmpdir}/src/b.js": {
                     "statementMap": {
-                        "0": {"start": {"line": 1, "column": 0}, "end": {"line": 1, "column": 10}},
+                        "0": {
+                            "start": {"line": 1, "column": 0},
+                            "end": {"line": 1, "column": 10},
+                        },
                     },
                     "s": {"0": 0},
                 },
@@ -484,7 +530,10 @@ class TestIstanbulFinalReportParsing:
             report = {
                 f"{tmpdir}/src/a.js": {
                     "statementMap": {
-                        "0": {"start": {"line": 1, "column": 0}, "end": {"line": 1, "column": 10}},
+                        "0": {
+                            "start": {"line": 1, "column": 0},
+                            "end": {"line": 1, "column": 10},
+                        },
                     },
                     "s": {"0": 5},
                 },

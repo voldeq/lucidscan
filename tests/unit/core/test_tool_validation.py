@@ -35,11 +35,20 @@ class TestAutoDownloadableTools:
     def test_manually_installed_tools_have_instructions(self):
         """All manually installed tools should have install instructions."""
         manual_tools = [
-            "ruff", "eslint", "biome", "mypy", "pyright",
-            "pytest", "jest", "coverage_py", "istanbul",
+            "ruff",
+            "eslint",
+            "biome",
+            "mypy",
+            "pyright",
+            "pytest",
+            "jest",
+            "coverage_py",
+            "istanbul",
         ]
         for tool in manual_tools:
-            assert tool in INSTALL_INSTRUCTIONS, f"Missing install instruction for {tool}"
+            assert tool in INSTALL_INSTRUCTIONS, (
+                f"Missing install instruction for {tool}"
+            )
 
 
 class TestToolValidationResult:

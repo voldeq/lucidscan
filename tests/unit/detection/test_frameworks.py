@@ -30,10 +30,10 @@ class TestDetectFrameworks:
 
     def test_detect_python_framework_fastapi(self, tmp_path: Path) -> None:
         """Test detecting FastAPI framework."""
-        pyproject = '''
+        pyproject = """
 [project]
 dependencies = ["fastapi>=0.100.0"]
-'''
+"""
         (tmp_path / "pyproject.toml").write_text(pyproject)
 
         frameworks, test_frameworks = detect_frameworks(tmp_path)
@@ -153,10 +153,10 @@ dependencies = ["fastapi>=0.100.0"]
 
     def test_detect_multiple_frameworks(self, tmp_path: Path) -> None:
         """Test detecting multiple frameworks."""
-        pyproject = '''
+        pyproject = """
 [project]
 dependencies = ["fastapi>=0.100.0", "starlette>=0.20.0"]
-'''
+"""
         (tmp_path / "pyproject.toml").write_text(pyproject)
 
         frameworks, test_frameworks = detect_frameworks(tmp_path)
@@ -194,10 +194,10 @@ class TestGetPythonDependencies:
 
     def test_from_pyproject(self, tmp_path: Path) -> None:
         """Test getting deps from pyproject.toml."""
-        pyproject = '''
+        pyproject = """
 [project]
 dependencies = ["fastapi>=0.100.0", "pydantic>=2.0"]
-'''
+"""
         (tmp_path / "pyproject.toml").write_text(pyproject)
 
         deps = _get_python_dependencies(tmp_path)
@@ -262,13 +262,13 @@ class TestParsePyprojectDeps:
 
     def test_parse_dependencies_array(self) -> None:
         """Test parsing dependencies array."""
-        content = '''
+        content = """
 [project]
 dependencies = [
     "fastapi>=0.100.0",
     "pydantic>=2.0",
 ]
-'''
+"""
         deps = _parse_pyproject_deps(content)
         assert "fastapi" in deps
         assert "pydantic" in deps
@@ -276,35 +276,35 @@ dependencies = [
     def test_parse_optional_dependencies(self) -> None:
         """Test parsing optional dependencies."""
         # The regex expects [project.optional-dependencies.groupname] format
-        content = '''
+        content = """
 [project.optional-dependencies.dev]
 "pytest>=7.0"
 "black>=23.0"
-'''
+"""
         deps = _parse_pyproject_deps(content)
         assert "pytest" in deps
         assert "black" in deps
 
     def test_parse_poetry_dependencies(self) -> None:
         """Test parsing Poetry-style dependencies."""
-        content = '''
+        content = """
 [tool.poetry.dependencies]
 python = "^3.11"
 fastapi = "^0.100.0"
 pydantic = "^2.0"
-'''
+"""
         deps = _parse_pyproject_deps(content)
         assert "fastapi" in deps
         assert "pydantic" in deps
 
     def test_parse_with_extras(self) -> None:
         """Test parsing dependencies with extras."""
-        content = '''
+        content = """
 [project]
 dependencies = [
     "fastapi[all]>=0.100.0",
 ]
-'''
+"""
         deps = _parse_pyproject_deps(content)
         assert "fastapi" in deps
 

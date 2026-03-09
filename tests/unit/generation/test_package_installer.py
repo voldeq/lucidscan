@@ -115,10 +115,7 @@ class TestPackageInstallerPython:
         self, installer: PackageInstaller, tmp_path: Path
     ) -> None:
         pyproject = tmp_path / "pyproject.toml"
-        pyproject.write_text(
-            "[build-system]\n"
-            'requires = ["setuptools"]\n'
-        )
+        pyproject.write_text('[build-system]\nrequires = ["setuptools"]\n')
         ctx = _make_python_context(tmp_path)
         result = installer.install_tools(ctx, ["ruff"])
         assert "ruff" in result
@@ -168,10 +165,7 @@ class TestPackageInstallerPython:
     ) -> None:
         pyproject = tmp_path / "pyproject.toml"
         pyproject.write_text(
-            '[project]\nname = "myapp"\n'
-            "dependencies = [\n"
-            '  "ruff>=0.8.0"\n'
-            "]\n"
+            '[project]\nname = "myapp"\ndependencies = [\n  "ruff>=0.8.0"\n]\n'
         )
         ctx = _make_python_context(tmp_path)
         result = installer.install_tools(ctx, ["ruff"])
@@ -209,10 +203,12 @@ class TestPackageInstallerJavaScript:
     ) -> None:
         pkg = tmp_path / "package.json"
         pkg.write_text(
-            json.dumps({
-                "name": "myapp",
-                "devDependencies": {"prettier": "^3.0.0"},
-            })
+            json.dumps(
+                {
+                    "name": "myapp",
+                    "devDependencies": {"prettier": "^3.0.0"},
+                }
+            )
         )
         ctx = _make_js_context(tmp_path)
         result = installer.install_tools(ctx, ["eslint", "typescript"])
@@ -228,10 +224,12 @@ class TestPackageInstallerJavaScript:
     ) -> None:
         pkg = tmp_path / "package.json"
         pkg.write_text(
-            json.dumps({
-                "name": "myapp",
-                "devDependencies": {"eslint": "^8.0.0"},
-            })
+            json.dumps(
+                {
+                    "name": "myapp",
+                    "devDependencies": {"eslint": "^8.0.0"},
+                }
+            )
         )
         ctx = _make_js_context(tmp_path)
         result = installer.install_tools(ctx, ["eslint"])

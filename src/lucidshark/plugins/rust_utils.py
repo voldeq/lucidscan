@@ -170,9 +170,7 @@ def parse_diagnostic_spans(
 
         span_text = primary_span.get("text", [])
         if span_text:
-            code_snippet = "\n".join(
-                t.get("text", "") for t in span_text
-            )
+            code_snippet = "\n".join(t.get("text", "") for t in span_text)
 
     return file_path, line_start, line_end, column_start, column_end, code_snippet
 

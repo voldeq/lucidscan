@@ -44,9 +44,7 @@ class TestTrivyBinaryDownload:
         expected_name = "trivy"
         assert binary_path.name == expected_name
 
-    def test_trivy_binary_is_executable(
-        self, ensure_trivy_binary: Path
-    ) -> None:
+    def test_trivy_binary_is_executable(self, ensure_trivy_binary: Path) -> None:
         """Test that the downloaded Trivy binary is executable."""
         result = subprocess.run(
             [str(ensure_trivy_binary), "version"],
@@ -94,40 +92,40 @@ class TestTrivySCAScanning:
         # Create a package.json with a known vulnerable package
         # lodash 4.17.15 has known vulnerabilities
         package_json = tmp_path / "package.json"
-        package_json.write_text(json.dumps({
-            "name": "test-project",
-            "version": "1.0.0",
-            "dependencies": {
-                "lodash": "4.17.15"
-            }
-        }))
+        package_json.write_text(
+            json.dumps(
+                {
+                    "name": "test-project",
+                    "version": "1.0.0",
+                    "dependencies": {"lodash": "4.17.15"},
+                }
+            )
+        )
 
         # Create a minimal package-lock.json
         package_lock = tmp_path / "package-lock.json"
-        package_lock.write_text(json.dumps({
-            "name": "test-project",
-            "version": "1.0.0",
-            "lockfileVersion": 2,
-            "requires": True,
-            "packages": {
-                "": {
+        package_lock.write_text(
+            json.dumps(
+                {
                     "name": "test-project",
                     "version": "1.0.0",
-                    "dependencies": {
-                        "lodash": "4.17.15"
-                    }
-                },
-                "node_modules/lodash": {
-                    "version": "4.17.15",
-                    "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.15.tgz"
+                    "lockfileVersion": 2,
+                    "requires": True,
+                    "packages": {
+                        "": {
+                            "name": "test-project",
+                            "version": "1.0.0",
+                            "dependencies": {"lodash": "4.17.15"},
+                        },
+                        "node_modules/lodash": {
+                            "version": "4.17.15",
+                            "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.15.tgz",
+                        },
+                    },
+                    "dependencies": {"lodash": {"version": "4.17.15"}},
                 }
-            },
-            "dependencies": {
-                "lodash": {
-                    "version": "4.17.15"
-                }
-            }
-        }))
+            )
+        )
 
         context = ScanContext(
             project_root=tmp_path,
@@ -191,9 +189,7 @@ class TestTrivySCAScanning:
         assert len(issues) > 0, "Expected vulnerabilities in django 2.2.0"
 
         # Find django-related issues
-        django_issues = [
-            i for i in issues if "django" in (i.dependency or "").lower()
-        ]
+        django_issues = [i for i in issues if "django" in (i.dependency or "").lower()]
         assert len(django_issues) > 0, "Expected django vulnerabilities"
 
 
@@ -423,12 +419,15 @@ class TestTrivyCLIIntegration:
         sys.stdout = captured = io.StringIO()
 
         try:
-            exit_code = cli.main([
-                "scan",
-                "--sca",
-                "--format", "json",
-                str(project_root),
-            ])
+            exit_code = cli.main(
+                [
+                    "scan",
+                    "--sca",
+                    "--format",
+                    "json",
+                    str(project_root),
+                ]
+            )
         finally:
             sys.stdout = old_stdout
 
@@ -452,12 +451,15 @@ class TestTrivyCLIIntegration:
         sys.stdout = captured = io.StringIO()
 
         try:
-            exit_code = cli.main([
-                "scan",
-                "--sca",
-                "--format", "table",
-                str(project_root),
-            ])
+            exit_code = cli.main(
+                [
+                    "scan",
+                    "--sca",
+                    "--format",
+                    "table",
+                    str(project_root),
+                ]
+            )
         finally:
             sys.stdout = old_stdout
 
@@ -477,12 +479,15 @@ class TestTrivyCLIIntegration:
         sys.stdout = captured = io.StringIO()
 
         try:
-            exit_code = cli.main([
-                "scan",
-                "--sca",
-                "--format", "summary",
-                str(project_root),
-            ])
+            exit_code = cli.main(
+                [
+                    "scan",
+                    "--sca",
+                    "--format",
+                    "summary",
+                    str(project_root),
+                ]
+            )
         finally:
             sys.stdout = old_stdout
 
@@ -505,13 +510,17 @@ class TestTrivyCLIIntegration:
         sys.stdout = captured = io.StringIO()
 
         try:
-            exit_code = cli.main([
-                "scan",
-                "--sca",
-                "--format", "json",
-                "--fail-on", "high",
-                str(tmp_path),
-            ])
+            exit_code = cli.main(
+                [
+                    "scan",
+                    "--sca",
+                    "--format",
+                    "json",
+                    "--fail-on",
+                    "high",
+                    str(tmp_path),
+                ]
+            )
         finally:
             sys.stdout = old_stdout
 

@@ -33,6 +33,7 @@ class ToolDomain(str, Enum):
     TESTING = "testing"
     COVERAGE = "coverage"
     DUPLICATION = "duplication"
+    FORMATTING = "formatting"
 
 
 # Type alias for any domain type (ScanDomain or ToolDomain)
@@ -46,6 +47,7 @@ _DOMAIN_MAP: Dict[str, DomainType] = {
     "testing": ToolDomain.TESTING,
     "coverage": ToolDomain.COVERAGE,
     "duplication": ToolDomain.DUPLICATION,
+    "formatting": ToolDomain.FORMATTING,
     # Security/scan domains
     "sast": ScanDomain.SAST,
     "sca": ScanDomain.SCA,
@@ -334,5 +336,3 @@ class ScanResult:
             by_severity=by_severity,
             by_scanner=by_domain,  # Keep field name for backwards compatibility
         )
-
-

@@ -40,13 +40,12 @@ class TestCargoAvailability:
 class TestCargoFunctional:
     """Functional integration tests for cargo test runner."""
 
-    def test_run_tests_sample_project(
-        self, cargo_test_runner: CargoTestRunner
-    ) -> None:
+    def test_run_tests_sample_project(self, cargo_test_runner: CargoTestRunner) -> None:
         """Test running tests in the rust-cli sample project."""
         project_path = Path(__file__).parent.parent / "projects" / "rust-cli"
         if not project_path.exists():
             import pytest
+
             pytest.skip("rust-cli sample project not found")
 
         context = ScanContext(
@@ -104,9 +103,7 @@ class TestCargoFunctional:
             assert result.success is True
             assert result.tool == "cargo"
 
-    def test_run_tests_no_cargo_toml(
-        self, cargo_test_runner: CargoTestRunner
-    ) -> None:
+    def test_run_tests_no_cargo_toml(self, cargo_test_runner: CargoTestRunner) -> None:
         """Test running tests in project without Cargo.toml."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
@@ -135,6 +132,7 @@ class TestCargoIssueGeneration:
         project_path = Path(__file__).parent.parent / "projects" / "rust-cli"
         if not project_path.exists():
             import pytest
+
             pytest.skip("rust-cli sample project not found")
 
         context = ScanContext(
@@ -161,6 +159,7 @@ class TestCargoIssueGeneration:
         project_path = Path(__file__).parent.parent / "projects" / "rust-cli"
         if not project_path.exists():
             import pytest
+
             pytest.skip("rust-cli sample project not found")
 
         context = ScanContext(

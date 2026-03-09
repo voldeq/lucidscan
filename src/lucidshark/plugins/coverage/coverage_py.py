@@ -53,6 +53,7 @@ class CoveragePyPlugin(CoveragePlugin):
         """Get coverage.py version."""
         try:
             binary = self.ensure_binary()
+
             # Output is like "Coverage.py, version 7.4.0 ..."
             def parse_coverage_version(output: str) -> str:
                 if "version" in output:
@@ -61,6 +62,7 @@ class CoveragePyPlugin(CoveragePlugin):
                         version = parts[1].strip().split()[0]
                         return version.rstrip(",")
                 return output
+
             return get_cli_version(binary, parser=parse_coverage_version)
         except FileNotFoundError:
             return "unknown"
@@ -174,7 +176,9 @@ class CoveragePyPlugin(CoveragePlugin):
 
             # Parse JSON report
             if report_file.exists():
-                return self._parse_json_report(report_file, context.project_root, threshold)
+                return self._parse_json_report(
+                    report_file, context.project_root, threshold
+                )
             else:
                 LOGGER.warning("Coverage JSON report not generated")
                 return CoverageResult(threshold=threshold, tool="coverage_py")
@@ -248,5 +252,3 @@ class CoveragePyPlugin(CoveragePlugin):
         )
 
         return result
-
-

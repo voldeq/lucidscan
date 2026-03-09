@@ -196,7 +196,9 @@ class DuploPlugin(DuplicationPlugin):
         # paths tracked by git, so when either is present we fall back to
         # git ls-files + filtering — still using git for file discovery,
         # but with pattern matching applied on top.
-        has_exclude_patterns = bool(exclude_patterns) or bool(context.get_exclude_patterns())
+        has_exclude_patterns = bool(exclude_patterns) or bool(
+            context.get_exclude_patterns()
+        )
         use_git_flag = in_git_repo and not has_exclude_patterns
 
         file_list_path: Optional[Path] = None
@@ -212,7 +214,8 @@ class DuploPlugin(DuplicationPlugin):
             if exclude_patterns:
                 all_exclude_patterns.extend(exclude_patterns)
             source_files = self._collect_git_files_filtered(
-                context, all_exclude_patterns,
+                context,
+                all_exclude_patterns,
             )
             if not source_files:
                 LOGGER.debug("No source files found for duplication detection")
@@ -252,14 +255,16 @@ class DuploPlugin(DuplicationPlugin):
                 assert file_list_path is not None
                 cmd.append(str(file_list_path))
 
-            cmd.extend([
-                "-",  # Output to stdout
-                "--json",
-                "--min-lines",
-                str(min_lines),
-                "--min-chars",
-                str(min_chars),
-            ])
+            cmd.extend(
+                [
+                    "-",  # Output to stdout
+                    "--json",
+                    "--min-lines",
+                    str(min_lines),
+                    "--min-chars",
+                    str(min_chars),
+                ]
+            )
 
             # Append cache flags
             if use_cache:
@@ -349,7 +354,9 @@ class DuploPlugin(DuplicationPlugin):
             if path.suffix.lower() in SUPPORTED_EXTENSIONS:
                 source_files.append(path)
 
-        LOGGER.debug(f"Found {len(source_files)} source files via git ls-files (filtered)")
+        LOGGER.debug(
+            f"Found {len(source_files)} source files via git ls-files (filtered)"
+        )
         return source_files
 
     def _collect_source_files(
@@ -387,7 +394,9 @@ class DuploPlugin(DuplicationPlugin):
             if path.suffix.lower() in SUPPORTED_EXTENSIONS:
                 source_files.append(path)
 
-        LOGGER.debug(f"Found {len(source_files)} source files for duplication detection")
+        LOGGER.debug(
+            f"Found {len(source_files)} source files for duplication detection"
+        )
         return source_files
 
     def _should_exclude(self, path: str, patterns: List[str]) -> bool:
@@ -485,7 +494,10 @@ class DuploPlugin(DuplicationPlugin):
                     if not member_path.is_relative_to(dest_dir.resolve()):
                         raise ValueError(f"Path traversal detected: {tar_member.name}")
                     # Extract only the binary
-                    if tar_member.name.endswith(binary_name) or tar_member.name == binary_name:
+                    if (
+                        tar_member.name.endswith(binary_name)
+                        or tar_member.name == binary_name
+                    ):
                         tar_member.name = binary_name
                         tar.extract(tar_member, path=dest_dir)
                         break

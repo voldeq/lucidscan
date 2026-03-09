@@ -29,13 +29,9 @@ class TestTypeScriptLinting:
     We only need Node.js to be globally available.
     """
 
-    def test_eslint_finds_any_usage(
-        self, typescript_project_with_deps: Path
-    ) -> None:
+    def test_eslint_finds_any_usage(self, typescript_project_with_deps: Path) -> None:
         """Test that ESLint finds 'any' type usage."""
-        result = run_lucidshark(
-            typescript_project_with_deps, domains=["linting"]
-        )
+        result = run_lucidshark(typescript_project_with_deps, domains=["linting"])
 
         # Should find linting issues
         linting_issues = result.issues_by_domain("linting")
@@ -43,13 +39,9 @@ class TestTypeScriptLinting:
         # At minimum, the scan should complete successfully
         assert result.exit_code in (0, 1)
 
-    def test_eslint_finds_unused_vars(
-        self, typescript_project_with_deps: Path
-    ) -> None:
+    def test_eslint_finds_unused_vars(self, typescript_project_with_deps: Path) -> None:
         """Test that ESLint finds unused variables."""
-        result = run_lucidshark(
-            typescript_project_with_deps, domains=["linting"]
-        )
+        result = run_lucidshark(typescript_project_with_deps, domains=["linting"])
 
         # The project has unused variables that should be caught
         if result.issue_count > 0:
@@ -65,13 +57,9 @@ class TestTypeScriptTypeChecking:
     We only need Node.js to be globally available.
     """
 
-    def test_tsc_finds_type_errors(
-        self, typescript_project_with_deps: Path
-    ) -> None:
+    def test_tsc_finds_type_errors(self, typescript_project_with_deps: Path) -> None:
         """Test that TypeScript compiler finds type errors."""
-        result = run_lucidshark(
-            typescript_project_with_deps, domains=["type_checking"]
-        )
+        result = run_lucidshark(typescript_project_with_deps, domains=["type_checking"])
 
         # Should find type errors (routes.ts has several)
         type_issues = result.issues_by_domain("type_checking")
@@ -81,9 +69,7 @@ class TestTypeScriptTypeChecking:
         self, typescript_project_with_deps: Path
     ) -> None:
         """Test that tsc detects return type mismatches."""
-        result = run_lucidshark(
-            typescript_project_with_deps, domains=["type_checking"]
-        )
+        result = run_lucidshark(typescript_project_with_deps, domains=["type_checking"])
 
         # index.ts has getPort() returning number instead of string
         # routes.ts has type mismatches
@@ -94,9 +80,7 @@ class TestTypeScriptTypeChecking:
 class TestTypeScriptCombinedScanning:
     """Test combined linting and type checking for TypeScript."""
 
-    def test_combined_scanning(
-        self, typescript_project_with_deps: Path
-    ) -> None:
+    def test_combined_scanning(self, typescript_project_with_deps: Path) -> None:
         """Test running both linting and type checking together."""
         result = run_lucidshark(
             typescript_project_with_deps,
@@ -110,9 +94,7 @@ class TestTypeScriptCombinedScanning:
         self, typescript_project_with_deps: Path
     ) -> None:
         """Test that scan completes and finds issues."""
-        result = run_lucidshark(
-            typescript_project_with_deps, domains=["type_checking"]
-        )
+        result = run_lucidshark(typescript_project_with_deps, domains=["type_checking"])
 
         # Scan should complete (exit 0 or 1), not error (exit 2 or 3)
         assert result.exit_code in (0, 1)

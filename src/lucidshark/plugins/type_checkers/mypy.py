@@ -178,7 +178,8 @@ class MypyChecker(TypeCheckerPlugin):
         # Build command
         cmd = [
             str(binary),
-            "--output", "json",
+            "--output",
+            "json",
             "--no-error-summary",
         ]
 
@@ -207,15 +208,21 @@ class MypyChecker(TypeCheckerPlugin):
         if context.paths:
             python_extensions = {".py", ".pyi", ".pyx"}
             filtered = [
-                p for p in context.paths
+                p
+                for p in context.paths
                 if p.is_dir() or p.suffix.lower() in python_extensions
             ]
             if not filtered:
                 # No Python files or directories to check
-                LOGGER.debug("No Python files or directories in scan paths, skipping mypy")
+                LOGGER.debug(
+                    "No Python files or directories in scan paths, skipping mypy"
+                )
                 return []
             # Single path that is project_root -> use "." for reliable discovery
-            if len(filtered) == 1 and filtered[0].resolve() == context.project_root.resolve():
+            if (
+                len(filtered) == 1
+                and filtered[0].resolve() == context.project_root.resolve()
+            ):
                 paths = ["."]
             else:
                 paths = [p.as_posix() for p in filtered]
@@ -330,7 +337,9 @@ class MypyChecker(TypeCheckerPlugin):
                 rule_id=code or "unknown",
                 title=title,
                 description=message,
-                documentation_url=f"https://mypy.readthedocs.io/en/stable/error_code_list.html#{code}" if code else None,
+                documentation_url=f"https://mypy.readthedocs.io/en/stable/error_code_list.html#{code}"
+                if code
+                else None,
                 file_path=file_path,
                 line_start=line,
                 line_end=line,

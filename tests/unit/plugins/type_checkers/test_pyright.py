@@ -17,7 +17,9 @@ from lucidshark.plugins.type_checkers.pyright import (
 )
 
 
-def make_completed_process(returncode: int, stdout: str, stderr: str = "") -> subprocess.CompletedProcess:
+def make_completed_process(
+    returncode: int, stdout: str, stderr: str = ""
+) -> subprocess.CompletedProcess:
     """Create a CompletedProcess for testing."""
     return subprocess.CompletedProcess(
         args=[],
@@ -100,7 +102,10 @@ class TestPyrightEnsureBinary:
 
             checker = PyrightChecker(project_root=project_root)
 
-            with patch("lucidshark.plugins.type_checkers.pyright.resolve_node_bin", return_value=Path(tmpdir) / "node_modules/.bin/pyright"):
+            with patch(
+                "lucidshark.plugins.type_checkers.pyright.resolve_node_bin",
+                return_value=Path(tmpdir) / "node_modules/.bin/pyright",
+            ):
                 binary = checker.ensure_binary()
                 assert binary == Path(tmpdir) / "node_modules/.bin/pyright"
 
@@ -117,7 +122,10 @@ class TestPyrightEnsureBinary:
         checker = PyrightChecker()
 
         with patch("shutil.which", return_value=None):
-            with patch("lucidshark.plugins.type_checkers.pyright.resolve_node_bin", return_value=None):
+            with patch(
+                "lucidshark.plugins.type_checkers.pyright.resolve_node_bin",
+                return_value=None,
+            ):
                 with pytest.raises(FileNotFoundError, match="pyright is not installed"):
                     checker.ensure_binary()
 
@@ -136,7 +144,9 @@ class TestPyrightCheck:
                 enabled_domains=[],
             )
 
-            with patch.object(checker, "ensure_binary", side_effect=FileNotFoundError("not found")):
+            with patch.object(
+                checker, "ensure_binary", side_effect=FileNotFoundError("not found")
+            ):
                 issues = checker.check(context)
                 assert issues == []
 
@@ -151,24 +161,28 @@ class TestPyrightCheck:
                 enabled_domains=[],
             )
 
-            pyright_output = json.dumps({
-                "generalDiagnostics": [
-                    {
-                        "file": "src/app.py",
-                        "severity": "error",
-                        "message": "Cannot assign type \"str\" to type \"int\"",
-                        "rule": "reportAssignmentType",
-                        "range": {
-                            "start": {"line": 9, "character": 0},
-                            "end": {"line": 9, "character": 10},
-                        },
-                    }
-                ]
-            })
+            pyright_output = json.dumps(
+                {
+                    "generalDiagnostics": [
+                        {
+                            "file": "src/app.py",
+                            "severity": "error",
+                            "message": 'Cannot assign type "str" to type "int"',
+                            "rule": "reportAssignmentType",
+                            "range": {
+                                "start": {"line": 9, "character": 0},
+                                "end": {"line": 9, "character": 10},
+                            },
+                        }
+                    ]
+                }
+            )
 
             mock_result = make_completed_process(1, pyright_output)
 
-            with patch.object(checker, "ensure_binary", return_value=Path("/usr/bin/pyright")):
+            with patch.object(
+                checker, "ensure_binary", return_value=Path("/usr/bin/pyright")
+            ):
                 with patch("subprocess.run", return_value=mock_result):
                     issues = checker.check(context)
 
@@ -190,8 +204,13 @@ class TestPyrightCheck:
                 enabled_domains=[],
             )
 
-            with patch.object(checker, "ensure_binary", return_value=Path("/usr/bin/pyright")):
-                with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("pyright", 180)):
+            with patch.object(
+                checker, "ensure_binary", return_value=Path("/usr/bin/pyright")
+            ):
+                with patch(
+                    "subprocess.run",
+                    side_effect=subprocess.TimeoutExpired("pyright", 180),
+                ):
                     issues = checker.check(context)
                     assert issues == []
 
@@ -206,7 +225,9 @@ class TestPyrightCheck:
                 enabled_domains=[],
             )
 
-            with patch.object(checker, "ensure_binary", return_value=Path("/usr/bin/pyright")):
+            with patch.object(
+                checker, "ensure_binary", return_value=Path("/usr/bin/pyright")
+            ):
                 with patch("subprocess.run", side_effect=OSError("command failed")):
                     issues = checker.check(context)
                     assert issues == []
@@ -224,7 +245,9 @@ class TestPyrightCheck:
 
             mock_result = make_completed_process(0, '{"generalDiagnostics": []}')
 
-            with patch.object(checker, "ensure_binary", return_value=Path("/usr/bin/pyright")):
+            with patch.object(
+                checker, "ensure_binary", return_value=Path("/usr/bin/pyright")
+            ):
                 with patch("subprocess.run", return_value=mock_result) as mock_run:
                     checker.check(context)
                     cmd = mock_run.call_args[0][0]
@@ -262,24 +285,32 @@ class TestPyrightParseOutput:
     def test_parse_multiple_diagnostics(self) -> None:
         """Test parsing output with multiple diagnostics."""
         checker = PyrightChecker()
-        output = json.dumps({
-            "generalDiagnostics": [
-                {
-                    "file": "a.py",
-                    "severity": "error",
-                    "message": "Error 1",
-                    "rule": "rule1",
-                    "range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 5}},
-                },
-                {
-                    "file": "b.py",
-                    "severity": "warning",
-                    "message": "Warning 1",
-                    "rule": "rule2",
-                    "range": {"start": {"line": 4, "character": 2}, "end": {"line": 4, "character": 10}},
-                },
-            ]
-        })
+        output = json.dumps(
+            {
+                "generalDiagnostics": [
+                    {
+                        "file": "a.py",
+                        "severity": "error",
+                        "message": "Error 1",
+                        "rule": "rule1",
+                        "range": {
+                            "start": {"line": 0, "character": 0},
+                            "end": {"line": 0, "character": 5},
+                        },
+                    },
+                    {
+                        "file": "b.py",
+                        "severity": "warning",
+                        "message": "Warning 1",
+                        "rule": "rule2",
+                        "range": {
+                            "start": {"line": 4, "character": 2},
+                            "end": {"line": 4, "character": 10},
+                        },
+                    },
+                ]
+            }
+        )
 
         issues = checker._parse_output(output, Path("/project"))
         assert len(issues) == 2
@@ -323,7 +354,10 @@ class TestPyrightDiagnosticToIssue:
             "severity": "warning",
             "message": "Warning",
             "rule": "testRule",
-            "range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 0}},
+            "range": {
+                "start": {"line": 0, "character": 0},
+                "end": {"line": 0, "character": 0},
+            },
         }
 
         issue = checker._diagnostic_to_issue(diagnostic, Path("/project"))
@@ -337,7 +371,10 @@ class TestPyrightDiagnosticToIssue:
             "file": "file.py",
             "severity": "error",
             "message": "Some error",
-            "range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 0}},
+            "range": {
+                "start": {"line": 0, "character": 0},
+                "end": {"line": 0, "character": 0},
+            },
         }
 
         issue = checker._diagnostic_to_issue(diagnostic, Path("/project"))
@@ -353,7 +390,10 @@ class TestPyrightDiagnosticToIssue:
             "severity": "unknown_level",
             "message": "message",
             "rule": "rule",
-            "range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 0}},
+            "range": {
+                "start": {"line": 0, "character": 0},
+                "end": {"line": 0, "character": 0},
+            },
         }
 
         issue = checker._diagnostic_to_issue(diagnostic, Path("/project"))

@@ -40,6 +40,7 @@ def get_version() -> str:
     except PackageNotFoundError:
         # Fallback for editable installs that have not yet built metadata.
         from lucidshark import __version__
+
         return __version__
 
 
@@ -63,6 +64,7 @@ class CLIRunner:
         if self._init_cmd is None:
             try:
                 from lucidshark.cli.commands.init import InitCommand
+
                 self._init_cmd = InitCommand(version=self._version)
             except ImportError:
                 self._init_cmd = None
@@ -171,18 +173,20 @@ class CLIRunner:
             return err
 
         # Check if any domains are enabled
-        cli_scan_requested = any([
-            getattr(args, "sca", False),
-            getattr(args, "container", False),
-            getattr(args, "iac", False),
-            getattr(args, "sast", False),
-            getattr(args, "linting", False),
-            getattr(args, "type_checking", False),
-            getattr(args, "testing", False),
-            getattr(args, "coverage", False),
-            getattr(args, "duplication", False),
-            getattr(args, "all", False),
-        ])
+        cli_scan_requested = any(
+            [
+                getattr(args, "sca", False),
+                getattr(args, "container", False),
+                getattr(args, "iac", False),
+                getattr(args, "sast", False),
+                getattr(args, "linting", False),
+                getattr(args, "type_checking", False),
+                getattr(args, "testing", False),
+                getattr(args, "coverage", False),
+                getattr(args, "duplication", False),
+                getattr(args, "all", False),
+            ]
+        )
 
         config_has_enabled_domains = bool(config.get_enabled_domains())
 
@@ -194,6 +198,7 @@ class CLIRunner:
             except Exception as e:
                 if args.debug:
                     import traceback
+
                     traceback.print_exc()
                 LOGGER.error(f"Scan failed: {e}")
                 return EXIT_SCANNER_ERROR
@@ -202,12 +207,16 @@ class CLIRunner:
         project_root = Path(args.path).resolve()
         has_config = find_project_config(project_root) is not None
         if has_config:
-            print("All domains in config are disabled. Enable domains in lucidshark.yml or use CLI flags:")
-            print("  lucidshark scan --sca, --sast, --iac, --linting, --type-checking, or --all")
+            print(
+                "All domains in config are disabled. Enable domains in lucidshark.yml or use CLI flags:"
+            )
+            print(
+                "  lucidshark scan --sca, --sast, --iac, --linting, --type-checking, or --all"
+            )
         else:
             print("No lucidshark.yml found and no scan domains specified.")
             print("\nQuick start:")
-            print("  Ask Claude Code: \"Autoconfigure LucidShark for this project\"")
+            print('  Ask Claude Code: "Autoconfigure LucidShark for this project"')
             print("  lucidshark scan --all   Run all available checks without a config")
         return EXIT_SUCCESS
 
@@ -237,6 +246,7 @@ class CLIRunner:
 
         try:
             from lucidshark.cli.commands.serve import ServeCommand
+
             serve_cmd = ServeCommand(version=self._version)
             return serve_cmd.execute(args, config)
         except ImportError as e:

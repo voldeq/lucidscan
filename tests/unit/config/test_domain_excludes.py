@@ -35,9 +35,7 @@ class TestDomainPipelineConfigExclude:
 
     def test_exclude_stores_patterns(self) -> None:
         """Test that exclude stores provided patterns."""
-        config = DomainPipelineConfig(
-            exclude=["scripts/**", "migrations/**"]
-        )
+        config = DomainPipelineConfig(exclude=["scripts/**", "migrations/**"])
         assert config.exclude == ["scripts/**", "migrations/**"]
 
     def test_exclude_preserves_order(self) -> None:
@@ -67,9 +65,7 @@ class TestCoveragePipelineConfigExclude:
 
     def test_exclude_stores_patterns(self) -> None:
         """Test that exclude stores provided patterns."""
-        config = CoveragePipelineConfig(
-            exclude=["tests/**", "scripts/**"]
-        )
+        config = CoveragePipelineConfig(exclude=["tests/**", "scripts/**"])
         assert config.exclude == ["tests/**", "scripts/**"]
 
     def test_exclude_coexists_with_threshold(self) -> None:
@@ -101,9 +97,7 @@ class TestDuplicationPipelineConfigExclude:
 
     def test_exclude_stores_patterns(self) -> None:
         """Test that exclude stores provided patterns."""
-        config = DuplicationPipelineConfig(
-            exclude=["generated/**", "vendor/**"]
-        )
+        config = DuplicationPipelineConfig(exclude=["generated/**", "vendor/**"])
         assert config.exclude == ["generated/**", "vendor/**"]
 
 
@@ -360,9 +354,9 @@ class TestConfigValidationExcludes:
         }
         warnings = validate_config(data, "test.yml")
         unknown_key_warnings = [
-            w for w in warnings
-            if "pipeline.linting.exclude" in (w.key or "")
-            and "Unknown" in w.message
+            w
+            for w in warnings
+            if "pipeline.linting.exclude" in (w.key or "") and "Unknown" in w.message
         ]
         assert not unknown_key_warnings
 
@@ -379,7 +373,8 @@ class TestConfigValidationExcludes:
         }
         warnings = validate_config(data, "test.yml")
         unknown_key_warnings = [
-            w for w in warnings
+            w
+            for w in warnings
             if "pipeline.type_checking.exclude" in (w.key or "")
             and "Unknown" in w.message
         ]
@@ -398,9 +393,9 @@ class TestConfigValidationExcludes:
         }
         warnings = validate_config(data, "test.yml")
         unknown_key_warnings = [
-            w for w in warnings
-            if "pipeline.testing.exclude" in (w.key or "")
-            and "Unknown" in w.message
+            w
+            for w in warnings
+            if "pipeline.testing.exclude" in (w.key or "") and "Unknown" in w.message
         ]
         assert not unknown_key_warnings
 
@@ -417,9 +412,9 @@ class TestConfigValidationExcludes:
         }
         warnings = validate_config(data, "test.yml")
         unknown_key_warnings = [
-            w for w in warnings
-            if "pipeline.coverage.exclude" in (w.key or "")
-            and "Unknown" in w.message
+            w
+            for w in warnings
+            if "pipeline.coverage.exclude" in (w.key or "") and "Unknown" in w.message
         ]
         assert not unknown_key_warnings
 
@@ -436,9 +431,9 @@ class TestConfigValidationExcludes:
         }
         warnings = validate_config(data, "test.yml")
         unknown_key_warnings = [
-            w for w in warnings
-            if "pipeline.security.exclude" in (w.key or "")
-            and "Unknown" in w.message
+            w
+            for w in warnings
+            if "pipeline.security.exclude" in (w.key or "") and "Unknown" in w.message
         ]
         assert not unknown_key_warnings
 
@@ -455,7 +450,8 @@ class TestConfigValidationExcludes:
         }
         warnings = validate_config(data, "test.yml")
         unknown_key_warnings = [
-            w for w in warnings
+            w
+            for w in warnings
             if "pipeline.duplication.exclude" in (w.key or "")
             and "Unknown" in w.message
         ]
@@ -590,8 +586,7 @@ class TestConfigValidationExcludes:
         }
         warnings = validate_config(data, "test.yml")
         exclude_warnings = [
-            w for w in warnings
-            if "exclude" in (w.key or "") and "Unknown" in w.message
+            w for w in warnings if "exclude" in (w.key or "") and "Unknown" in w.message
         ]
         assert not exclude_warnings
 
@@ -877,7 +872,9 @@ class TestCombiningGlobalAndDomainExcludes:
             ignore_patterns=global_ignore,
         )
 
-        linting_exclude = config.pipeline.linting.exclude if config.pipeline.linting else []
+        linting_exclude = (
+            config.pipeline.linting.exclude if config.pipeline.linting else []
+        )
         linting_ctx = runner._context_with_domain_excludes(context, linting_exclude)
 
         patterns = linting_ctx.get_exclude_patterns()

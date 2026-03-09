@@ -89,7 +89,10 @@ class TestCoveragePyGetVersion:
 
             plugin = CoveragePyPlugin(project_root=project_root)
 
-            with patch("lucidshark.plugins.coverage.coverage_py.get_cli_version", return_value="7.4.0"):
+            with patch(
+                "lucidshark.plugins.coverage.coverage_py.get_cli_version",
+                return_value="7.4.0",
+            ):
                 version = plugin.get_version()
                 assert version == "7.4.0"
 
@@ -156,7 +159,10 @@ class TestCoveragePyMeasureCoverage:
 
             with patch.object(plugin, "_generate_and_parse_report") as mock_report:
                 mock_report.return_value = CoverageResult(
-                    total_lines=100, covered_lines=85, threshold=80.0, tool="coverage_py"
+                    total_lines=100,
+                    covered_lines=85,
+                    threshold=80.0,
+                    tool="coverage_py",
                 )
                 result = plugin.measure_coverage(context, threshold=80.0)
                 assert result.total_lines == 100
@@ -265,8 +271,13 @@ class TestCoveragePyGenerateAndParseReport:
                 result.stderr = ""
                 return result
 
-            with patch("lucidshark.plugins.coverage.coverage_py.run_with_streaming", side_effect=fake_run):
-                result = plugin._generate_and_parse_report(Path("/usr/bin/coverage"), context, 80.0)
+            with patch(
+                "lucidshark.plugins.coverage.coverage_py.run_with_streaming",
+                side_effect=fake_run,
+            ):
+                result = plugin._generate_and_parse_report(
+                    Path("/usr/bin/coverage"), context, 80.0
+                )
                 assert result.total_lines == 100
                 assert result.covered_lines == 85
 
@@ -284,8 +295,13 @@ class TestCoveragePyGenerateAndParseReport:
             mock_result.returncode = 1
             mock_result.stderr = "No data collected"
 
-            with patch("lucidshark.plugins.coverage.coverage_py.run_with_streaming", return_value=mock_result):
-                result = plugin._generate_and_parse_report(Path("/usr/bin/coverage"), context, 80.0)
+            with patch(
+                "lucidshark.plugins.coverage.coverage_py.run_with_streaming",
+                return_value=mock_result,
+            ):
+                result = plugin._generate_and_parse_report(
+                    Path("/usr/bin/coverage"), context, 80.0
+                )
                 assert result.threshold == 80.0
                 assert result.tool == "coverage_py"
 
@@ -299,8 +315,13 @@ class TestCoveragePyGenerateAndParseReport:
             context.project_root = project_root
             context.stream_handler = None
 
-            with patch("lucidshark.plugins.coverage.coverage_py.run_with_streaming", side_effect=Exception("fail")):
-                result = plugin._generate_and_parse_report(Path("/usr/bin/coverage"), context, 80.0)
+            with patch(
+                "lucidshark.plugins.coverage.coverage_py.run_with_streaming",
+                side_effect=Exception("fail"),
+            ):
+                result = plugin._generate_and_parse_report(
+                    Path("/usr/bin/coverage"), context, 80.0
+                )
                 assert result.threshold == 80.0
 
 
@@ -336,7 +357,9 @@ class TestCoveragePyJsonParsing:
             report_file = project_root / "coverage.json"
             report_file.write_text(json.dumps(report))
 
-            result = plugin._parse_json_report(report_file, project_root, threshold=80.0)
+            result = plugin._parse_json_report(
+                report_file, project_root, threshold=80.0
+            )
 
             assert result.total_lines == 100
             assert result.covered_lines == 75
@@ -371,7 +394,9 @@ class TestCoveragePyJsonParsing:
             report_file = project_root / "coverage.json"
             report_file.write_text(json.dumps(report))
 
-            result = plugin._parse_json_report(report_file, project_root, threshold=80.0)
+            result = plugin._parse_json_report(
+                report_file, project_root, threshold=80.0
+            )
 
             assert result.percentage == 90.0
             assert result.passed is True
@@ -414,7 +439,9 @@ class TestCoveragePyJsonParsing:
             report_file = project_root / "coverage.json"
             report_file.write_text(json.dumps(report))
 
-            result = plugin._parse_json_report(report_file, project_root, threshold=80.0)
+            result = plugin._parse_json_report(
+                report_file, project_root, threshold=80.0
+            )
 
             assert len(result.files) == 2
             assert "src/app.py" in result.files
@@ -429,7 +456,9 @@ class TestCoveragePyJsonParsing:
             report_file = project_root / "coverage.json"
             report_file.write_text("invalid json")
 
-            result = plugin._parse_json_report(report_file, project_root, threshold=80.0)
+            result = plugin._parse_json_report(
+                report_file, project_root, threshold=80.0
+            )
             assert result.total_lines == 0
             assert result.tool == "coverage_py"
 
@@ -625,7 +654,9 @@ class TestCoveragePercentageParsing:
             report_file = project_root / "coverage.json"
             report_file.write_text(json.dumps(report))
 
-            result = plugin._parse_json_report(report_file, project_root, threshold=80.0)
+            result = plugin._parse_json_report(
+                report_file, project_root, threshold=80.0
+            )
 
             assert result.total_lines == 237
             assert result.covered_lines == 198
@@ -654,7 +685,9 @@ class TestCoveragePercentageParsing:
             report_file = project_root / "coverage.json"
             report_file.write_text(json.dumps(report))
 
-            result = plugin._parse_json_report(report_file, project_root, threshold=80.0)
+            result = plugin._parse_json_report(
+                report_file, project_root, threshold=80.0
+            )
 
             # CoverageResult.percentage returns 100.0 when total_lines == 0
             assert result.percentage == 100.0
@@ -680,7 +713,9 @@ class TestCoveragePercentageParsing:
             report_file = project_root / "coverage.json"
             report_file.write_text(json.dumps(report))
 
-            result = plugin._parse_json_report(report_file, project_root, threshold=80.0)
+            result = plugin._parse_json_report(
+                report_file, project_root, threshold=80.0
+            )
 
             assert result.percentage == 100.0
             assert result.passed is True
@@ -695,7 +730,9 @@ class TestCoveragePercentageParsing:
             report_file = project_root / "coverage.json"
             report_file.write_text("{not valid json")
 
-            result = plugin._parse_json_report(report_file, project_root, threshold=80.0)
+            result = plugin._parse_json_report(
+                report_file, project_root, threshold=80.0
+            )
 
             assert result.total_lines == 0
             assert result.threshold == 80.0
@@ -797,7 +834,9 @@ class TestCoverageThresholdBoundary:
             report_file = project_root / "coverage.json"
             report_file.write_text(json.dumps(report))
 
-            result = plugin._parse_json_report(report_file, project_root, threshold=80.0)
+            result = plugin._parse_json_report(
+                report_file, project_root, threshold=80.0
+            )
 
             # At exactly threshold, no issue should be created
             assert len(result.issues) == 0
@@ -823,7 +862,9 @@ class TestCoverageThresholdBoundary:
             report_file = project_root / "coverage.json"
             report_file.write_text(json.dumps(report))
 
-            result = plugin._parse_json_report(report_file, project_root, threshold=80.0)
+            result = plugin._parse_json_report(
+                report_file, project_root, threshold=80.0
+            )
 
             assert len(result.issues) == 1
             assert "79.0%" in result.issues[0].title
@@ -898,7 +939,7 @@ source = ["src/myapp"]
         """coverage_has_source_config returns False when pyproject.toml has [tool.coverage.run] but no source."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
-            pyproject_content = '[tool.coverage.run]\nbranch = true\n'
+            pyproject_content = "[tool.coverage.run]\nbranch = true\n"
             (project_root / "pyproject.toml").write_text(pyproject_content)
 
             assert coverage_has_source_config(project_root) is False

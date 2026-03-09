@@ -318,9 +318,7 @@ class TestSARIFBuildLocation:
         assert loc is None
 
     def test_start_line_only(self, reporter: SARIFReporter) -> None:
-        issue = _make_issue(
-            file_path=Path("file.py"), line_start=5, line_end=None
-        )
+        issue = _make_issue(file_path=Path("file.py"), line_start=5, line_end=None)
         loc = reporter._build_location(issue)
         assert loc is not None
         region = loc["physicalLocation"]["region"]

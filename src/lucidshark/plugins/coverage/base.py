@@ -143,10 +143,15 @@ class CoverageResult:
                     # e.g., "src/utils/foo.py" matches "utils/foo.py" or "foo.py"
                     try:
                         # Try to check if path ends with changed or vice versa
-                        if path_obj.parts[-len(changed_path.parts):] == changed_path.parts:
+                        if (
+                            path_obj.parts[-len(changed_path.parts) :]
+                            == changed_path.parts
+                        ):
                             filtered_files[path] = cov
                             break
-                        elif changed_path.parts[-len(path_obj.parts):] == path_obj.parts:
+                        elif (
+                            changed_path.parts[-len(path_obj.parts) :] == path_obj.parts
+                        ):
                             filtered_files[path] = cov
                             break
                     except (IndexError, ValueError):
@@ -533,9 +538,7 @@ class CoveragePlugin(ABC):
             },
         )
 
-    def _generate_coverage_issue_id(
-        self, percentage: float, threshold: float
-    ) -> str:
+    def _generate_coverage_issue_id(self, percentage: float, threshold: float) -> str:
         """Generate deterministic issue ID for coverage issues.
 
         Args:

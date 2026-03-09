@@ -25,8 +25,8 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "ruff": ["python"],
     "eslint": ["javascript", "typescript"],
     "biome": ["javascript", "typescript"],
-    "checkstyle": ["java"],
     "clippy": ["rust"],
+    "checkstyle": ["java"],
     # Type checkers
     "mypy": ["python"],
     "pyright": ["python"],
@@ -60,6 +60,11 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
         "go",
         "ruby",
     ],
+    # Formatters
+    "ruff_format": ["python"],
+    "prettier": ["javascript", "typescript"],
+    "rustfmt": ["rust"],
+    "google_java_format": ["java"],
 }
 
 # File extension to language mapping
@@ -134,10 +139,7 @@ def filter_plugins_by_config(
     """
     configured_tools = config.pipeline.get_enabled_tool_names(domain)
     if configured_tools:
-        return {
-            name: cls for name, cls in plugins.items()
-            if name in configured_tools
-        }
+        return {name: cls for name, cls in plugins.items() if name in configured_tools}
 
     # Use configured languages or auto-detect from project
     languages = config.project.languages
@@ -169,8 +171,7 @@ def filter_scanners_by_config(
     configured_plugin = config.get_plugin_for_domain(domain)
     if configured_plugin:
         return {
-            name: cls for name, cls in scanners.items()
-            if name == configured_plugin
+            name: cls for name, cls in scanners.items() if name == configured_plugin
         }
     return scanners
 
@@ -202,13 +203,13 @@ def get_domains_for_language(language: str) -> List[str]:
     domains = ["linting", "sast", "sca"]
 
     if language == "python":
-        domains.extend(["type_checking", "testing", "coverage"])
+        domains.extend(["type_checking", "testing", "coverage", "formatting"])
     elif language in ("javascript", "typescript"):
-        domains.extend(["type_checking", "testing", "coverage"])
+        domains.extend(["type_checking", "testing", "coverage", "formatting"])
     elif language in ("java", "kotlin"):
-        domains.extend(["type_checking", "testing", "coverage"])
+        domains.extend(["type_checking", "testing", "coverage", "formatting"])
     elif language == "rust":
-        domains.extend(["type_checking", "testing", "coverage"])
+        domains.extend(["type_checking", "testing", "coverage", "formatting"])
     elif language == "terraform":
         domains = ["iac"]
     elif language in ("yaml", "json"):
@@ -220,8 +221,14 @@ def get_domains_for_language(language: str) -> List[str]:
 def _has_vitest_config(project_root: Path) -> bool:
     """Check if project has Vitest configuration."""
     for name in (
-        "vitest.config.ts", "vitest.config.js", "vitest.config.mts", "vitest.config.mjs",
-        "vite.config.ts", "vite.config.js", "vite.config.mts", "vite.config.mjs",
+        "vitest.config.ts",
+        "vitest.config.js",
+        "vitest.config.mts",
+        "vitest.config.mjs",
+        "vite.config.ts",
+        "vite.config.js",
+        "vite.config.mts",
+        "vite.config.mjs",
     ):
         if (project_root / name).exists():
             return True
@@ -231,8 +238,11 @@ def _has_vitest_config(project_root: Path) -> bool:
 def _has_jest_config(project_root: Path) -> bool:
     """Check if project has Jest configuration."""
     for name in (
-        "jest.config.js", "jest.config.ts", "jest.config.cjs",
-        "jest.config.mjs", "jest.config.json",
+        "jest.config.js",
+        "jest.config.ts",
+        "jest.config.cjs",
+        "jest.config.mjs",
+        "jest.config.json",
     ):
         if (project_root / name).exists():
             return True
@@ -305,7 +315,9 @@ class DomainRunner:
 
         from lucidshark.config.ignore import IgnorePatterns
 
-        domain_patterns = IgnorePatterns(domain_exclude_patterns, source="domain-config")
+        domain_patterns = IgnorePatterns(
+            domain_exclude_patterns, source="domain-config"
+        )
         merged = IgnorePatterns.merge(context.ignore_patterns, domain_patterns)
         return replace(context, ignore_patterns=merged)
 
@@ -336,9 +348,9 @@ class DomainRunner:
 
         issues: List[UnifiedIssue] = []
 
+        self._run_pre_command(pre_command, "linting.pre_command")
+
         if command:
-            # Run pre_command before main command (e.g., cleanup leftover state)
-            self._run_pre_command(pre_command, "linting.pre_command")
             # Custom command overrides plugin-based execution
             result = self._run_shell_command(command, "lint_command")
             issues = self._parse_command_output(result, ToolDomain.LINTING, command)
@@ -354,7 +366,9 @@ class DomainRunner:
             LOGGER.warning("No linter plugins found")
             return issues
 
-        linters = filter_plugins_by_config(linters, self.config, "linting", self.project_root)
+        linters = filter_plugins_by_config(
+            linters, self.config, "linting", self.project_root
+        )
 
         for name, plugin_class in linters.items():
             try:
@@ -366,7 +380,7 @@ class DomainRunner:
                     self._log(
                         "info",
                         f"{name}: Fixed {fix_result.issues_fixed} issues, "
-                        f"{fix_result.issues_remaining} remaining"
+                        f"{fix_result.issues_remaining} remaining",
                     )
                     # Run again to get remaining issues
                     issues.extend(plugin.lint(context))
@@ -377,6 +391,75 @@ class DomainRunner:
                 LOGGER.error(f"Linter {name} failed: {e}")
 
         self._run_post_command(post_command, "post_lint_command")
+        return issues
+
+    def run_formatting(
+        self,
+        context: ScanContext,
+        fix: bool = False,
+        exclude_patterns: Optional[List[str]] = None,
+        command: Optional[str] = None,
+        pre_command: Optional[str] = None,
+        post_command: Optional[str] = None,
+    ) -> List[UnifiedIssue]:
+        """Run formatting checks.
+
+        Args:
+            context: Scan context.
+            fix: Whether to apply automatic formatting.
+            exclude_patterns: Domain-specific exclude patterns to merge.
+            command: Custom shell command to run instead of plugins.
+            pre_command: Shell command to run before formatting.
+            post_command: Shell command to run after formatting.
+
+        Returns:
+            List of formatting issues.
+        """
+        context = self._context_with_domain_excludes(context, exclude_patterns)
+        from lucidshark.core.models import ToolDomain
+
+        issues: List[UnifiedIssue] = []
+
+        self._run_pre_command(pre_command, "formatting.pre_command")
+
+        if command:
+            result = self._run_shell_command(command, "formatting_command")
+            issues = self._parse_command_output(result, ToolDomain.FORMATTING, command)
+            self._run_post_command(post_command, "post_formatting_command")
+            return issues
+
+        from lucidshark.plugins.formatters import discover_formatter_plugins
+
+        formatters = discover_formatter_plugins()
+
+        if not formatters:
+            LOGGER.warning("No formatter plugins found")
+            return issues
+
+        formatters = filter_plugins_by_config(
+            formatters, self.config, "formatting", self.project_root
+        )
+
+        for name, plugin_class in formatters.items():
+            try:
+                self._log("info", f"Running formatter: {name}")
+                plugin = plugin_class(project_root=self.project_root)
+
+                if fix and plugin.supports_fix:
+                    fix_result = plugin.fix(context)
+                    self._log(
+                        "info",
+                        f"{name}: Fixed {fix_result.issues_fixed} issues, "
+                        f"{fix_result.issues_remaining} remaining",
+                    )
+                    issues.extend(plugin.check(context))
+                else:
+                    issues.extend(plugin.check(context))
+
+            except Exception as e:
+                LOGGER.error(f"Formatter {name} failed: {e}")
+
+        self._run_post_command(post_command, "post_formatting_command")
         return issues
 
     def run_type_checking(
@@ -404,12 +487,14 @@ class DomainRunner:
 
         issues: List[UnifiedIssue] = []
 
+        self._run_pre_command(pre_command, "type_checking.pre_command")
+
         if command:
-            # Run pre_command before main command (e.g., cleanup leftover state)
-            self._run_pre_command(pre_command, "type_checking.pre_command")
             # Custom command overrides plugin-based execution
             result = self._run_shell_command(command, "type_check_command")
-            issues = self._parse_command_output(result, ToolDomain.TYPE_CHECKING, command)
+            issues = self._parse_command_output(
+                result, ToolDomain.TYPE_CHECKING, command
+            )
             self._run_post_command(post_command, "post_type_check_command")
             return issues
 
@@ -422,7 +507,9 @@ class DomainRunner:
             LOGGER.warning("No type checker plugins found")
             return issues
 
-        checkers = filter_plugins_by_config(checkers, self.config, "type_checking", self.project_root)
+        checkers = filter_plugins_by_config(
+            checkers, self.config, "type_checking", self.project_root
+        )
 
         for name, plugin_class in checkers.items():
             try:
@@ -436,7 +523,9 @@ class DomainRunner:
         self._run_post_command(post_command, "post_type_check_command")
         return issues
 
-    def _run_shell_command(self, command: str, label: str) -> subprocess.CompletedProcess[str]:
+    def _run_shell_command(
+        self, command: str, label: str
+    ) -> subprocess.CompletedProcess[str]:
         """Run a shell command and log its execution.
 
         Args:
@@ -584,7 +673,8 @@ class DomainRunner:
         for run in data.get("runs", []):
             tool_name = run.get("tool", {}).get("driver", {}).get("name", "unknown")
             rules = {
-                r["id"]: r for r in run.get("tool", {}).get("driver", {}).get("rules", [])
+                r["id"]: r
+                for r in run.get("tool", {}).get("driver", {}).get("rules", [])
             }
 
             for result in run.get("results", []):
@@ -606,7 +696,9 @@ class DomainRunner:
                 # Get rule info for title/description
                 rule_info = rules.get(rule_id, {})
                 title = rule_info.get("shortDescription", {}).get("text") or rule_id
-                description = message or rule_info.get("fullDescription", {}).get("text", "")
+                description = message or rule_info.get("fullDescription", {}).get(
+                    "text", ""
+                )
 
                 issues.append(
                     UnifiedIssue(
@@ -789,9 +881,9 @@ class DomainRunner:
 
         issues: List[UnifiedIssue] = []
 
+        self._run_pre_command(pre_command, "testing.pre_command")
+
         if command:
-            # Run pre_command before main command (e.g., cleanup leftover containers)
-            self._run_pre_command(pre_command, "testing.pre_command")
             # Custom command overrides plugin-based execution
             result = self._run_shell_command(command, "testing.command")
 
@@ -800,16 +892,20 @@ class DomainRunner:
                 stderr_snippet = result.stderr.strip()[:500] if result.stderr else ""
                 stdout_snippet = result.stdout.strip()[:500] if result.stdout else ""
                 output = stderr_snippet or stdout_snippet or "Test command failed"
-                issues.append(UnifiedIssue(
-                    id="custom-test-failure",
-                    domain=ToolDomain.TESTING,
-                    source_tool="custom",
-                    severity=Severity.HIGH,
-                    rule_id="test-failure",
-                    title="Custom test command failed",
-                    description=f"Command `{command}` exited with code {result.returncode}.\n\n{output}",
-                ))
-                self._log("info", f"testing.command: FAILED (exit code {result.returncode})")
+                issues.append(
+                    UnifiedIssue(
+                        id="custom-test-failure",
+                        domain=ToolDomain.TESTING,
+                        source_tool="custom",
+                        severity=Severity.HIGH,
+                        rule_id="test-failure",
+                        title="Custom test command failed",
+                        description=f"Command `{command}` exited with code {result.returncode}.\n\n{output}",
+                    )
+                )
+                self._log(
+                    "info", f"testing.command: FAILED (exit code {result.returncode})"
+                )
             else:
                 self._log("info", "testing.command: PASSED")
 
@@ -824,7 +920,9 @@ class DomainRunner:
         if not runners:
             LOGGER.warning("No test runner plugins found")
         else:
-            runners = filter_plugins_by_config(runners, self.config, "testing", self.project_root)
+            runners = filter_plugins_by_config(
+                runners, self.config, "testing", self.project_root
+            )
 
             for name, plugin_class in runners.items():
                 try:
@@ -835,7 +933,7 @@ class DomainRunner:
                     self._log(
                         "info",
                         f"{name}: {result.passed} passed, {result.failed} failed, "
-                        f"{result.skipped} skipped, {result.errors} errors"
+                        f"{result.skipped} skipped, {result.errors} errors",
                     )
 
                     issues.extend(result.issues)
@@ -879,9 +977,9 @@ class DomainRunner:
 
         issues: List[UnifiedIssue] = []
 
+        self._run_pre_command(pre_command, "coverage.pre_command")
+
         if command:
-            # Run pre_command before main command (e.g., cleanup leftover state)
-            self._run_pre_command(pre_command, "coverage.pre_command")
             # Custom command overrides plugin-based execution
             result = self._run_shell_command(command, "coverage_command")
 
@@ -890,16 +988,20 @@ class DomainRunner:
                 stderr_snippet = result.stderr.strip()[:500] if result.stderr else ""
                 stdout_snippet = result.stdout.strip()[:500] if result.stdout else ""
                 output = stderr_snippet or stdout_snippet or "Coverage command failed"
-                issues.append(UnifiedIssue(
-                    id="custom-coverage-failure",
-                    domain=ToolDomain.COVERAGE,
-                    source_tool="custom",
-                    severity=Severity.MEDIUM,
-                    rule_id="coverage-failure",
-                    title="Custom coverage command failed",
-                    description=f"Command `{command}` exited with code {result.returncode}.\n\n{output}",
-                ))
-                self._log("info", f"coverage_command: FAILED (exit code {result.returncode})")
+                issues.append(
+                    UnifiedIssue(
+                        id="custom-coverage-failure",
+                        domain=ToolDomain.COVERAGE,
+                        source_tool="custom",
+                        severity=Severity.MEDIUM,
+                        rule_id="coverage-failure",
+                        title="Custom coverage command failed",
+                        description=f"Command `{command}` exited with code {result.returncode}.\n\n{output}",
+                    )
+                )
+                self._log(
+                    "info", f"coverage_command: FAILED (exit code {result.returncode})"
+                )
             else:
                 self._log("info", "coverage_command: PASSED")
 
@@ -914,29 +1016,39 @@ class DomainRunner:
         if not plugins:
             LOGGER.warning("No coverage plugins found")
         else:
-            plugins = filter_plugins_by_config(plugins, self.config, "coverage", self.project_root)
+            plugins = filter_plugins_by_config(
+                plugins, self.config, "coverage", self.project_root
+            )
 
             # Deduplicate JS/TS coverage plugins when auto-detected (not explicitly configured)
             configured_tools = self.config.pipeline.get_enabled_tool_names("coverage")
-            if not configured_tools and "istanbul" in plugins and "vitest_coverage" in plugins:
+            if (
+                not configured_tools
+                and "istanbul" in plugins
+                and "vitest_coverage" in plugins
+            ):
                 if _has_vitest_config(self.project_root):
                     del plugins["istanbul"]
-                    LOGGER.debug("Auto-selected vitest_coverage over istanbul (vitest config found)")
+                    LOGGER.debug(
+                        "Auto-selected vitest_coverage over istanbul (vitest config found)"
+                    )
                 elif _has_jest_config(self.project_root):
                     del plugins["vitest_coverage"]
-                    LOGGER.debug("Auto-selected istanbul over vitest_coverage (jest config found)")
+                    LOGGER.debug(
+                        "Auto-selected istanbul over vitest_coverage (jest config found)"
+                    )
                 else:
                     # Default: prefer istanbul (more widely used)
                     del plugins["vitest_coverage"]
-                    LOGGER.debug("Auto-selected istanbul over vitest_coverage (default)")
+                    LOGGER.debug(
+                        "Auto-selected istanbul over vitest_coverage (default)"
+                    )
 
             for name, plugin_class in plugins.items():
                 try:
                     self._log("info", f"Running coverage: {name}")
                     plugin = plugin_class(project_root=self.project_root)
-                    result = plugin.measure_coverage(
-                        context, threshold=threshold
-                    )
+                    result = plugin.measure_coverage(context, threshold=threshold)
 
                     status = "PASSED" if result.passed else "FAILED"
 
@@ -1000,7 +1112,9 @@ class DomainRunner:
             LOGGER.warning("No duplication plugins found")
             return issues
 
-        plugins = filter_plugins_by_config(plugins, self.config, "duplication", self.project_root)
+        plugins = filter_plugins_by_config(
+            plugins, self.config, "duplication", self.project_root
+        )
 
         for name, plugin_class in plugins.items():
             try:

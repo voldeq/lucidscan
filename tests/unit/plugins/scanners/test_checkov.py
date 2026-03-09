@@ -163,9 +163,7 @@ class TestCheckovScan:
     def test_scan_calls_run_iac_scan(
         self, scanner: CheckovScanner, scan_context: ScanContext
     ) -> None:
-        with patch.object(
-            scanner, "ensure_binary", return_value=Path("/bin/checkov")
-        ):
+        with patch.object(scanner, "ensure_binary", return_value=Path("/bin/checkov")):
             with patch.object(scanner, "_run_iac_scan", return_value=[]) as mock_run:
                 scanner.scan(scan_context)
                 mock_run.assert_called_once_with(Path("/bin/checkov"), scan_context)
@@ -186,14 +184,10 @@ class TestCheckovRunIacScan:
             "lucidshark.plugins.scanners.checkov.run_with_streaming",
             return_value=mock_result,
         ):
-            with patch(
-                "lucidshark.plugins.scanners.checkov.temporary_env"
-            ) as mock_env:
+            with patch("lucidshark.plugins.scanners.checkov.temporary_env") as mock_env:
                 mock_env.return_value.__enter__ = MagicMock()
                 mock_env.return_value.__exit__ = MagicMock(return_value=False)
-                issues = scanner._run_iac_scan(
-                    Path("/bin/checkov"), scan_context
-                )
+                issues = scanner._run_iac_scan(Path("/bin/checkov"), scan_context)
                 assert len(issues) == 1
                 assert issues[0].rule_id == "CKV_AWS_18"
 
@@ -205,14 +199,10 @@ class TestCheckovRunIacScan:
             "lucidshark.plugins.scanners.checkov.run_with_streaming",
             return_value=mock_result,
         ):
-            with patch(
-                "lucidshark.plugins.scanners.checkov.temporary_env"
-            ) as mock_env:
+            with patch("lucidshark.plugins.scanners.checkov.temporary_env") as mock_env:
                 mock_env.return_value.__enter__ = MagicMock()
                 mock_env.return_value.__exit__ = MagicMock(return_value=False)
-                issues = scanner._run_iac_scan(
-                    Path("/bin/checkov"), scan_context
-                )
+                issues = scanner._run_iac_scan(Path("/bin/checkov"), scan_context)
                 assert issues == []
 
     def test_exit_code_2_with_stderr(
@@ -223,31 +213,21 @@ class TestCheckovRunIacScan:
             "lucidshark.plugins.scanners.checkov.run_with_streaming",
             return_value=mock_result,
         ):
-            with patch(
-                "lucidshark.plugins.scanners.checkov.temporary_env"
-            ) as mock_env:
+            with patch("lucidshark.plugins.scanners.checkov.temporary_env") as mock_env:
                 mock_env.return_value.__enter__ = MagicMock()
                 mock_env.return_value.__exit__ = MagicMock(return_value=False)
-                issues = scanner._run_iac_scan(
-                    Path("/bin/checkov"), scan_context
-                )
+                issues = scanner._run_iac_scan(Path("/bin/checkov"), scan_context)
                 assert issues == []
 
-    def test_timeout(
-        self, scanner: CheckovScanner, scan_context: ScanContext
-    ) -> None:
+    def test_timeout(self, scanner: CheckovScanner, scan_context: ScanContext) -> None:
         with patch(
             "lucidshark.plugins.scanners.checkov.run_with_streaming",
             side_effect=subprocess.TimeoutExpired("checkov", 180),
         ):
-            with patch(
-                "lucidshark.plugins.scanners.checkov.temporary_env"
-            ) as mock_env:
+            with patch("lucidshark.plugins.scanners.checkov.temporary_env") as mock_env:
                 mock_env.return_value.__enter__ = MagicMock()
                 mock_env.return_value.__exit__ = MagicMock(return_value=False)
-                issues = scanner._run_iac_scan(
-                    Path("/bin/checkov"), scan_context
-                )
+                issues = scanner._run_iac_scan(Path("/bin/checkov"), scan_context)
                 assert issues == []
 
     def test_generic_exception(
@@ -257,14 +237,10 @@ class TestCheckovRunIacScan:
             "lucidshark.plugins.scanners.checkov.run_with_streaming",
             side_effect=OSError("command failed"),
         ):
-            with patch(
-                "lucidshark.plugins.scanners.checkov.temporary_env"
-            ) as mock_env:
+            with patch("lucidshark.plugins.scanners.checkov.temporary_env") as mock_env:
                 mock_env.return_value.__enter__ = MagicMock()
                 mock_env.return_value.__exit__ = MagicMock(return_value=False)
-                issues = scanner._run_iac_scan(
-                    Path("/bin/checkov"), scan_context
-                )
+                issues = scanner._run_iac_scan(Path("/bin/checkov"), scan_context)
                 assert issues == []
 
     def test_framework_filter_in_command(
@@ -286,13 +262,13 @@ class TestCheckovRunIacScan:
             "lucidshark.plugins.scanners.checkov.run_with_streaming",
             return_value=mock_result,
         ) as mock_run:
-            with patch(
-                "lucidshark.plugins.scanners.checkov.temporary_env"
-            ) as mock_env:
+            with patch("lucidshark.plugins.scanners.checkov.temporary_env") as mock_env:
                 mock_env.return_value.__enter__ = MagicMock()
                 mock_env.return_value.__exit__ = MagicMock(return_value=False)
                 scanner._run_iac_scan(Path("/bin/checkov"), context)
-                cmd = mock_run.call_args.kwargs.get("cmd", mock_run.call_args[0][0] if mock_run.call_args[0] else [])
+                cmd = mock_run.call_args.kwargs.get(
+                    "cmd", mock_run.call_args[0][0] if mock_run.call_args[0] else []
+                )
                 assert "--framework" in cmd
                 assert "terraform" in cmd
                 assert "kubernetes" in cmd
@@ -315,13 +291,13 @@ class TestCheckovRunIacScan:
             "lucidshark.plugins.scanners.checkov.run_with_streaming",
             return_value=mock_result,
         ) as mock_run:
-            with patch(
-                "lucidshark.plugins.scanners.checkov.temporary_env"
-            ) as mock_env:
+            with patch("lucidshark.plugins.scanners.checkov.temporary_env") as mock_env:
                 mock_env.return_value.__enter__ = MagicMock()
                 mock_env.return_value.__exit__ = MagicMock(return_value=False)
                 scanner._run_iac_scan(Path("/bin/checkov"), context)
-                cmd = mock_run.call_args.kwargs.get("cmd", mock_run.call_args[0][0] if mock_run.call_args[0] else [])
+                cmd = mock_run.call_args.kwargs.get(
+                    "cmd", mock_run.call_args[0][0] if mock_run.call_args[0] else []
+                )
                 assert "--skip-path" in cmd
                 # Regex conversions
                 assert "\\.venv/.*" in cmd
@@ -344,9 +320,7 @@ class TestCheckovParseJson:
         assert issues[0].line_start == 1
         assert issues[0].line_end == 10
 
-    def test_valid_list_result(
-        self, scanner: CheckovScanner, tmp_path: Path
-    ) -> None:
+    def test_valid_list_result(self, scanner: CheckovScanner, tmp_path: Path) -> None:
         data = json.dumps(
             [
                 {
@@ -390,25 +364,21 @@ class TestCheckovParseJson:
         issues = scanner._parse_checkov_json("not json", tmp_path)
         assert issues == []
 
-    def test_empty_failed_checks(
-        self, scanner: CheckovScanner, tmp_path: Path
-    ) -> None:
-        data = json.dumps(
-            {"check_type": "terraform", "results": {"failed_checks": []}}
-        )
+    def test_empty_failed_checks(self, scanner: CheckovScanner, tmp_path: Path) -> None:
+        data = json.dumps({"check_type": "terraform", "results": {"failed_checks": []}})
         issues = scanner._parse_checkov_json(data, tmp_path)
         assert issues == []
 
     def test_non_dict_in_list_skipped(
         self, scanner: CheckovScanner, tmp_path: Path
     ) -> None:
-        data = json.dumps(["not a dict", {"check_type": "tf", "results": {"failed_checks": []}}])
+        data = json.dumps(
+            ["not a dict", {"check_type": "tf", "results": {"failed_checks": []}}]
+        )
         issues = scanner._parse_checkov_json(data, tmp_path)
         assert issues == []
 
-    def test_missing_results_key(
-        self, scanner: CheckovScanner, tmp_path: Path
-    ) -> None:
+    def test_missing_results_key(self, scanner: CheckovScanner, tmp_path: Path) -> None:
         data = json.dumps({"check_type": "terraform"})
         issues = scanner._parse_checkov_json(data, tmp_path)
         assert issues == []
@@ -477,9 +447,7 @@ class TestCheckovCheckToUnifiedIssue:
         assert issue.line_start is None
         assert issue.line_end is None
 
-    def test_empty_file_path(
-        self, scanner: CheckovScanner, tmp_path: Path
-    ) -> None:
+    def test_empty_file_path(self, scanner: CheckovScanner, tmp_path: Path) -> None:
         check = {
             "check_id": "CKV_TEST",
             "check": "Test",
@@ -491,9 +459,7 @@ class TestCheckovCheckToUnifiedIssue:
         assert issue is not None
         assert issue.file_path is None
 
-    def test_no_guideline(
-        self, scanner: CheckovScanner, tmp_path: Path
-    ) -> None:
+    def test_no_guideline(self, scanner: CheckovScanner, tmp_path: Path) -> None:
         check = {
             "check_id": "CKV_TEST",
             "check": "Test",
@@ -505,9 +471,7 @@ class TestCheckovCheckToUnifiedIssue:
         assert issue is not None
         assert issue.recommendation is None
 
-    def test_no_resource(
-        self, scanner: CheckovScanner, tmp_path: Path
-    ) -> None:
+    def test_no_resource(self, scanner: CheckovScanner, tmp_path: Path) -> None:
         check = {
             "check_id": "CKV_TEST",
             "check": "Test",
@@ -529,7 +493,13 @@ class TestCheckovCheckToUnifiedIssue:
             side_effect=ValueError("test error"),
         ):
             issue = scanner._check_to_unified_issue(
-                {"check_id": "X", "check": "Y", "file_path": "/z", "resource": "", "file_line_range": []},
+                {
+                    "check_id": "X",
+                    "check": "Y",
+                    "file_path": "/z",
+                    "resource": "",
+                    "file_line_range": [],
+                },
                 "terraform",
                 tmp_path,
             )

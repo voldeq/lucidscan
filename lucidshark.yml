@@ -15,6 +15,11 @@ pipeline:
     tools:
       - name: mypy
 
+  formatting:
+    enabled: true
+    tools:
+      - name: ruff_format
+
   security:
     enabled: true
     tools:
@@ -47,6 +52,7 @@ pipeline:
 fail_on:
   linting: error
   type_checking: error
+  formatting: error
   security: high
   testing: any
   coverage: below_threshold

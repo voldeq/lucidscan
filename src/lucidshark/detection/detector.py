@@ -165,7 +165,9 @@ class CodebaseDetector:
         if any(lang.name in ("java", "kotlin") for lang in languages):
             if (project_root / "pom.xml").exists():
                 managers.append("maven")
-            elif (project_root / "build.gradle").exists() or (project_root / "build.gradle.kts").exists():
+            elif (project_root / "build.gradle").exists() or (
+                project_root / "build.gradle.kts"
+            ).exists():
                 managers.append("gradle")
 
         return managers

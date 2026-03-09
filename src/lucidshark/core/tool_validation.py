@@ -15,6 +15,7 @@ from lucidshark.core.logging import get_logger
 from lucidshark.plugins.discovery import (
     COVERAGE_ENTRY_POINT_GROUP,
     DUPLICATION_ENTRY_POINT_GROUP,
+    FORMATTER_ENTRY_POINT_GROUP,
     LINTER_ENTRY_POINT_GROUP,
     TEST_RUNNER_ENTRY_POINT_GROUP,
     TYPE_CHECKER_ENTRY_POINT_GROUP,
@@ -25,12 +26,14 @@ LOGGER = get_logger(__name__)
 
 
 # Tools that LucidShark downloads automatically - no manual install required
-AUTO_DOWNLOADABLE_TOOLS = frozenset({
-    "trivy",
-    "opengrep",
-    "checkov",
-    "duplo",
-})
+AUTO_DOWNLOADABLE_TOOLS = frozenset(
+    {
+        "trivy",
+        "opengrep",
+        "checkov",
+        "duplo",
+    }
+)
 
 
 # Install instructions for manually installed tools
@@ -39,7 +42,6 @@ INSTALL_INSTRUCTIONS: Dict[str, str] = {
     "ruff": "pip install ruff",
     "eslint": "npm install -g eslint",
     "biome": "npm install -g @biomejs/biome",
-    "checkstyle": "brew install checkstyle (macOS) or download from checkstyle.org",
     "clippy": "rustup component add clippy",
     # Type checkers
     "mypy": "pip install mypy",
@@ -59,6 +61,12 @@ INSTALL_INSTRUCTIONS: Dict[str, str] = {
     "istanbul": "npm install nyc",
     "jacoco": "Maven/Gradle plugin (configured in pom.xml/build.gradle)",
     "tarpaulin": "cargo install cargo-tarpaulin",
+    # Formatters
+    "ruff_format": "pip install ruff",
+    "prettier": "npm install -g prettier",
+    "rustfmt": "rustup component add rustfmt",
+    "google_java_format": "Download from github.com/google/google-java-format",
+    "checkstyle": "brew install checkstyle (macOS) or download from checkstyle.org",
 }
 
 
@@ -88,6 +96,7 @@ def _get_entry_point_group(domain: str) -> Optional[str]:
         "testing": TEST_RUNNER_ENTRY_POINT_GROUP,
         "coverage": COVERAGE_ENTRY_POINT_GROUP,
         "duplication": DUPLICATION_ENTRY_POINT_GROUP,
+        "formatting": FORMATTER_ENTRY_POINT_GROUP,
     }
     return mapping.get(domain)
 
@@ -179,6 +188,7 @@ def validate_configured_tools(
         ("testing", config.pipeline.testing),
         ("coverage", config.pipeline.coverage),
         ("duplication", config.pipeline.duplication),
+        ("formatting", config.pipeline.formatting),
     ]
 
     for domain_name, domain_config in domain_configs:
@@ -230,9 +240,7 @@ def format_validation_errors(errors: List[ToolValidationError]) -> str:
 
     lines.append("Please install the missing tools and try again.")
     lines.append("")
-    lines.append(
-        "Note: Security tools (trivy, opengrep, checkov) and duplo are"
-    )
+    lines.append("Note: Security tools (trivy, opengrep, checkov) and duplo are")
     lines.append("downloaded automatically - no manual installation required.")
 
     return "\n".join(lines)

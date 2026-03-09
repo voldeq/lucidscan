@@ -243,9 +243,7 @@ class TestDetectVersion:
 
     def test_detect_version_typescript(self, tmp_path: Path) -> None:
         """Test version detection delegates to TypeScript detector."""
-        package_json = {
-            "devDependencies": {"typescript": "^5.2.0"}
-        }
+        package_json = {"devDependencies": {"typescript": "^5.2.0"}}
         (tmp_path / "package.json").write_text(json.dumps(package_json))
 
         version = _detect_version("typescript", tmp_path)

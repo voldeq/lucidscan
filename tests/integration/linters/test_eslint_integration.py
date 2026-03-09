@@ -32,7 +32,9 @@ class TestESLintAvailability:
 class TestESLintLinting:
     """Integration tests for ESLint linting."""
 
-    def test_lint_javascript_file_with_issues(self, eslint_linter: ESLintLinter) -> None:
+    def test_lint_javascript_file_with_issues(
+        self, eslint_linter: ESLintLinter
+    ) -> None:
         """Test linting a JavaScript file with issues."""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir_path = Path(tmpdir)
@@ -40,13 +42,13 @@ class TestESLintLinting:
             # Create eslint config
             eslint_config = tmpdir_path / "eslint.config.js"
             eslint_config.write_text(
-                'export default [\n'
-                '  {\n'
-                '    rules: {\n'
+                "export default [\n"
+                "  {\n"
+                "    rules: {\n"
                 '      "no-unused-vars": "error"\n'
-                '    }\n'
-                '  }\n'
-                '];\n'
+                "    }\n"
+                "  }\n"
+                "];\n"
             )
 
             # Create a JS file with unused variable

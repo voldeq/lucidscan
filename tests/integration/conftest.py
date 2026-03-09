@@ -105,22 +105,20 @@ _docker_available = _is_docker_available()
 # Pytest markers for conditional test execution
 trivy_available = pytest.mark.skipif(
     not _trivy_available,
-    reason="Trivy binary not available and could not be downloaded"
+    reason="Trivy binary not available and could not be downloaded",
 )
 
 opengrep_available = pytest.mark.skipif(
     not _opengrep_available,
-    reason="OpenGrep binary not available and could not be downloaded"
+    reason="OpenGrep binary not available and could not be downloaded",
 )
 
 checkov_available = pytest.mark.skipif(
-    not _checkov_available,
-    reason="Checkov not available and could not be installed"
+    not _checkov_available, reason="Checkov not available and could not be installed"
 )
 
 docker_available = pytest.mark.skipif(
-    not _docker_available,
-    reason="Docker not available or not running"
+    not _docker_available, reason="Docker not available or not running"
 )
 
 
@@ -393,70 +391,53 @@ _tarpaulin_available_flag = _is_tarpaulin_available(_cargo_can_compile_flag)
 # Pytest markers for Rust tools
 cargo_available = pytest.mark.skipif(
     not _cargo_can_compile_flag,
-    reason="cargo not available or cannot compile (check Rust toolchain setup)"
+    reason="cargo not available or cannot compile (check Rust toolchain setup)",
 )
 
 clippy_available = pytest.mark.skipif(
-    not _clippy_available_flag,
-    reason="cargo clippy not available"
+    not _clippy_available_flag, reason="cargo clippy not available"
 )
 
 tarpaulin_available = pytest.mark.skipif(
-    not _tarpaulin_available_flag,
-    reason="cargo-tarpaulin not available"
+    not _tarpaulin_available_flag, reason="cargo-tarpaulin not available"
 )
 
 
 # Pytest markers for linters
 ruff_available = pytest.mark.skipif(
-    not _ruff_available,
-    reason="Ruff binary not available and could not be downloaded"
+    not _ruff_available, reason="Ruff binary not available and could not be downloaded"
 )
 
 biome_available = pytest.mark.skipif(
     not _biome_available,
-    reason="Biome binary not available and could not be downloaded"
+    reason="Biome binary not available and could not be downloaded",
 )
 
 eslint_available = pytest.mark.skipif(
-    not _eslint_available,
-    reason="ESLint not available"
+    not _eslint_available, reason="ESLint not available"
 )
 
-node_available = pytest.mark.skipif(
-    not _node_available,
-    reason="Node.js not available"
-)
+node_available = pytest.mark.skipif(not _node_available, reason="Node.js not available")
 
-java_available = pytest.mark.skipif(
-    not _java_available,
-    reason="Java not available"
-)
+java_available = pytest.mark.skipif(not _java_available, reason="Java not available")
 
 spotbugs_available = pytest.mark.skipif(
-    not _spotbugs_available,
-    reason="SpotBugs not available (requires Java)"
+    not _spotbugs_available, reason="SpotBugs not available (requires Java)"
 )
 
 maven_available = pytest.mark.skipif(
-    not _maven_available,
-    reason="Maven not available (requires Java and mvn)"
+    not _maven_available, reason="Maven not available (requires Java and mvn)"
 )
 
 # Pytest markers for type checkers
-mypy_available = pytest.mark.skipif(
-    not _mypy_available,
-    reason="mypy not available"
-)
+mypy_available = pytest.mark.skipif(not _mypy_available, reason="mypy not available")
 
 pyright_available = pytest.mark.skipif(
-    not _pyright_available,
-    reason="pyright not available"
+    not _pyright_available, reason="pyright not available"
 )
 
 tsc_available = pytest.mark.skipif(
-    not _tsc_available,
-    reason="TypeScript compiler (tsc) not available"
+    not _tsc_available, reason="TypeScript compiler (tsc) not available"
 )
 
 
@@ -582,24 +563,20 @@ _nyc_available = _ensure_nyc_available()
 
 # Pytest markers for test runners
 pytest_runner_available = pytest.mark.skipif(
-    not _pytest_runner_available,
-    reason="pytest not available"
+    not _pytest_runner_available, reason="pytest not available"
 )
 
 jest_runner_available = pytest.mark.skipif(
-    not _jest_runner_available,
-    reason="Jest not available"
+    not _jest_runner_available, reason="Jest not available"
 )
 
 # Pytest markers for coverage plugins
 coverage_py_available = pytest.mark.skipif(
-    not _coverage_py_available,
-    reason="coverage.py not available"
+    not _coverage_py_available, reason="coverage.py not available"
 )
 
 nyc_available = pytest.mark.skipif(
-    not _nyc_available,
-    reason="NYC (Istanbul) not available"
+    not _nyc_available, reason="NYC (Istanbul) not available"
 )
 
 
@@ -693,5 +670,3 @@ def cargo_test_runner(project_root: Path) -> CargoTestRunner:
 def tarpaulin_plugin(project_root: Path) -> TarpaulinPlugin:
     """Return a TarpaulinPlugin instance."""
     return TarpaulinPlugin(project_root=project_root)
-
-

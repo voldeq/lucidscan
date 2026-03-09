@@ -68,7 +68,7 @@ class PlaywrightRunner(TestRunnerPlugin):
             "playwright",
             "Playwright is not installed. Install it with:\n"
             "  npm install @playwright/test --save-dev\n"
-            "  npx playwright install"
+            "  npx playwright install",
         )
 
     def run_tests(self, context: ScanContext) -> TestResult:
@@ -238,9 +238,7 @@ class PlaywrightRunner(TestRunnerPlugin):
             status = test.get("status", "")
 
             if status in ["unexpected", "failed"]:
-                issue = self._test_to_issue(
-                    spec, test, ancestors, suite, project_root
-                )
+                issue = self._test_to_issue(spec, test, ancestors, suite, project_root)
                 if issue:
                     result.issues.append(issue)
 
@@ -388,7 +386,7 @@ class PlaywrightRunner(TestRunnerPlugin):
         text = text.replace("\n", " ").strip()
         if len(text) <= max_length:
             return text
-        return text[:max_length - 3] + "..."
+        return text[: max_length - 3] + "..."
 
     def _generate_issue_id(self, full_name: str, message: str) -> str:
         """Generate deterministic issue ID.

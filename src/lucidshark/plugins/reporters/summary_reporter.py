@@ -75,7 +75,9 @@ class SummaryReporter(ReporterPlugin):
             status = "PASSED" if ds.passed else "FAILED"
             lines.append(f"\nDuplication: {ds.duplication_percent:.1f}% ({status})")
             lines.append(f"  Threshold: {ds.threshold}%")
-            lines.append(f"  Blocks: {ds.duplicate_blocks}, Lines: {ds.duplicate_lines}")
+            lines.append(
+                f"  Blocks: {ds.duplicate_blocks}, Lines: {ds.duplicate_lines}"
+            )
 
         if result.metadata:
             lines.append(f"\nScan duration: {result.metadata.duration_ms}ms")

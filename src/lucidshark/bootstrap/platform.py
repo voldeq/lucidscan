@@ -108,4 +108,3 @@ def get_platform_info() -> PlatformInfo:
         ValueError: If the platform is not supported.
     """
     return PlatformInfo(os=detect_os(), arch=detect_arch())
-

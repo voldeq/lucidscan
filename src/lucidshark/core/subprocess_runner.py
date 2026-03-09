@@ -74,15 +74,17 @@ def run_with_streaming(
     stderr_lines: List[str] = []
 
     try:
-        with subprocess.Popen(  # nosemgrep: python36-compatibility-Popen1, python36-compatibility-Popen2
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            cwd=cwd_str,
-        ) as proc:
+        with (
+            subprocess.Popen(  # nosemgrep: python36-compatibility-Popen1, python36-compatibility-Popen2
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                cwd=cwd_str,
+            ) as proc
+        ):
             # Use a queue to collect output from both streams
             output_queue: queue.Queue = queue.Queue()
 

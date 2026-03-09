@@ -56,5 +56,3 @@ class ScannerPlugin(ABC):
         Returns:
             List of unified issues found during the scan.
         """
-
-

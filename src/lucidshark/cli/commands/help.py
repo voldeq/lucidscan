@@ -33,7 +33,9 @@ def get_help_content() -> str:
     if docs_path.exists():
         return docs_path.read_text(encoding="utf-8")
 
-    return "Help documentation not found. Visit https://github.com/toniantunovi/lucidshark"
+    return (
+        "Help documentation not found. Visit https://github.com/toniantunovi/lucidshark"
+    )
 
 
 class HelpCommand(Command):

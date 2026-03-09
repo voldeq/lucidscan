@@ -124,7 +124,8 @@ class ClippyLinter(LinterPlugin):
             "--message-format=json",
             "--quiet",
             "--",
-            "-W", "clippy::all",
+            "-W",
+            "clippy::all",
         ]
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
@@ -178,7 +179,8 @@ class ClippyLinter(LinterPlugin):
             "--message-format=json",
             "--quiet",
             "--",
-            "-W", "clippy::all",
+            "-W",
+            "clippy::all",
         ]
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
@@ -200,11 +202,13 @@ class ClippyLinter(LinterPlugin):
         # Count remaining issues
         post_issues = self.lint(context)
 
-        files_modified = len(set(
-            str(issue.file_path)
-            for issue in pre_issues
-            if str(issue.file_path) not in {str(i.file_path) for i in post_issues}
-        ))
+        files_modified = len(
+            set(
+                str(issue.file_path)
+                for issue in pre_issues
+                if str(issue.file_path) not in {str(i.file_path) for i in post_issues}
+            )
+        )
 
         return FixResult(
             files_modified=files_modified,

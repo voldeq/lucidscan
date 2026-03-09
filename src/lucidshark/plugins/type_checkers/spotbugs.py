@@ -548,7 +548,9 @@ class SpotBugsChecker(TypeCheckerPlugin):
                 source_tool="spotbugs",
                 severity=severity,
                 rule_id=bug_type,
-                title=f"[{bug_type}] {message[:100]}" if len(message) > 100 else f"[{bug_type}] {message}",
+                title=f"[{bug_type}] {message[:100]}"
+                if len(message) > 100
+                else f"[{bug_type}] {message}",
                 description=message,
                 documentation_url=f"https://spotbugs.readthedocs.io/en/stable/bugDescriptions.html#{bug_type}",
                 file_path=file_path,

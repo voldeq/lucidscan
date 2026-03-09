@@ -44,7 +44,7 @@ class CheckstyleLinter(LinterPlugin):
         Args:
             project_root: Optional project root for finding Checkstyle installation.
         """
-        self._project_root = project_root
+        super().__init__(project_root=project_root)
 
     @property
     def name(self) -> str:
@@ -112,7 +112,7 @@ class CheckstyleLinter(LinterPlugin):
         )
 
     def lint(self, context: ScanContext) -> List[UnifiedIssue]:
-        """Run Checkstyle linting.
+        """Run Checkstyle linting checks.
 
         Args:
             context: Scan context with paths and configuration.
@@ -132,8 +132,10 @@ class CheckstyleLinter(LinterPlugin):
         # Build command for standalone checkstyle
         cmd = [
             str(binary),
-            "-c", config_file,
-            "-f", "xml",
+            "-c",
+            config_file,
+            "-f",
+            "xml",
         ]
 
         # Find Java source files
@@ -222,8 +224,11 @@ class CheckstyleLinter(LinterPlugin):
 
             for java_file in search_dir.rglob("*.java"):
                 # Check if file should be excluded using proper gitignore matching
-                if context.ignore_patterns is None or not context.ignore_patterns.matches(
-                    java_file, context.project_root
+                if (
+                    context.ignore_patterns is None
+                    or not context.ignore_patterns.matches(
+                        java_file, context.project_root
+                    )
                 ):
                     java_files.append(str(java_file))
 
@@ -311,7 +316,9 @@ class CheckstyleLinter(LinterPlugin):
                 rule_id=rule or "unknown",
                 title=f"[{rule}] {message}" if rule else message,
                 description=message,
-                documentation_url=f"https://checkstyle.org/checks.html#{rule}" if rule else None,
+                documentation_url=f"https://checkstyle.org/checks.html#{rule}"
+                if rule
+                else None,
                 file_path=path,
                 line_start=line_num,
                 line_end=line_num,

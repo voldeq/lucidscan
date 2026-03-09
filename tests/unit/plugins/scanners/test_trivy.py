@@ -66,7 +66,9 @@ def sample_trivy_output() -> str:
                             "Severity": "HIGH",
                             "Title": "SSRF vulnerability in requests",
                             "Description": "A server-side request forgery vulnerability.",
-                            "References": ["https://nvd.nist.gov/vuln/detail/CVE-2024-1234"],
+                            "References": [
+                                "https://nvd.nist.gov/vuln/detail/CVE-2024-1234"
+                            ],
                             "CVSS": {"nvd": {"V3Score": 7.5}},
                             "CweIDs": ["CWE-918"],
                             "PublishedDate": "2024-01-15",
@@ -111,6 +113,7 @@ class TestTrivyEnsureBinary:
 
     def test_download_triggered(self, scanner: TrivyScanner) -> None:
         with patch.object(scanner, "_download_binary") as mock_dl:
+
             def create_binary(dest_dir: Path) -> None:
                 dest_dir.mkdir(parents=True, exist_ok=True)
                 (dest_dir / _TRIVY_BINARY).touch()
@@ -135,9 +138,7 @@ class TestTrivyScan:
         scanner: TrivyScanner,
         sca_context: ScanContext,
     ) -> None:
-        with patch.object(
-            scanner, "ensure_binary", return_value=Path("/bin/trivy")
-        ):
+        with patch.object(scanner, "ensure_binary", return_value=Path("/bin/trivy")):
             with patch.object(scanner, "_run_fs_scan", return_value=[]) as mock_fs:
                 scanner.scan(sca_context)
                 mock_fs.assert_called_once()
@@ -147,12 +148,8 @@ class TestTrivyScan:
         scanner: TrivyScanner,
         container_context: ScanContext,
     ) -> None:
-        with patch.object(
-            scanner, "ensure_binary", return_value=Path("/bin/trivy")
-        ):
-            with patch.object(
-                scanner, "_run_image_scan", return_value=[]
-            ) as mock_img:
+        with patch.object(scanner, "ensure_binary", return_value=Path("/bin/trivy")):
+            with patch.object(scanner, "_run_image_scan", return_value=[]) as mock_img:
                 scanner.scan(container_context)
                 mock_img.assert_called_once_with(
                     Path("/bin/trivy"),
@@ -170,9 +167,7 @@ class TestTrivyScan:
             enabled_domains=[ScanDomain.SCA, ScanDomain.CONTAINER],
             config=config,
         )
-        with patch.object(
-            scanner, "ensure_binary", return_value=Path("/bin/trivy")
-        ):
+        with patch.object(scanner, "ensure_binary", return_value=Path("/bin/trivy")):
             with patch.object(scanner, "_run_fs_scan", return_value=[]) as mock_fs:
                 with patch.object(
                     scanner, "_run_image_scan", return_value=[]
@@ -199,9 +194,7 @@ class TestTrivyRunFsScan:
         ):
             cache_dir = scanner._paths.plugin_cache_dir("trivy")
             cache_dir.mkdir(parents=True, exist_ok=True)
-            issues = scanner._run_fs_scan(
-                Path("/bin/trivy"), sca_context, cache_dir
-            )
+            issues = scanner._run_fs_scan(Path("/bin/trivy"), sca_context, cache_dir)
             assert len(issues) == 1
             assert issues[0].rule_id == "CVE-2024-1234"
 
@@ -215,9 +208,7 @@ class TestTrivyRunFsScan:
         ):
             cache_dir = scanner._paths.plugin_cache_dir("trivy")
             cache_dir.mkdir(parents=True, exist_ok=True)
-            issues = scanner._run_fs_scan(
-                Path("/bin/trivy"), sca_context, cache_dir
-            )
+            issues = scanner._run_fs_scan(Path("/bin/trivy"), sca_context, cache_dir)
             assert issues == []
 
     def test_nonzero_exit_with_stderr(
@@ -230,23 +221,17 @@ class TestTrivyRunFsScan:
         ):
             cache_dir = scanner._paths.plugin_cache_dir("trivy")
             cache_dir.mkdir(parents=True, exist_ok=True)
-            issues = scanner._run_fs_scan(
-                Path("/bin/trivy"), sca_context, cache_dir
-            )
+            issues = scanner._run_fs_scan(Path("/bin/trivy"), sca_context, cache_dir)
             assert issues == []
 
-    def test_timeout(
-        self, scanner: TrivyScanner, sca_context: ScanContext
-    ) -> None:
+    def test_timeout(self, scanner: TrivyScanner, sca_context: ScanContext) -> None:
         with patch(
             "lucidshark.plugins.scanners.trivy.run_with_streaming",
             side_effect=subprocess.TimeoutExpired("trivy", 180),
         ):
             cache_dir = scanner._paths.plugin_cache_dir("trivy")
             cache_dir.mkdir(parents=True, exist_ok=True)
-            issues = scanner._run_fs_scan(
-                Path("/bin/trivy"), sca_context, cache_dir
-            )
+            issues = scanner._run_fs_scan(Path("/bin/trivy"), sca_context, cache_dir)
             assert issues == []
 
     def test_generic_exception(
@@ -258,14 +243,10 @@ class TestTrivyRunFsScan:
         ):
             cache_dir = scanner._paths.plugin_cache_dir("trivy")
             cache_dir.mkdir(parents=True, exist_ok=True)
-            issues = scanner._run_fs_scan(
-                Path("/bin/trivy"), sca_context, cache_dir
-            )
+            issues = scanner._run_fs_scan(Path("/bin/trivy"), sca_context, cache_dir)
             assert issues == []
 
-    def test_config_options(
-        self, scanner: TrivyScanner, tmp_path: Path
-    ) -> None:
+    def test_config_options(self, scanner: TrivyScanner, tmp_path: Path) -> None:
         config = MagicMock()
         config.get_scanner_options.return_value = {
             "ignore_unfixed": True,
@@ -286,7 +267,9 @@ class TestTrivyRunFsScan:
             cache_dir = scanner._paths.plugin_cache_dir("trivy")
             cache_dir.mkdir(parents=True, exist_ok=True)
             scanner._run_fs_scan(Path("/bin/trivy"), context, cache_dir)
-            cmd = mock_run.call_args.kwargs.get("cmd", mock_run.call_args[0][0] if mock_run.call_args[0] else [])
+            cmd = mock_run.call_args.kwargs.get(
+                "cmd", mock_run.call_args[0][0] if mock_run.call_args[0] else []
+            )
             assert "--ignore-unfixed" in cmd
             assert "--skip-db-update" in cmd
             assert "--severity" in cmd
@@ -315,7 +298,9 @@ class TestTrivyRunFsScan:
             cache_dir = scanner._paths.plugin_cache_dir("trivy")
             cache_dir.mkdir(parents=True, exist_ok=True)
             scanner._run_fs_scan(Path("/bin/trivy"), context, cache_dir)
-            cmd = mock_run.call_args.kwargs.get("cmd", mock_run.call_args[0][0] if mock_run.call_args[0] else [])
+            cmd = mock_run.call_args.kwargs.get(
+                "cmd", mock_run.call_args[0][0] if mock_run.call_args[0] else []
+            )
             assert "--skip-dirs" in cmd
             assert "node_modules" in cmd
             assert ".venv" in cmd
@@ -416,7 +401,15 @@ class TestTrivyParseJson:
 
     def test_no_vulnerabilities(self, scanner: TrivyScanner) -> None:
         data = json.dumps(
-            {"Results": [{"Target": "Gemfile.lock", "Type": "bundler", "Vulnerabilities": None}]}
+            {
+                "Results": [
+                    {
+                        "Target": "Gemfile.lock",
+                        "Type": "bundler",
+                        "Vulnerabilities": None,
+                    }
+                ]
+            }
         )
         issues = scanner._parse_trivy_json(data, ScanDomain.SCA)
         assert issues == []
@@ -522,7 +515,9 @@ class TestTrivyVulnToUnifiedIssue:
         assert issue.recommendation == "Upgrade requests to version 2.31.0"
         assert issue.fixable is True
         assert issue.suggested_fix == "Upgrade to version 2.31.0"
-        assert issue.documentation_url == "https://nvd.nist.gov/vuln/detail/CVE-2024-1234"
+        assert (
+            issue.documentation_url == "https://nvd.nist.gov/vuln/detail/CVE-2024-1234"
+        )
         assert issue.file_path == Path("requirements.txt")
 
     def test_no_fixed_version(self, scanner: TrivyScanner) -> None:
@@ -568,9 +563,7 @@ class TestTrivyVulnToUnifiedIssue:
             "Title": "Unknown",
             "Description": "Unknown sev",
         }
-        issue = scanner._vuln_to_unified_issue(
-            vuln, ScanDomain.SCA, "target", "pip"
-        )
+        issue = scanner._vuln_to_unified_issue(vuln, ScanDomain.SCA, "target", "pip")
         assert issue is not None
         assert issue.severity == Severity.INFO
 
@@ -579,9 +572,7 @@ class TestTrivyVulnToUnifiedIssue:
             "VulnerabilityID": "CVE-MINIMAL",
             "PkgName": "pkg",
         }
-        issue = scanner._vuln_to_unified_issue(
-            vuln, ScanDomain.SCA, "target", "pip"
-        )
+        issue = scanner._vuln_to_unified_issue(vuln, ScanDomain.SCA, "target", "pip")
         assert issue is not None
         assert issue.dependency is not None
         assert "unknown" in issue.dependency
@@ -610,9 +601,7 @@ class TestTrivyVulnToUnifiedIssue:
             "Description": "Desc",
             "References": [],
         }
-        issue = scanner._vuln_to_unified_issue(
-            vuln, ScanDomain.SCA, "target", "pip"
-        )
+        issue = scanner._vuln_to_unified_issue(vuln, ScanDomain.SCA, "target", "pip")
         assert issue is not None
         assert issue.documentation_url is None
 
@@ -622,13 +611,21 @@ class TestTrivyVulnToUnifiedIssue:
 
 class TestTrivyIssueId:
     def test_deterministic(self, scanner: TrivyScanner) -> None:
-        id1 = scanner._generate_issue_id("CVE-2024-1234", "requests", "2.28.0", "requirements.txt")
-        id2 = scanner._generate_issue_id("CVE-2024-1234", "requests", "2.28.0", "requirements.txt")
+        id1 = scanner._generate_issue_id(
+            "CVE-2024-1234", "requests", "2.28.0", "requirements.txt"
+        )
+        id2 = scanner._generate_issue_id(
+            "CVE-2024-1234", "requests", "2.28.0", "requirements.txt"
+        )
         assert id1 == id2
 
     def test_different_inputs(self, scanner: TrivyScanner) -> None:
-        id1 = scanner._generate_issue_id("CVE-2024-1234", "requests", "2.28.0", "requirements.txt")
-        id2 = scanner._generate_issue_id("CVE-2024-5678", "requests", "2.28.0", "requirements.txt")
+        id1 = scanner._generate_issue_id(
+            "CVE-2024-1234", "requests", "2.28.0", "requirements.txt"
+        )
+        id2 = scanner._generate_issue_id(
+            "CVE-2024-5678", "requests", "2.28.0", "requirements.txt"
+        )
         assert id1 != id2
 
     def test_prefix(self, scanner: TrivyScanner) -> None:

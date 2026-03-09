@@ -185,9 +185,7 @@ class PytestRunner(TestRunnerPlugin):
                 source_dir = detect_source_directory(project_root)
                 if source_dir:
                     cmd.extend(["--source", source_dir])
-                    LOGGER.debug(
-                        "Coverage --source set to: %s", source_dir
-                    )
+                    LOGGER.debug("Coverage --source set to: %s", source_dir)
             cmd.extend(["-m", "pytest"])
             return cmd
         return [str(binary)]
@@ -275,10 +273,14 @@ class PytestRunner(TestRunnerPlugin):
             report_file = Path(tmpdir) / "report.json"
 
             cmd = self._build_base_cmd(binary, coverage_binary, context.project_root)
-            cmd.extend([
-                "--tb=short", "-v",
-                "--json-report", f"--json-report-file={report_file}",
-            ])
+            cmd.extend(
+                [
+                    "--tb=short",
+                    "-v",
+                    "--json-report",
+                    f"--json-report-file={report_file}",
+                ]
+            )
 
             if not self._execute_pytest(cmd, context):
                 return self._execution_failure_result(cmd)
@@ -411,7 +413,11 @@ class PytestRunner(TestRunnerPlugin):
             issue_id = self._generate_issue_id(nodeid, message)
 
             # Build title
-            title = f"{test_name} {outcome}: {message}" if message else f"{test_name} {outcome}"
+            title = (
+                f"{test_name} {outcome}: {message}"
+                if message
+                else f"{test_name} {outcome}"
+            )
 
             return UnifiedIssue(
                 id=issue_id,
@@ -563,7 +569,9 @@ class PytestRunner(TestRunnerPlugin):
             issue_id = self._generate_issue_id(nodeid, assertion)
 
             # Build title
-            title = f"{name} {outcome}: {assertion}" if assertion else f"{name} {outcome}"
+            title = (
+                f"{name} {outcome}: {assertion}" if assertion else f"{name} {outcome}"
+            )
 
             return UnifiedIssue(
                 id=issue_id,
@@ -625,7 +633,11 @@ class PytestRunner(TestRunnerPlugin):
         # Return first non-empty line as fallback
         for line in lines:
             stripped = line.strip()
-            if stripped and not stripped.startswith(">") and not stripped.startswith("E "):
+            if (
+                stripped
+                and not stripped.startswith(">")
+                and not stripped.startswith("E ")
+            ):
                 return stripped[:100]  # Truncate long messages
 
         return ""

@@ -26,12 +26,14 @@ def _add_global_options(parser: argparse.ArgumentParser) -> None:
         help="Enable debug logging.",
     )
     parser.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         action="store_true",
         help="Enable verbose (info-level) logging.",
     )
     parser.add_argument(
-        "--quiet", "-q",
+        "--quiet",
+        "-q",
         action="store_true",
         help="Reduce logging output to errors only.",
     )
@@ -106,7 +108,7 @@ def _build_scan_parser(subparsers: argparse._SubParsersAction) -> None:
     domain_group.add_argument(
         "--linting",
         action="store_true",
-        help="Run linting checks (Ruff for Python, ESLint for JS/TS).",
+        help="Run linting checks (Ruff for Python, ESLint for JS/TS, Checkstyle for Java).",
     )
     domain_group.add_argument(
         "--type-checking",
@@ -129,9 +131,14 @@ def _build_scan_parser(subparsers: argparse._SubParsersAction) -> None:
         help="Run code duplication detection (duplo).",
     )
     domain_group.add_argument(
+        "--formatting",
+        action="store_true",
+        help="Run code formatting checks (ruff format, Prettier, rustfmt).",
+    )
+    domain_group.add_argument(
         "--all",
         action="store_true",
-        help="Enable all domains (sca, sast, iac, container, linting, type_checking, testing, coverage, duplication).",
+        help="Enable all domains (sca, sast, iac, container, linting, type_checking, formatting, testing, coverage, duplication).",
     )
 
     # Target options
@@ -284,7 +291,7 @@ def _build_scan_parser(subparsers: argparse._SubParsersAction) -> None:
     exec_group.add_argument(
         "--fix",
         action="store_true",
-        help="Apply auto-fixes where possible (linting only).",
+        help="Apply auto-fixes where possible (linting and formatting).",
     )
     exec_group.add_argument(
         "--stream",

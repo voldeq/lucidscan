@@ -46,9 +46,7 @@ def _set_request_context(progress_token=None):
 class TestMCPServerListToolsHandler:
     """Tests for the list_tools handler."""
 
-    async def test_list_tools_returns_all_expected_tools(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_list_tools_returns_all_expected_tools(self, tmp_path: Path) -> None:
         """Test that list_tools returns all expected tool definitions."""
         server = _make_server(tmp_path)
         mock_rc, ctx_token = _set_request_context()
@@ -88,9 +86,7 @@ class TestMCPServerListToolsHandler:
         finally:
             request_ctx.reset(ctx_token)
 
-    async def test_check_file_tool_requires_file_path(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_check_file_tool_requires_file_path(self, tmp_path: Path) -> None:
         """Test the check_file tool requires file_path."""
         server = _make_server(tmp_path)
         mock_rc, ctx_token = _set_request_context()
@@ -99,7 +95,9 @@ class TestMCPServerListToolsHandler:
             req = ListToolsRequest(method="tools/list")
             result = await handler(req)
             assert isinstance(result.root, ListToolsResult)
-            check_file_tool = next(t for t in result.root.tools if t.name == "check_file")
+            check_file_tool = next(
+                t for t in result.root.tools if t.name == "check_file"
+            )
             assert "file_path" in check_file_tool.inputSchema.get("required", [])
         finally:
             request_ctx.reset(ctx_token)
@@ -111,13 +109,17 @@ class TestMCPServerCallToolHandler:
     async def test_dispatch_scan(self, tmp_path: Path) -> None:
         """Test dispatching to scan."""
         server = _make_server(tmp_path)
-        server.executor.scan = AsyncMock(return_value={"total_issues": 0, "instructions": []})  # type: ignore[method-assign]
+        server.executor.scan = AsyncMock(  # type: ignore[method-assign]
+            return_value={"total_issues": 0, "instructions": []}
+        )
         mock_rc, ctx_token = _set_request_context()
         try:
             handler = server.server.request_handlers[CallToolRequest]
             req = CallToolRequest(
                 method="tools/call",
-                params=CallToolRequestParams(name="scan", arguments={"domains": ["linting"]}),
+                params=CallToolRequestParams(
+                    name="scan", arguments={"domains": ["linting"]}
+                ),
             )
             result = await handler(req)
             assert isinstance(result.root, CallToolResult)
@@ -137,7 +139,9 @@ class TestMCPServerCallToolHandler:
             handler = server.server.request_handlers[CallToolRequest]
             req = CallToolRequest(
                 method="tools/call",
-                params=CallToolRequestParams(name="check_file", arguments={"file_path": "test.py"}),
+                params=CallToolRequestParams(
+                    name="check_file", arguments={"file_path": "test.py"}
+                ),
             )
             result = await handler(req)
             assert isinstance(result.root, CallToolResult)
@@ -159,7 +163,9 @@ class TestMCPServerCallToolHandler:
             handler = server.server.request_handlers[CallToolRequest]
             req = CallToolRequest(
                 method="tools/call",
-                params=CallToolRequestParams(name="get_fix_instructions", arguments={"issue_id": "issue-1"}),
+                params=CallToolRequestParams(
+                    name="get_fix_instructions", arguments={"issue_id": "issue-1"}
+                ),
             )
             result = await handler(req)
             assert isinstance(result.root, CallToolResult)
@@ -180,7 +186,9 @@ class TestMCPServerCallToolHandler:
             handler = server.server.request_handlers[CallToolRequest]
             req = CallToolRequest(
                 method="tools/call",
-                params=CallToolRequestParams(name="apply_fix", arguments={"issue_id": "issue-1"}),
+                params=CallToolRequestParams(
+                    name="apply_fix", arguments={"issue_id": "issue-1"}
+                ),
             )
             result = await handler(req)
             assert isinstance(result.root, CallToolResult)
@@ -264,7 +272,9 @@ class TestMCPServerCallToolHandler:
             handler = server.server.request_handlers[CallToolRequest]
             req = CallToolRequest(
                 method="tools/call",
-                params=CallToolRequestParams(name="validate_config", arguments={"config_path": "lucidshark.yml"}),
+                params=CallToolRequestParams(
+                    name="validate_config", arguments={"config_path": "lucidshark.yml"}
+                ),
             )
             result = await handler(req)
             assert isinstance(result.root, CallToolResult)
@@ -274,9 +284,7 @@ class TestMCPServerCallToolHandler:
         finally:
             request_ctx.reset(ctx_token)
 
-    async def test_dispatch_unknown_tool_returns_error(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_dispatch_unknown_tool_returns_error(self, tmp_path: Path) -> None:
         """Test unknown tool name returns error in response."""
         server = _make_server(tmp_path)
         mock_rc, ctx_token = _set_request_context()
@@ -295,9 +303,7 @@ class TestMCPServerCallToolHandler:
         finally:
             request_ctx.reset(ctx_token)
 
-    async def test_dispatch_exception_returns_error(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_dispatch_exception_returns_error(self, tmp_path: Path) -> None:
         """Test exception in tool execution returns error."""
         server = _make_server(tmp_path)
         server.executor.scan = AsyncMock(side_effect=RuntimeError("Boom"))  # type: ignore[method-assign]
@@ -306,7 +312,9 @@ class TestMCPServerCallToolHandler:
             handler = server.server.request_handlers[CallToolRequest]
             req = CallToolRequest(
                 method="tools/call",
-                params=CallToolRequestParams(name="scan", arguments={"domains": ["linting"]}),
+                params=CallToolRequestParams(
+                    name="scan", arguments={"domains": ["linting"]}
+                ),
             )
             result = await handler(req)
             assert isinstance(result.root, CallToolResult)
@@ -317,21 +325,21 @@ class TestMCPServerCallToolHandler:
         finally:
             request_ctx.reset(ctx_token)
 
-    async def test_progress_notification_with_token(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_progress_notification_with_token(self, tmp_path: Path) -> None:
         """Test progress notifications are sent when token is present."""
         server = _make_server(tmp_path)
 
         async def mock_scan(**kwargs):
             on_progress = kwargs.get("on_progress")
             if on_progress:
-                await on_progress({
-                    "tool": "lucidshark",
-                    "content": "Scanning...",
-                    "progress": 0,
-                    "total": 1,
-                })
+                await on_progress(
+                    {
+                        "tool": "lucidshark",
+                        "content": "Scanning...",
+                        "progress": 0,
+                        "total": 1,
+                    }
+                )
             return {"total_issues": 0, "instructions": []}
 
         server.executor.scan = AsyncMock(side_effect=mock_scan)  # type: ignore[method-assign]
@@ -341,7 +349,9 @@ class TestMCPServerCallToolHandler:
             handler = server.server.request_handlers[CallToolRequest]
             req = CallToolRequest(
                 method="tools/call",
-                params=CallToolRequestParams(name="scan", arguments={"domains": ["linting"]}),
+                params=CallToolRequestParams(
+                    name="scan", arguments={"domains": ["linting"]}
+                ),
             )
             result = await handler(req)
             assert isinstance(result.root, CallToolResult)
@@ -352,21 +362,21 @@ class TestMCPServerCallToolHandler:
         finally:
             request_ctx.reset(ctx_token)
 
-    async def test_progress_fallback_to_log_without_token(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_progress_fallback_to_log_without_token(self, tmp_path: Path) -> None:
         """Test progress falls back to log messages when no token."""
         server = _make_server(tmp_path)
 
         async def mock_scan(**kwargs):
             on_progress = kwargs.get("on_progress")
             if on_progress:
-                await on_progress({
-                    "tool": "lucidshark",
-                    "content": "Scanning...",
-                    "progress": 0,
-                    "total": 1,
-                })
+                await on_progress(
+                    {
+                        "tool": "lucidshark",
+                        "content": "Scanning...",
+                        "progress": 0,
+                        "total": 1,
+                    }
+                )
             return {"total_issues": 0, "instructions": []}
 
         server.executor.scan = AsyncMock(side_effect=mock_scan)  # type: ignore[method-assign]
@@ -376,28 +386,30 @@ class TestMCPServerCallToolHandler:
             handler = server.server.request_handlers[CallToolRequest]
             req = CallToolRequest(
                 method="tools/call",
-                params=CallToolRequestParams(name="scan", arguments={"domains": ["linting"]}),
+                params=CallToolRequestParams(
+                    name="scan", arguments={"domains": ["linting"]}
+                ),
             )
             await handler(req)
             mock_rc.session.send_log_message.assert_called()
         finally:
             request_ctx.reset(ctx_token)
 
-    async def test_progress_error_handled_gracefully(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_progress_error_handled_gracefully(self, tmp_path: Path) -> None:
         """Test that errors in progress notification don't crash."""
         server = _make_server(tmp_path)
 
         async def mock_scan(**kwargs):
             on_progress = kwargs.get("on_progress")
             if on_progress:
-                await on_progress({
-                    "tool": "lucidshark",
-                    "content": "Scanning...",
-                    "progress": 0,
-                    "total": 1,
-                })
+                await on_progress(
+                    {
+                        "tool": "lucidshark",
+                        "content": "Scanning...",
+                        "progress": 0,
+                        "total": 1,
+                    }
+                )
             return {"total_issues": 0, "instructions": []}
 
         server.executor.scan = AsyncMock(side_effect=mock_scan)  # type: ignore[method-assign]
@@ -410,7 +422,9 @@ class TestMCPServerCallToolHandler:
             handler = server.server.request_handlers[CallToolRequest]
             req = CallToolRequest(
                 method="tools/call",
-                params=CallToolRequestParams(name="scan", arguments={"domains": ["linting"]}),
+                params=CallToolRequestParams(
+                    name="scan", arguments={"domains": ["linting"]}
+                ),
             )
             # Should not raise despite progress notification failure
             result = await handler(req)

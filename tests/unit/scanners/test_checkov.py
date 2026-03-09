@@ -6,7 +6,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 
-from lucidshark.plugins.scanners.checkov import CheckovScanner, DEFAULT_VERSION, _glob_to_regex
+from lucidshark.plugins.scanners.checkov import (
+    CheckovScanner,
+    DEFAULT_VERSION,
+    _glob_to_regex,
+)
 from lucidshark.plugins.scanners.base import ScannerPlugin
 from lucidshark.core.models import ScanDomain, Severity
 
@@ -86,8 +90,12 @@ class TestCheckovScannerIssueIdGeneration:
         """Test that the same inputs produce the same ID."""
         scanner = CheckovScanner()
 
-        id1 = scanner._generate_issue_id("CKV_AWS_1", "main.tf", "aws_s3_bucket.test", 10)
-        id2 = scanner._generate_issue_id("CKV_AWS_1", "main.tf", "aws_s3_bucket.test", 10)
+        id1 = scanner._generate_issue_id(
+            "CKV_AWS_1", "main.tf", "aws_s3_bucket.test", 10
+        )
+        id2 = scanner._generate_issue_id(
+            "CKV_AWS_1", "main.tf", "aws_s3_bucket.test", 10
+        )
 
         assert id1 == id2
 
@@ -95,10 +103,18 @@ class TestCheckovScannerIssueIdGeneration:
         """Test that different inputs produce different IDs."""
         scanner = CheckovScanner()
 
-        id1 = scanner._generate_issue_id("CKV_AWS_1", "main.tf", "aws_s3_bucket.test", 10)
-        id2 = scanner._generate_issue_id("CKV_AWS_2", "main.tf", "aws_s3_bucket.test", 10)
-        id3 = scanner._generate_issue_id("CKV_AWS_1", "other.tf", "aws_s3_bucket.test", 10)
-        id4 = scanner._generate_issue_id("CKV_AWS_1", "main.tf", "aws_s3_bucket.other", 10)
+        id1 = scanner._generate_issue_id(
+            "CKV_AWS_1", "main.tf", "aws_s3_bucket.test", 10
+        )
+        id2 = scanner._generate_issue_id(
+            "CKV_AWS_2", "main.tf", "aws_s3_bucket.test", 10
+        )
+        id3 = scanner._generate_issue_id(
+            "CKV_AWS_1", "other.tf", "aws_s3_bucket.test", 10
+        )
+        id4 = scanner._generate_issue_id(
+            "CKV_AWS_1", "main.tf", "aws_s3_bucket.other", 10
+        )
 
         assert id1 != id2
         assert id1 != id3
@@ -108,7 +124,9 @@ class TestCheckovScannerIssueIdGeneration:
         """Test that issue ID starts with 'checkov-'."""
         scanner = CheckovScanner()
 
-        issue_id = scanner._generate_issue_id("CKV_AWS_1", "main.tf", "aws_s3_bucket.test", 10)
+        issue_id = scanner._generate_issue_id(
+            "CKV_AWS_1", "main.tf", "aws_s3_bucket.test", 10
+        )
 
         assert issue_id.startswith("checkov-")
 
@@ -117,7 +135,9 @@ class TestCheckovScannerIssueIdGeneration:
         scanner = CheckovScanner()
 
         # Should not raise
-        issue_id = scanner._generate_issue_id("CKV_AWS_1", "main.tf", "aws_s3_bucket.test", None)
+        issue_id = scanner._generate_issue_id(
+            "CKV_AWS_1", "main.tf", "aws_s3_bucket.test", None
+        )
 
         assert issue_id.startswith("checkov-")
 
@@ -129,7 +149,7 @@ class TestCheckovScannerJsonParsing:
         """Test parsing JSON with no failed checks."""
         scanner = CheckovScanner()
 
-        json_output = '''{"check_type": "terraform", "results": {"passed_checks": [], "failed_checks": [], "skipped_checks": []}}'''
+        json_output = """{"check_type": "terraform", "results": {"passed_checks": [], "failed_checks": [], "skipped_checks": []}}"""
         issues = scanner._parse_checkov_json(json_output, Path("/project"))
 
         assert issues == []
@@ -147,7 +167,7 @@ class TestCheckovScannerJsonParsing:
         """Test parsing a basic Checkov failed check."""
         scanner = CheckovScanner()
 
-        json_output = '''{
+        json_output = """{
             "check_type": "terraform",
             "results": {
                 "passed_checks": [],
@@ -164,7 +184,7 @@ class TestCheckovScannerJsonParsing:
                 ],
                 "skipped_checks": []
             }
-        }'''
+        }"""
 
         issues = scanner._parse_checkov_json(json_output, Path("/project"))
 
@@ -182,7 +202,7 @@ class TestCheckovScannerJsonParsing:
         """Test parsing a check with medium severity."""
         scanner = CheckovScanner()
 
-        json_output = '''{
+        json_output = """{
             "check_type": "kubernetes",
             "results": {
                 "passed_checks": [],
@@ -198,7 +218,7 @@ class TestCheckovScannerJsonParsing:
                 ],
                 "skipped_checks": []
             }
-        }'''
+        }"""
 
         issues = scanner._parse_checkov_json(json_output, Path("/project"))
 
@@ -209,7 +229,7 @@ class TestCheckovScannerJsonParsing:
         """Test that checks without severity default to MEDIUM."""
         scanner = CheckovScanner()
 
-        json_output = '''{
+        json_output = """{
             "check_type": "terraform",
             "results": {
                 "passed_checks": [],
@@ -224,7 +244,7 @@ class TestCheckovScannerJsonParsing:
                 ],
                 "skipped_checks": []
             }
-        }'''
+        }"""
 
         issues = scanner._parse_checkov_json(json_output, Path("/project"))
 
@@ -235,7 +255,7 @@ class TestCheckovScannerJsonParsing:
         """Test parsing multiple failed checks."""
         scanner = CheckovScanner()
 
-        json_output = '''{
+        json_output = """{
             "check_type": "terraform",
             "results": {
                 "passed_checks": [],
@@ -257,7 +277,7 @@ class TestCheckovScannerJsonParsing:
                 ],
                 "skipped_checks": []
             }
-        }'''
+        }"""
 
         issues = scanner._parse_checkov_json(json_output, Path("/project"))
 
@@ -267,7 +287,7 @@ class TestCheckovScannerJsonParsing:
         """Test parsing a list of results from multiple frameworks."""
         scanner = CheckovScanner()
 
-        json_output = '''[
+        json_output = """[
             {
                 "check_type": "terraform",
                 "results": {
@@ -300,7 +320,7 @@ class TestCheckovScannerJsonParsing:
                     "skipped_checks": []
                 }
             }
-        ]'''
+        ]"""
 
         issues = scanner._parse_checkov_json(json_output, Path("/project"))
 
@@ -338,7 +358,10 @@ class TestCheckovScannerCheckConversion:
         assert issue.iac_resource == "aws_s3_bucket.example"
         assert issue.line_start == 1
         assert issue.line_end == 10
-        assert issue.recommendation and "https://docs.bridgecrew.io" in issue.recommendation
+        assert (
+            issue.recommendation
+            and "https://docs.bridgecrew.io" in issue.recommendation
+        )
 
     def test_check_to_unified_issue_preserves_metadata(self) -> None:
         """Test that scanner metadata is preserved."""

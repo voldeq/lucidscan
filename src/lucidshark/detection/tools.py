@@ -53,7 +53,6 @@ TOOL_CONFIGS: Dict[str, Dict[str, Any]] = {
         "files": [".isort.cfg"],
         "pyproject_section": "tool.isort",
     },
-
     # Python type checkers
     "mypy": {
         "files": ["mypy.ini", ".mypy.ini"],
@@ -63,7 +62,6 @@ TOOL_CONFIGS: Dict[str, Dict[str, Any]] = {
         "files": ["pyrightconfig.json"],
         "pyproject_section": "tool.pyright",
     },
-
     # Python test tools
     "pytest": {
         "files": ["pytest.ini", "setup.cfg"],
@@ -73,13 +71,19 @@ TOOL_CONFIGS: Dict[str, Dict[str, Any]] = {
         "files": [".coveragerc"],
         "pyproject_section": "tool.coverage",
     },
-
     # JavaScript/TypeScript linters
     "eslint": {
         "files": [
-            ".eslintrc", ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.mjs",
-            ".eslintrc.json", ".eslintrc.yaml", ".eslintrc.yml",
-            "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs",
+            ".eslintrc",
+            ".eslintrc.js",
+            ".eslintrc.cjs",
+            ".eslintrc.mjs",
+            ".eslintrc.json",
+            ".eslintrc.yaml",
+            ".eslintrc.yml",
+            "eslint.config.js",
+            "eslint.config.mjs",
+            "eslint.config.cjs",
         ],
         "package_json_key": "eslintConfig",
     },
@@ -88,18 +92,21 @@ TOOL_CONFIGS: Dict[str, Dict[str, Any]] = {
     },
     "prettier": {
         "files": [
-            ".prettierrc", ".prettierrc.json", ".prettierrc.yaml",
-            ".prettierrc.yml", ".prettierrc.js", ".prettierrc.cjs",
-            "prettier.config.js", "prettier.config.cjs",
+            ".prettierrc",
+            ".prettierrc.json",
+            ".prettierrc.yaml",
+            ".prettierrc.yml",
+            ".prettierrc.js",
+            ".prettierrc.cjs",
+            "prettier.config.js",
+            "prettier.config.cjs",
         ],
         "package_json_key": "prettier",
     },
-
     # TypeScript
     "typescript": {
         "files": ["tsconfig.json"],
     },
-
     # Security scanners
     "trivy": {
         "files": [".trivy.yaml", "trivy.yaml"],
@@ -110,19 +117,31 @@ TOOL_CONFIGS: Dict[str, Dict[str, Any]] = {
     "checkov": {
         "files": [".checkov.yaml", ".checkov.yml"],
     },
-
     # JavaScript/TypeScript test runners
     "jest": {
-        "files": ["jest.config.js", "jest.config.ts", "jest.config.mjs", "jest.config.cjs"],
+        "files": [
+            "jest.config.js",
+            "jest.config.ts",
+            "jest.config.mjs",
+            "jest.config.cjs",
+        ],
         "package_json_key": "jest",
     },
     "karma": {
-        "files": ["karma.conf.js", "karma.conf.ts", "karma.config.js", "karma.config.ts"],
+        "files": [
+            "karma.conf.js",
+            "karma.conf.ts",
+            "karma.config.js",
+            "karma.config.ts",
+        ],
     },
     "playwright": {
-        "files": ["playwright.config.js", "playwright.config.ts", "playwright.config.mjs"],
+        "files": [
+            "playwright.config.js",
+            "playwright.config.ts",
+            "playwright.config.mjs",
+        ],
     },
-
 }
 
 
@@ -152,6 +171,7 @@ def detect_tools(project_root: Path) -> dict[str, ToolConfig]:
     if package_json_path.exists():
         try:
             import json
+
             package_json_content = json.loads(package_json_path.read_text())
         except Exception:
             pass

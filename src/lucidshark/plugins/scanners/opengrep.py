@@ -155,9 +155,7 @@ class OpenGrepScanner(ScannerPlugin):
         binary = self.ensure_binary()
         return self._run_sast_scan(binary, context)
 
-    def _run_sast_scan(
-        self, binary: Path, context: ScanContext
-    ) -> List[UnifiedIssue]:
+    def _run_sast_scan(self, binary: Path, context: ScanContext) -> List[UnifiedIssue]:
         """Run OpenGrep SAST scan.
 
         Args:
@@ -340,7 +338,9 @@ class OpenGrepScanner(ScannerPlugin):
                 # Add context about matched variables
                 metavars = extra["metavars"]
                 if metavars:
-                    description += f"\n\nMatched values: {json.dumps(metavars, indent=2)}"
+                    description += (
+                        f"\n\nMatched values: {json.dumps(metavars, indent=2)}"
+                    )
 
             # Build recommendation
             recommendation = metadata.get("fix", None)
@@ -413,7 +413,7 @@ class OpenGrepScanner(ScannerPlugin):
         # Shorten message if too long
         max_message_len = 80
         if len(message) > max_message_len:
-            message = message[:max_message_len - 3] + "..."
+            message = message[: max_message_len - 3] + "..."
 
         # Use rule ID as prefix for clarity
         return f"{rule_id}: {message}"

@@ -38,7 +38,9 @@ class TestJaCoCoFunctional:
     """Functional integration tests for JaCoCo plugin."""
 
     def test_measure_coverage_java_webapp(
-        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path,
+        self,
+        jacoco_plugin: JaCoCoPlugin,
+        java_webapp_project: Path,
         _run_maven_tests: None,
     ) -> None:
         """Test measuring coverage in the java-webapp project."""
@@ -48,9 +50,7 @@ class TestJaCoCoFunctional:
             enabled_domains=[],
         )
 
-        result = jacoco_plugin.measure_coverage(
-            context, threshold=50.0
-        )
+        result = jacoco_plugin.measure_coverage(context, threshold=50.0)
 
         # Should have some coverage data
         assert result.total_lines > 0
@@ -59,7 +59,9 @@ class TestJaCoCoFunctional:
         assert result.tool == "jacoco"
 
     def test_measure_coverage_returns_coverage_result(
-        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path,
+        self,
+        jacoco_plugin: JaCoCoPlugin,
+        java_webapp_project: Path,
         _run_maven_tests: None,
     ) -> None:
         """Test that measure_coverage returns proper CoverageResult."""
@@ -69,9 +71,7 @@ class TestJaCoCoFunctional:
             enabled_domains=[],
         )
 
-        result = jacoco_plugin.measure_coverage(
-            context, threshold=0.0
-        )
+        result = jacoco_plugin.measure_coverage(context, threshold=0.0)
 
         # Check CoverageResult fields
         assert result.tool == "jacoco"
@@ -83,7 +83,9 @@ class TestJaCoCoFunctional:
         assert isinstance(result.issues, list)
 
     def test_jacoco_reports_generated(
-        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path,
+        self,
+        jacoco_plugin: JaCoCoPlugin,
+        java_webapp_project: Path,
         _run_maven_tests: None,
     ) -> None:
         """Test that JaCoCo generates coverage reports."""
@@ -93,9 +95,7 @@ class TestJaCoCoFunctional:
             enabled_domains=[],
         )
 
-        result = jacoco_plugin.measure_coverage(
-            context, threshold=0.0
-        )
+        result = jacoco_plugin.measure_coverage(context, threshold=0.0)
 
         # After running, JaCoCo report should exist
         jacoco_dir = java_webapp_project / "target" / "site" / "jacoco"
@@ -114,7 +114,9 @@ class TestJaCoCoCoverageThresholds:
     """Tests for JaCoCo coverage threshold checks."""
 
     def test_coverage_below_threshold_generates_issue(
-        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path,
+        self,
+        jacoco_plugin: JaCoCoPlugin,
+        java_webapp_project: Path,
         _run_maven_tests: None,
     ) -> None:
         """Test that coverage below threshold generates an issue."""
@@ -125,9 +127,7 @@ class TestJaCoCoCoverageThresholds:
         )
 
         # Set a very high threshold to ensure failure
-        result = jacoco_plugin.measure_coverage(
-            context, threshold=99.0
-        )
+        result = jacoco_plugin.measure_coverage(context, threshold=99.0)
 
         # Should fail the threshold check
         if result.total_lines > 0:
@@ -142,7 +142,9 @@ class TestJaCoCoCoverageThresholds:
                 assert issue.source_tool == "jacoco"
 
     def test_coverage_above_threshold_passes(
-        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path,
+        self,
+        jacoco_plugin: JaCoCoPlugin,
+        java_webapp_project: Path,
         _run_maven_tests: None,
     ) -> None:
         """Test that coverage above threshold passes."""
@@ -153,9 +155,7 @@ class TestJaCoCoCoverageThresholds:
         )
 
         # Set a very low threshold
-        result = jacoco_plugin.measure_coverage(
-            context, threshold=1.0
-        )
+        result = jacoco_plugin.measure_coverage(context, threshold=1.0)
 
         # Should pass the threshold check if we have any coverage
         if result.total_lines > 0 and result.percentage >= 1.0:
@@ -167,7 +167,9 @@ class TestJaCoCoIssueGeneration:
     """Tests for JaCoCo issue generation."""
 
     def test_issue_has_correct_metadata(
-        self, jacoco_plugin: JaCoCoPlugin, java_webapp_project: Path,
+        self,
+        jacoco_plugin: JaCoCoPlugin,
+        java_webapp_project: Path,
         _run_maven_tests: None,
     ) -> None:
         """Test that coverage issues have correct metadata."""
@@ -178,9 +180,7 @@ class TestJaCoCoIssueGeneration:
         )
 
         # Use high threshold to ensure we get an issue
-        result = jacoco_plugin.measure_coverage(
-            context, threshold=99.0
-        )
+        result = jacoco_plugin.measure_coverage(context, threshold=99.0)
 
         # Should generate an issue due to low coverage
         if len(result.issues) > 0:

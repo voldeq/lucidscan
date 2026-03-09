@@ -88,7 +88,9 @@ class TarpaulinPlugin(CoveragePlugin):
             return CoverageResult(threshold=threshold, tool="tarpaulin")
 
         # Check if tarpaulin report exists
-        report_path = context.project_root / "target" / "tarpaulin" / "tarpaulin-report.json"
+        report_path = (
+            context.project_root / "target" / "tarpaulin" / "tarpaulin-report.json"
+        )
         if not report_path.exists():
             LOGGER.warning("No tarpaulin report found at %s", report_path)
             result = CoverageResult(threshold=threshold, tool="tarpaulin")
@@ -106,9 +108,7 @@ class TarpaulinPlugin(CoveragePlugin):
 
         return result
 
-    def _parse_report(
-        self, project_root: Path, threshold: float
-    ) -> CoverageResult:
+    def _parse_report(self, project_root: Path, threshold: float) -> CoverageResult:
         """Parse tarpaulin JSON report.
 
         Args:
@@ -148,7 +148,11 @@ class TarpaulinPlugin(CoveragePlugin):
 
             traces = file_entry.get("traces", [])
             coverable = len(traces)
-            covered = sum(1 for t in traces if isinstance(t, dict) and t.get("stats", {}).get("Line", 0) > 0)
+            covered = sum(
+                1
+                for t in traces
+                if isinstance(t, dict) and t.get("stats", {}).get("Line", 0) > 0
+            )
 
             # Also check for simpler format
             if "covered" in file_entry and "coverable" in file_entry:
@@ -161,7 +165,10 @@ class TarpaulinPlugin(CoveragePlugin):
             # Find missing lines
             missing_lines = []
             for trace in traces:
-                if isinstance(trace, dict) and trace.get("stats", {}).get("Line", 0) == 0:
+                if (
+                    isinstance(trace, dict)
+                    and trace.get("stats", {}).get("Line", 0) == 0
+                ):
                     line_num = trace.get("line", 0)
                     if line_num:
                         missing_lines.append(line_num)
@@ -196,4 +203,3 @@ class TarpaulinPlugin(CoveragePlugin):
         )
 
         return result
-

@@ -111,7 +111,9 @@ class IstanbulPlugin(CoveragePlugin):
         # Check if .nyc_output directory exists with coverage data
         nyc_output = context.project_root / ".nyc_output"
         if not nyc_output.exists() or not any(nyc_output.iterdir()):
-            LOGGER.warning("No coverage/ or .nyc_output/ directory found with coverage data")
+            LOGGER.warning(
+                "No coverage/ or .nyc_output/ directory found with coverage data"
+            )
             result = CoverageResult(threshold=threshold, tool=self.name)
             result.issues.append(self._create_no_data_issue())
             return result

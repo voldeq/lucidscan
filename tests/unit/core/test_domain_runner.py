@@ -446,8 +446,12 @@ class TestDomainRunnerCommand:
         runner = self._make_runner(tmp_path)
         context = self._make_context(tmp_path)
 
-        with patch("lucidshark.core.domain_runner.subprocess.run") as mock_run, \
-             patch("lucidshark.plugins.test_runners.discover_test_runner_plugins") as mock_discover:
+        with (
+            patch("lucidshark.core.domain_runner.subprocess.run") as mock_run,
+            patch(
+                "lucidshark.plugins.test_runners.discover_test_runner_plugins"
+            ) as mock_discover,
+        ):
             mock_run.return_value = MagicMock(returncode=0, stdout="OK", stderr="")
             runner.run_tests(context, command="npm test")
 
@@ -459,7 +463,9 @@ class TestDomainRunnerCommand:
         runner = self._make_runner(tmp_path)
         context = self._make_context(tmp_path)
 
-        with patch("lucidshark.plugins.test_runners.discover_test_runner_plugins") as mock_discover:
+        with patch(
+            "lucidshark.plugins.test_runners.discover_test_runner_plugins"
+        ) as mock_discover:
             mock_discover.return_value = {}
             runner.run_tests(context, command=None)
 
@@ -475,7 +481,9 @@ class TestDomainRunnerCommand:
             call_order.append(cmd)
             return MagicMock(returncode=0, stdout="", stderr="")
 
-        with patch("lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect):
+        with patch(
+            "lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect
+        ):
             runner.run_tests(
                 context,
                 command="make test",
@@ -489,8 +497,12 @@ class TestDomainRunnerCommand:
         runner = self._make_runner(tmp_path)
         context = self._make_context(tmp_path)
 
-        with patch("lucidshark.plugins.test_runners.discover_test_runner_plugins") as mock_discover, \
-             patch("lucidshark.core.domain_runner.subprocess.run") as mock_run:
+        with (
+            patch(
+                "lucidshark.plugins.test_runners.discover_test_runner_plugins"
+            ) as mock_discover,
+            patch("lucidshark.core.domain_runner.subprocess.run") as mock_run,
+        ):
             mock_discover.return_value = {}
             mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
             runner.run_tests(context, post_command="make clean")
@@ -513,7 +525,9 @@ class TestDomainRunnerCommand:
                 return MagicMock(returncode=0, stdout="OK", stderr="")
             return MagicMock(returncode=1, stdout="", stderr="cleanup error")
 
-        with patch("lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect):
+        with patch(
+            "lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect
+        ):
             issues = runner.run_tests(
                 context,
                 command="make test",
@@ -544,8 +558,12 @@ class TestDomainRunnerCoveragePostCommand:
         runner = self._make_runner(tmp_path)
         context = self._make_context(tmp_path)
 
-        with patch("lucidshark.plugins.coverage.discover_coverage_plugins") as mock_discover, \
-             patch("lucidshark.core.domain_runner.subprocess.run") as mock_run:
+        with (
+            patch(
+                "lucidshark.plugins.coverage.discover_coverage_plugins"
+            ) as mock_discover,
+            patch("lucidshark.core.domain_runner.subprocess.run") as mock_run,
+        ):
             mock_discover.return_value = {}
             mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
             runner.run_coverage(context, post_command="make report")
@@ -559,8 +577,12 @@ class TestDomainRunnerCoveragePostCommand:
         runner = self._make_runner(tmp_path)
         context = self._make_context(tmp_path)
 
-        with patch("lucidshark.plugins.coverage.discover_coverage_plugins") as mock_discover, \
-             patch("lucidshark.core.domain_runner.subprocess.run") as mock_run:
+        with (
+            patch(
+                "lucidshark.plugins.coverage.discover_coverage_plugins"
+            ) as mock_discover,
+            patch("lucidshark.core.domain_runner.subprocess.run") as mock_run,
+        ):
             mock_discover.return_value = {}
             runner.run_coverage(context, post_command=None)
 
@@ -593,11 +615,19 @@ def _completed(
 ) -> subprocess.CompletedProcess[str]:
     """Build a CompletedProcess for testing."""
     return subprocess.CompletedProcess(
-        args="test", returncode=returncode, stdout=stdout, stderr=stderr,
+        args="test",
+        returncode=returncode,
+        stdout=stdout,
+        stderr=stderr,
     )
 
 
-def _minimal_sarif(results: list[dict[str, Any]], *, tool_name: str = "mytool", rules: list[dict[str, Any]] | None = None) -> str:
+def _minimal_sarif(
+    results: list[dict[str, Any]],
+    *,
+    tool_name: str = "mytool",
+    rules: list[dict[str, Any]] | None = None,
+) -> str:
     """Return a minimal SARIF 2.1.0 JSON string."""
     driver: dict[str, Any] = {"name": tool_name}
     if rules is not None:
@@ -621,9 +651,16 @@ class TestParseCommandOutput:
     def test_sarif_output_detected_and_parsed(self, tmp_path: Path) -> None:
         """SARIF output (with $schema + sarif) is routed to SARIF parser."""
         runner = _make_runner(tmp_path)
-        sarif = _minimal_sarif([
-            {"ruleId": "R1", "level": "error", "message": {"text": "bad"}, "locations": []},
-        ])
+        sarif = _minimal_sarif(
+            [
+                {
+                    "ruleId": "R1",
+                    "level": "error",
+                    "message": {"text": "bad"},
+                    "locations": [],
+                },
+            ]
+        )
         result = _completed(returncode=1, stdout=sarif)
 
         issues = runner._parse_command_output(result, ToolDomain.LINTING, "cmd")
@@ -657,7 +694,9 @@ class TestParseCommandOutput:
     def test_plain_text_nonzero_exit(self, tmp_path: Path) -> None:
         """Non-JSON output + non-zero exit → single failure issue."""
         runner = _make_runner(tmp_path)
-        result = _completed(returncode=1, stdout="FAIL: some test", stderr="error detail")
+        result = _completed(
+            returncode=1, stdout="FAIL: some test", stderr="error detail"
+        )
 
         issues = runner._parse_command_output(result, ToolDomain.LINTING, "lint cmd")
 
@@ -718,9 +757,16 @@ class TestParseSarifOutput:
     def test_basic_sarif_result(self, tmp_path: Path) -> None:
         """Minimal SARIF result is parsed with correct fields."""
         runner = _make_runner(tmp_path)
-        sarif = _minimal_sarif([
-            {"ruleId": "no-eval", "level": "error", "message": {"text": "eval is evil"}, "locations": []},
-        ])
+        sarif = _minimal_sarif(
+            [
+                {
+                    "ruleId": "no-eval",
+                    "level": "error",
+                    "message": {"text": "eval is evil"},
+                    "locations": [],
+                },
+            ]
+        )
 
         issues = runner._parse_sarif_output(sarif, ToolDomain.LINTING)
 
@@ -741,7 +787,12 @@ class TestParseSarifOutput:
             ("none", Severity.INFO),
         ]
         results = [
-            {"ruleId": f"R-{lvl}", "level": lvl, "message": {"text": f"msg-{lvl}"}, "locations": []}
+            {
+                "ruleId": f"R-{lvl}",
+                "level": lvl,
+                "message": {"text": f"msg-{lvl}"},
+                "locations": [],
+            }
             for lvl, _ in levels
         ]
         sarif = _minimal_sarif(results)
@@ -755,17 +806,23 @@ class TestParseSarifOutput:
     def test_sarif_with_location(self, tmp_path: Path) -> None:
         """Result with physical location populates file_path and line_start."""
         runner = _make_runner(tmp_path)
-        sarif = _minimal_sarif([{
-            "ruleId": "E501",
-            "level": "warning",
-            "message": {"text": "line too long"},
-            "locations": [{
-                "physicalLocation": {
-                    "artifactLocation": {"uri": "src/main.py"},
-                    "region": {"startLine": 42},
-                },
-            }],
-        }])
+        sarif = _minimal_sarif(
+            [
+                {
+                    "ruleId": "E501",
+                    "level": "warning",
+                    "message": {"text": "line too long"},
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {"uri": "src/main.py"},
+                                "region": {"startLine": 42},
+                            },
+                        }
+                    ],
+                }
+            ]
+        )
 
         issues = runner._parse_sarif_output(sarif, ToolDomain.LINTING)
 
@@ -776,12 +833,16 @@ class TestParseSarifOutput:
     def test_sarif_without_location(self, tmp_path: Path) -> None:
         """Result with no locations array → file_path and line_start are None."""
         runner = _make_runner(tmp_path)
-        sarif = _minimal_sarif([{
-            "ruleId": "G001",
-            "level": "note",
-            "message": {"text": "general issue"},
-            "locations": [],
-        }])
+        sarif = _minimal_sarif(
+            [
+                {
+                    "ruleId": "G001",
+                    "level": "note",
+                    "message": {"text": "general issue"},
+                    "locations": [],
+                }
+            ]
+        )
 
         issues = runner._parse_sarif_output(sarif, ToolDomain.LINTING)
 
@@ -792,13 +853,22 @@ class TestParseSarifOutput:
     def test_sarif_with_rule_definitions(self, tmp_path: Path) -> None:
         """Rules array supplies shortDescription as title."""
         runner = _make_runner(tmp_path)
-        rules = [{
-            "id": "SEC-01",
-            "shortDescription": {"text": "Hardcoded secret"},
-            "fullDescription": {"text": "Do not hardcode secrets in source code."},
-        }]
+        rules = [
+            {
+                "id": "SEC-01",
+                "shortDescription": {"text": "Hardcoded secret"},
+                "fullDescription": {"text": "Do not hardcode secrets in source code."},
+            }
+        ]
         sarif = _minimal_sarif(
-            [{"ruleId": "SEC-01", "level": "error", "message": {"text": "found secret"}, "locations": []}],
+            [
+                {
+                    "ruleId": "SEC-01",
+                    "level": "error",
+                    "message": {"text": "found secret"},
+                    "locations": [],
+                }
+            ],
             rules=rules,
         )
 
@@ -817,11 +887,25 @@ class TestParseSarifOutput:
             "runs": [
                 {
                     "tool": {"driver": {"name": "toolA"}},
-                    "results": [{"ruleId": "A1", "level": "error", "message": {"text": "from A"}, "locations": []}],
+                    "results": [
+                        {
+                            "ruleId": "A1",
+                            "level": "error",
+                            "message": {"text": "from A"},
+                            "locations": [],
+                        }
+                    ],
                 },
                 {
                     "tool": {"driver": {"name": "toolB"}},
-                    "results": [{"ruleId": "B1", "level": "warning", "message": {"text": "from B"}, "locations": []}],
+                    "results": [
+                        {
+                            "ruleId": "B1",
+                            "level": "warning",
+                            "message": {"text": "from B"},
+                            "locations": [],
+                        }
+                    ],
                 },
             ],
         }
@@ -857,9 +941,11 @@ class TestParseJsonOutput:
     def test_json_array_of_issues(self, tmp_path: Path) -> None:
         """JSON array of issue objects parses correctly."""
         runner = _make_runner(tmp_path)
-        data = json.dumps([
-            {"file": "a.py", "line": 1, "message": "bad"},
-        ])
+        data = json.dumps(
+            [
+                {"file": "a.py", "line": 1, "message": "bad"},
+            ]
+        )
 
         issues = runner._parse_json_output(data, ToolDomain.LINTING)
 
@@ -871,7 +957,9 @@ class TestParseJsonOutput:
     def test_json_object_with_issues_key(self, tmp_path: Path) -> None:
         """Object with 'issues' key extracts nested array."""
         runner = _make_runner(tmp_path)
-        data = json.dumps({"issues": [{"message": "unused var", "file": "x.py", "line": 10}]})
+        data = json.dumps(
+            {"issues": [{"message": "unused var", "file": "x.py", "line": 10}]}
+        )
 
         issues = runner._parse_json_output(data, ToolDomain.LINTING)
 
@@ -1005,7 +1093,14 @@ class TestLintingCommand:
         """Linting command returning JSON issues → parsed into UnifiedIssues."""
         runner = _make_runner(tmp_path)
         context = _make_context(tmp_path)
-        data = [{"file": "a.py", "line": 1, "message": "missing docstring", "severity": "warning"}]
+        data = [
+            {
+                "file": "a.py",
+                "line": 1,
+                "message": "missing docstring",
+                "severity": "warning",
+            }
+        ]
 
         with patch("lucidshark.core.domain_runner.subprocess.run") as mock_run:
             mock_run.return_value = _completed(returncode=1, stdout=json.dumps(data))
@@ -1019,9 +1114,16 @@ class TestLintingCommand:
         """Linting command returning SARIF → parsed correctly."""
         runner = _make_runner(tmp_path)
         context = _make_context(tmp_path)
-        sarif = _minimal_sarif([
-            {"ruleId": "E501", "level": "warning", "message": {"text": "line too long"}, "locations": []},
-        ])
+        sarif = _minimal_sarif(
+            [
+                {
+                    "ruleId": "E501",
+                    "level": "warning",
+                    "message": {"text": "line too long"},
+                    "locations": [],
+                },
+            ]
+        )
 
         with patch("lucidshark.core.domain_runner.subprocess.run") as mock_run:
             mock_run.return_value = _completed(returncode=1, stdout=sarif)
@@ -1036,7 +1138,9 @@ class TestLintingCommand:
         context = _make_context(tmp_path)
 
         with patch("lucidshark.core.domain_runner.subprocess.run") as mock_run:
-            mock_run.return_value = _completed(returncode=2, stdout="syntax error", stderr="crash")
+            mock_run.return_value = _completed(
+                returncode=2, stdout="syntax error", stderr="crash"
+            )
             issues = runner.run_linting(context, command="broken-lint")
 
         assert len(issues) == 1
@@ -1059,8 +1163,12 @@ class TestLintingCommand:
         runner = _make_runner(tmp_path)
         context = _make_context(tmp_path)
 
-        with patch("lucidshark.core.domain_runner.subprocess.run") as mock_run, \
-             patch("lucidshark.plugins.linters.discover_linter_plugins") as mock_discover:
+        with (
+            patch("lucidshark.core.domain_runner.subprocess.run") as mock_run,
+            patch(
+                "lucidshark.plugins.linters.discover_linter_plugins"
+            ) as mock_discover,
+        ):
             mock_run.return_value = _completed(returncode=0, stdout="")
             runner.run_linting(context, command="my-lint")
 
@@ -1076,7 +1184,9 @@ class TestLintingCommand:
             call_order.append(cmd)
             return _completed(returncode=0)
 
-        with patch("lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect):
+        with patch(
+            "lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect
+        ):
             runner.run_linting(context, command="lint .", post_command="lint-report")
 
         assert call_order == ["lint .", "lint-report"]
@@ -1090,9 +1200,15 @@ class TestLintingCommand:
         mock_plugin.return_value.supports_fix = False
         mock_plugin.return_value.lint.return_value = []
 
-        with patch("lucidshark.plugins.linters.discover_linter_plugins") as mock_discover, \
-             patch("lucidshark.core.domain_runner.filter_plugins_by_config") as mock_filter, \
-             patch("lucidshark.core.domain_runner.subprocess.run") as mock_run:
+        with (
+            patch(
+                "lucidshark.plugins.linters.discover_linter_plugins"
+            ) as mock_discover,
+            patch(
+                "lucidshark.core.domain_runner.filter_plugins_by_config"
+            ) as mock_filter,
+            patch("lucidshark.core.domain_runner.subprocess.run") as mock_run,
+        ):
             mock_discover.return_value = {"mock_linter": mock_plugin}
             mock_filter.return_value = {"mock_linter": mock_plugin}
             mock_run.return_value = _completed(returncode=0)
@@ -1114,9 +1230,13 @@ class TestLintingCommand:
                 return _completed(returncode=0, stdout="OK")
             return _completed(returncode=1, stderr="cleanup failed")
 
-        with patch("lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect):
+        with patch(
+            "lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect
+        ):
             issues = runner.run_linting(
-                context, command="lint .", post_command="bad-cleanup",
+                context,
+                command="lint .",
+                post_command="bad-cleanup",
             )
 
         # Main command succeeded → no issues despite post_command failure
@@ -1135,7 +1255,14 @@ class TestTypeCheckingCommand:
         """Type checking command returning JSON → parsed."""
         runner = _make_runner(tmp_path)
         context = _make_context(tmp_path)
-        data = [{"file": "mod.py", "line": 10, "message": "Incompatible types", "severity": "error"}]
+        data = [
+            {
+                "file": "mod.py",
+                "line": 10,
+                "message": "Incompatible types",
+                "severity": "error",
+            }
+        ]
 
         with patch("lucidshark.core.domain_runner.subprocess.run") as mock_run:
             mock_run.return_value = _completed(returncode=1, stdout=json.dumps(data))
@@ -1151,7 +1278,9 @@ class TestTypeCheckingCommand:
         context = _make_context(tmp_path)
 
         with patch("lucidshark.core.domain_runner.subprocess.run") as mock_run:
-            mock_run.return_value = _completed(returncode=1, stdout="error: module not found", stderr="")
+            mock_run.return_value = _completed(
+                returncode=1, stdout="error: module not found", stderr=""
+            )
             issues = runner.run_type_checking(context, command="pyright .")
 
         assert len(issues) == 1
@@ -1163,8 +1292,12 @@ class TestTypeCheckingCommand:
         runner = _make_runner(tmp_path)
         context = _make_context(tmp_path)
 
-        with patch("lucidshark.core.domain_runner.subprocess.run") as mock_run, \
-             patch("lucidshark.plugins.type_checkers.discover_type_checker_plugins") as mock_discover:
+        with (
+            patch("lucidshark.core.domain_runner.subprocess.run") as mock_run,
+            patch(
+                "lucidshark.plugins.type_checkers.discover_type_checker_plugins"
+            ) as mock_discover,
+        ):
             mock_run.return_value = _completed(returncode=0)
             runner.run_type_checking(context, command="mypy .")
 
@@ -1180,8 +1313,12 @@ class TestTypeCheckingCommand:
             call_order.append(cmd)
             return _completed(returncode=0)
 
-        with patch("lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect):
-            runner.run_type_checking(context, command="mypy .", post_command="type-report")
+        with patch(
+            "lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect
+        ):
+            runner.run_type_checking(
+                context, command="mypy .", post_command="type-report"
+            )
 
         assert call_order == ["mypy .", "type-report"]
 
@@ -1198,9 +1335,13 @@ class TestTypeCheckingCommand:
                 return _completed(returncode=0)
             return _completed(returncode=1, stderr="report failed")
 
-        with patch("lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect):
+        with patch(
+            "lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect
+        ):
             issues = runner.run_type_checking(
-                context, command="mypy .", post_command="bad-hook",
+                context,
+                command="mypy .",
+                post_command="bad-hook",
             )
 
         assert issues == []
@@ -1247,8 +1388,12 @@ class TestCoverageCommand:
         runner = _make_runner(tmp_path)
         context = _make_context(tmp_path)
 
-        with patch("lucidshark.core.domain_runner.subprocess.run") as mock_run, \
-             patch("lucidshark.plugins.coverage.discover_coverage_plugins") as mock_discover:
+        with (
+            patch("lucidshark.core.domain_runner.subprocess.run") as mock_run,
+            patch(
+                "lucidshark.plugins.coverage.discover_coverage_plugins"
+            ) as mock_discover,
+        ):
             mock_run.return_value = _completed(returncode=0)
             runner.run_coverage(context, command="coverage run")
 
@@ -1264,8 +1409,12 @@ class TestCoverageCommand:
             call_order.append(cmd)
             return _completed(returncode=0)
 
-        with patch("lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect):
-            runner.run_coverage(context, command="coverage run", post_command="coverage html")
+        with patch(
+            "lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect
+        ):
+            runner.run_coverage(
+                context, command="coverage run", post_command="coverage html"
+            )
 
         assert call_order == ["coverage run", "coverage html"]
 
@@ -1288,7 +1437,9 @@ class TestPreCommand:
             call_order.append(cmd)
             return _completed(returncode=0)
 
-        with patch("lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect):
+        with patch(
+            "lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect
+        ):
             runner.run_tests(
                 context,
                 command="make test",
@@ -1308,7 +1459,9 @@ class TestPreCommand:
             call_order.append(cmd)
             return _completed(returncode=0)
 
-        with patch("lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect):
+        with patch(
+            "lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect
+        ):
             runner.run_linting(
                 context,
                 command="lint .",
@@ -1318,7 +1471,9 @@ class TestPreCommand:
 
         assert call_order == ["setup-lint", "lint .", "cleanup-lint"]
 
-    def test_pre_command_runs_before_type_checking_command(self, tmp_path: Path) -> None:
+    def test_pre_command_runs_before_type_checking_command(
+        self, tmp_path: Path
+    ) -> None:
         """pre_command executes before main type checking command."""
         runner = _make_runner(tmp_path)
         context = _make_context(tmp_path)
@@ -1328,7 +1483,9 @@ class TestPreCommand:
             call_order.append(cmd)
             return _completed(returncode=0)
 
-        with patch("lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect):
+        with patch(
+            "lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect
+        ):
             runner.run_type_checking(
                 context,
                 command="mypy .",
@@ -1348,7 +1505,9 @@ class TestPreCommand:
             call_order.append(cmd)
             return _completed(returncode=0)
 
-        with patch("lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect):
+        with patch(
+            "lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect
+        ):
             runner.run_coverage(
                 context,
                 command="coverage run",
@@ -1373,7 +1532,9 @@ class TestPreCommand:
             # main command succeeds
             return _completed(returncode=0, stdout="OK")
 
-        with patch("lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect):
+        with patch(
+            "lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect
+        ):
             issues = runner.run_tests(
                 context,
                 command="make test",
@@ -1395,7 +1556,9 @@ class TestPreCommand:
             call_order.append(cmd)
             return _completed(returncode=0)
 
-        with patch("lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect):
+        with patch(
+            "lucidshark.core.domain_runner.subprocess.run", side_effect=side_effect
+        ):
             runner.run_tests(context, command="make test", pre_command=None)
 
         assert call_order == ["make test"]
@@ -1419,12 +1582,15 @@ class TestCoveragePluginDeduplication:
         mock_vitest = MagicMock()
         fake_plugins = {"istanbul": mock_istanbul, "vitest_coverage": mock_vitest}
 
-        with patch(
-            "lucidshark.plugins.coverage.discover_coverage_plugins",
-            return_value=dict(fake_plugins),
-        ), patch(
-            "lucidshark.core.domain_runner.filter_plugins_by_config",
-            return_value=dict(fake_plugins),
+        with (
+            patch(
+                "lucidshark.plugins.coverage.discover_coverage_plugins",
+                return_value=dict(fake_plugins),
+            ),
+            patch(
+                "lucidshark.core.domain_runner.filter_plugins_by_config",
+                return_value=dict(fake_plugins),
+            ),
         ):
             # Mock the vitest_coverage plugin instance
             vitest_instance = MagicMock()
@@ -1453,12 +1619,15 @@ class TestCoveragePluginDeduplication:
         mock_vitest = MagicMock()
         fake_plugins = {"istanbul": mock_istanbul, "vitest_coverage": mock_vitest}
 
-        with patch(
-            "lucidshark.plugins.coverage.discover_coverage_plugins",
-            return_value=dict(fake_plugins),
-        ), patch(
-            "lucidshark.core.domain_runner.filter_plugins_by_config",
-            return_value=dict(fake_plugins),
+        with (
+            patch(
+                "lucidshark.plugins.coverage.discover_coverage_plugins",
+                return_value=dict(fake_plugins),
+            ),
+            patch(
+                "lucidshark.core.domain_runner.filter_plugins_by_config",
+                return_value=dict(fake_plugins),
+            ),
         ):
             istanbul_instance = MagicMock()
             istanbul_result = MagicMock()
@@ -1484,12 +1653,15 @@ class TestCoveragePluginDeduplication:
         mock_vitest = MagicMock()
         fake_plugins = {"istanbul": mock_istanbul, "vitest_coverage": mock_vitest}
 
-        with patch(
-            "lucidshark.plugins.coverage.discover_coverage_plugins",
-            return_value=dict(fake_plugins),
-        ), patch(
-            "lucidshark.core.domain_runner.filter_plugins_by_config",
-            return_value=dict(fake_plugins),
+        with (
+            patch(
+                "lucidshark.plugins.coverage.discover_coverage_plugins",
+                return_value=dict(fake_plugins),
+            ),
+            patch(
+                "lucidshark.core.domain_runner.filter_plugins_by_config",
+                return_value=dict(fake_plugins),
+            ),
         ):
             istanbul_instance = MagicMock()
             istanbul_result = MagicMock()
@@ -1508,7 +1680,11 @@ class TestCoveragePluginDeduplication:
 
     def test_explicit_config_skips_deduplication(self, tmp_path: Path) -> None:
         """When user explicitly configures both tools, both should run."""
-        from lucidshark.config.models import PipelineConfig, CoveragePipelineConfig, ToolConfig
+        from lucidshark.config.models import (
+            PipelineConfig,
+            CoveragePipelineConfig,
+            ToolConfig,
+        )
 
         config = LucidSharkConfig()
         config.pipeline = PipelineConfig(
@@ -1530,12 +1706,15 @@ class TestCoveragePluginDeduplication:
         # only those tools. We simulate that both are returned.
         fake_plugins = {"istanbul": mock_istanbul, "vitest_coverage": mock_vitest}
 
-        with patch(
-            "lucidshark.plugins.coverage.discover_coverage_plugins",
-            return_value=dict(fake_plugins),
-        ), patch(
-            "lucidshark.core.domain_runner.filter_plugins_by_config",
-            return_value=dict(fake_plugins),
+        with (
+            patch(
+                "lucidshark.plugins.coverage.discover_coverage_plugins",
+                return_value=dict(fake_plugins),
+            ),
+            patch(
+                "lucidshark.core.domain_runner.filter_plugins_by_config",
+                return_value=dict(fake_plugins),
+            ),
         ):
             istanbul_instance = MagicMock()
             istanbul_result = MagicMock()
