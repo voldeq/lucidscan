@@ -31,13 +31,11 @@ jobs:
           python-version: ${{ matrix.python }}
           cache: 'pip'
 
-      - name: Install lucidshark
-        run: pip install -e .
+      - name: Install lucidshark with dev dependencies
+        run: pip install -e ".[dev]"
 
       - name: Run tests
-        run: |
-          pip install pytest pytest-asyncio
-          pytest tests/ -v
+        run: pytest tests/ -v
 
   # Build standalone binaries for all platforms
   build-binaries:

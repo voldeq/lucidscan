@@ -68,9 +68,14 @@ class TestRuffFormatterCheck:
             )
 
             result = make_completed_process(0, "")
-            with patch(
-                "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
-                return_value=result,
+            with (
+                patch.object(
+                    formatter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+                ),
+                patch(
+                    "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
+                    return_value=result,
+                ),
             ):
                 issues = formatter.check(context)
                 assert issues == []
@@ -90,9 +95,14 @@ class TestRuffFormatterCheck:
 
             stdout = "Would reformat: test.py\n"
             result = make_completed_process(1, stdout)
-            with patch(
-                "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
-                return_value=result,
+            with (
+                patch.object(
+                    formatter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+                ),
+                patch(
+                    "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
+                    return_value=result,
+                ),
             ):
                 issues = formatter.check(context)
                 assert len(issues) == 1
@@ -149,9 +159,14 @@ class TestRuffFormatterCheck:
 
             stdout = "Would reformat: a.py\nWould reformat: b.py\n"
             result = make_completed_process(1, stdout)
-            with patch(
-                "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
-                return_value=result,
+            with (
+                patch.object(
+                    formatter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+                ),
+                patch(
+                    "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
+                    return_value=result,
+                ),
             ):
                 issues = formatter.check(context)
                 assert len(issues) == 2
@@ -169,9 +184,14 @@ class TestRuffFormatterCheck:
                 enabled_domains=[ToolDomain.FORMATTING],
             )
 
-            with patch(
-                "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
-                side_effect=subprocess.TimeoutExpired(cmd="ruff", timeout=120),
+            with (
+                patch.object(
+                    formatter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+                ),
+                patch(
+                    "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
+                    side_effect=subprocess.TimeoutExpired(cmd="ruff", timeout=120),
+                ),
             ):
                 issues = formatter.check(context)
                 assert issues == []
@@ -189,9 +209,14 @@ class TestRuffFormatterCheck:
                 enabled_domains=[ToolDomain.FORMATTING],
             )
 
-            with patch(
-                "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
-                side_effect=RuntimeError("unexpected error"),
+            with (
+                patch.object(
+                    formatter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+                ),
+                patch(
+                    "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
+                    side_effect=RuntimeError("unexpected error"),
+                ),
             ):
                 issues = formatter.check(context)
                 assert issues == []
@@ -209,10 +234,15 @@ class TestRuffFormatterCheck:
             )
 
             result = make_completed_process(0, "")
-            with patch(
-                "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
-                return_value=result,
-            ) as mock_run:
+            with (
+                patch.object(
+                    formatter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+                ),
+                patch(
+                    "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
+                    return_value=result,
+                ) as mock_run,
+            ):
                 issues = formatter.check(context)
                 assert issues == []
                 # Verify "." was passed as the path argument
@@ -235,9 +265,14 @@ class TestRuffFormatterCheck:
             )
 
             result = make_completed_process(1, "")
-            with patch(
-                "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
-                return_value=result,
+            with (
+                patch.object(
+                    formatter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+                ),
+                patch(
+                    "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
+                    return_value=result,
+                ),
             ):
                 issues = formatter.check(context)
                 assert issues == []
@@ -257,9 +292,14 @@ class TestRuffFormatterCheck:
 
             stdout = "error: Failed to parse something\nWould reformat: test.py\n"
             result = make_completed_process(1, stdout)
-            with patch(
-                "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
-                return_value=result,
+            with (
+                patch.object(
+                    formatter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+                ),
+                patch(
+                    "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
+                    return_value=result,
+                ),
             ):
                 issues = formatter.check(context)
                 assert len(issues) == 1
@@ -280,9 +320,14 @@ class TestRuffFormatterCheck:
 
             stdout = "bare.py\n"
             result = make_completed_process(1, stdout)
-            with patch(
-                "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
-                return_value=result,
+            with (
+                patch.object(
+                    formatter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+                ),
+                patch(
+                    "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
+                    return_value=result,
+                ),
             ):
                 issues = formatter.check(context)
                 assert len(issues) == 1
@@ -308,9 +353,14 @@ class TestRuffFormatterFix:
             # fix runs ruff format (no pre-check; runner does post-check)
             fix_run_result = make_completed_process(0, "1 file reformatted\n")
 
-            with patch(
-                "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
-                return_value=fix_run_result,
+            with (
+                patch.object(
+                    formatter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+                ),
+                patch(
+                    "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
+                    return_value=fix_run_result,
+                ),
             ):
                 fix_result = formatter.fix(context)
                 assert fix_result.issues_fixed == 1
@@ -362,9 +412,14 @@ class TestRuffFormatterFix:
                 enabled_domains=[ToolDomain.FORMATTING],
             )
 
-            with patch(
-                "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
-                side_effect=RuntimeError("ruff format crashed"),
+            with (
+                patch.object(
+                    formatter, "ensure_binary", return_value=Path("/usr/bin/ruff")
+                ),
+                patch(
+                    "lucidshark.plugins.formatters.ruff_format.run_with_streaming",
+                    side_effect=RuntimeError("ruff format crashed"),
+                ),
             ):
                 fix_result = formatter.fix(context)
                 assert fix_result.issues_fixed == 0
