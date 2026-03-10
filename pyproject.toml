@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lucidshark"
-version = "0.5.52"
+version = "0.5.53"
 description = "LucidShark - The trust layer for AI-assisted development"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -136,7 +136,7 @@ rustfmt = "lucidshark.plugins.formatters.rustfmt:RustfmtFormatter"
 google_java_format = "lucidshark.plugins.formatters.google_java_format:GoogleJavaFormatFormatter"
 
 [tool.setuptools.package-data]
-lucidshark = ["data/*.md"]
+lucidshark = ["data/*.md", "data/*.xml"]
 
 # Pytest configuration
 [tool.pytest.ini_options]

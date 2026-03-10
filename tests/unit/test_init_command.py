@@ -435,11 +435,13 @@ class TestConfigureClaudeSkill:
 class TestFindLucidsharkPath:
     """Tests for _find_lucidshark_path method."""
 
-    def test_finds_in_path(self) -> None:
+    def test_finds_in_path(self, tmp_path: Path) -> None:
         """Test finding lucidshark via shutil.which (in PATH)."""
         cmd = InitCommand(version="1.0.0")
-        with patch("shutil.which", return_value="/usr/local/bin/lucidshark"):
-            path = cmd._find_lucidshark_path()
+        # Mock CWD to avoid local ./lucidshark interference
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch("shutil.which", return_value="/usr/local/bin/lucidshark"):
+                path = cmd._find_lucidshark_path()
         assert path == "/usr/local/bin/lucidshark"
 
     def test_finds_in_venv(self, tmp_path: Path) -> None:
@@ -451,17 +453,21 @@ class TestFindLucidsharkPath:
         lucidshark_exe = venv_bin / "lucidshark"
         lucidshark_exe.touch()
 
-        with patch("shutil.which", return_value=None):
-            with patch("sys.executable", str(venv_bin / "python")):
-                path = cmd._find_lucidshark_path()
+        # Mock CWD to avoid local ./lucidshark interference
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch("shutil.which", return_value=None):
+                with patch("sys.executable", str(venv_bin / "python")):
+                    path = cmd._find_lucidshark_path()
         assert path == str(lucidshark_exe)
 
     def test_returns_none_when_not_found(self, tmp_path: Path) -> None:
         """Test returning None when lucidshark not found."""
         cmd = InitCommand(version="1.0.0")
-        with patch("shutil.which", return_value=None):
-            with patch("sys.executable", str(tmp_path / "nonexistent" / "python")):
-                path = cmd._find_lucidshark_path()
+        # Mock CWD to avoid local ./lucidshark interference
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch("shutil.which", return_value=None):
+                with patch("sys.executable", str(tmp_path / "nonexistent" / "python")):
+                    path = cmd._find_lucidshark_path()
         assert path is None
 
     def test_fallback_uses_bare_command(self, tmp_path: Path, capsys) -> None:

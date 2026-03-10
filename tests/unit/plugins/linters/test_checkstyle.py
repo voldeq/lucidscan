@@ -51,11 +51,12 @@ class TestCheckstyleLinterProperties:
         linter = CheckstyleLinter()
         assert linter.supports_fix is False
 
-    def test_get_version(self) -> None:
+    def test_get_version_returns_unknown_when_not_installed(self) -> None:
         """Test get_version returns unknown when checkstyle not installed."""
         linter = CheckstyleLinter()
-        # Returns "unknown" when checkstyle is not installed in test env
-        assert linter.get_version() == "unknown"
+        # Mock ensure_binary to simulate checkstyle not being installed
+        with patch.object(linter, "ensure_binary", side_effect=FileNotFoundError):
+            assert linter.get_version() == "unknown"
 
     def test_init_with_project_root(self) -> None:
         """Test initialization with project root."""

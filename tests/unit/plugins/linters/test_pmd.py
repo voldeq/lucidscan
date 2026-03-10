@@ -423,11 +423,14 @@ class TestPmdFindRulesetConfig:
             result = linter._find_ruleset_config(Path(tmpdir))
             assert result == str(config_file)
 
-    def test_defaults_to_quickstart(self) -> None:
+    def test_defaults_to_bundled_ruleset(self) -> None:
+        """Default is now bundled comprehensive ruleset, not quickstart."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            linter = PmdLinter()
+            linter = PmdLinter(project_root=Path(tmpdir))
             result = linter._find_ruleset_config(Path(tmpdir))
-            assert result == "rulesets/java/quickstart.xml"
+            # Should use bundled ruleset cached to .lucidshark/config
+            assert result.endswith("pmd-ruleset.xml")
+            assert "lucidshark" in result.lower()
 
     def test_priority_ordering_with_multiple_configs(self) -> None:
         """Verify pmd-ruleset.xml takes priority over pmd.xml."""

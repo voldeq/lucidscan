@@ -8,6 +8,7 @@ https://pmd.github.io/
 from __future__ import annotations
 
 import hashlib
+import importlib.resources  # nosemgrep: python37-compatibility-importlib2 (requires-python>=3.10)
 import json
 import shutil
 import subprocess
@@ -266,8 +267,27 @@ class PmdLinter(LinterPlugin):
             if config_path.exists():
                 return str(config_path)
 
-        # Use PMD built-in quickstart ruleset (118 rules)
-        return "rulesets/java/quickstart.xml"
+        # Use bundled comprehensive ruleset (all categories with noisy rules excluded)
+        # Cache it to .lucidshark/config since PMD needs a real file path
+        cached_ruleset = self._paths.config_dir / "pmd-ruleset.xml"
+        if cached_ruleset.exists():
+            return str(cached_ruleset)
+
+        try:
+            ruleset_resource = importlib.resources.files("lucidshark.data").joinpath(
+                "pmd-ruleset.xml"
+            )
+            ruleset_content = ruleset_resource.read_text(encoding="utf-8")
+
+            # Cache to .lucidshark/config for PMD to access
+            cached_ruleset.parent.mkdir(parents=True, exist_ok=True)
+            cached_ruleset.write_text(ruleset_content, encoding="utf-8")
+            LOGGER.debug(f"Cached PMD ruleset to {cached_ruleset}")
+            return str(cached_ruleset)
+        except (ModuleNotFoundError, FileNotFoundError, TypeError) as e:
+            # Fallback to PMD built-in quickstart if bundled ruleset unavailable
+            LOGGER.debug(f"Bundled PMD ruleset not found ({e}), using quickstart")
+            return "rulesets/java/quickstart.xml"
 
     def _find_java_files(self, context: ScanContext) -> List[str]:
         """Find Java source files to check.

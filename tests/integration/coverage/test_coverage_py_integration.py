@@ -13,10 +13,15 @@ from lucidshark.plugins.coverage.coverage_py import CoveragePyPlugin
 from tests.integration.conftest import coverage_py_available, pytest_runner_available
 
 
-def _run_coverage_pytest(project_root: Path) -> None:
-    """Run pytest with coverage to generate .coverage data file."""
+def _run_coverage_pytest(project_root: Path, coverage_binary: Path) -> None:
+    """Run pytest with coverage to generate .coverage data file.
+
+    Args:
+        project_root: Path to the project root.
+        coverage_binary: Path to the coverage binary.
+    """
     subprocess.run(
-        ["coverage", "run", "-m", "pytest", str(project_root), "-q"],
+        [str(coverage_binary), "run", "-m", "pytest", str(project_root), "-q"],
         cwd=project_root,
         capture_output=True,
     )
@@ -79,7 +84,8 @@ def test_subtract():
 """)
 
             # Generate .coverage data file
-            _run_coverage_pytest(project_root)
+            coverage_binary = coverage_py_plugin.ensure_binary()
+            _run_coverage_pytest(project_root, coverage_binary)
 
             context = ScanContext(
                 project_root=project_root,
@@ -134,7 +140,8 @@ def test_add():
 """)
 
             # Generate .coverage data file
-            _run_coverage_pytest(project_root)
+            coverage_binary = coverage_py_plugin.ensure_binary()
+            _run_coverage_pytest(project_root, coverage_binary)
 
             context = ScanContext(
                 project_root=project_root,
@@ -183,7 +190,8 @@ def test_nothing():
 """)
 
             # Generate .coverage data file
-            _run_coverage_pytest(project_root)
+            coverage_binary = coverage_py_plugin.ensure_binary()
+            _run_coverage_pytest(project_root, coverage_binary)
 
             context = ScanContext(
                 project_root=project_root,

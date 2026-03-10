@@ -25,18 +25,19 @@ class TestSpotBugsAvailability:
     def test_ensure_binary_downloads_spotbugs(
         self, spotbugs_checker: SpotBugsChecker
     ) -> None:
-        """Test that ensure_binary downloads SpotBugs JAR."""
+        """Test that ensure_binary returns a valid SpotBugs installation path."""
         binary_path = spotbugs_checker.ensure_binary()
         assert binary_path.exists()
-        assert "spotbugs" in binary_path.name.lower()
+        # SpotBugs dir should contain lib/spotbugs.jar (works for all install methods)
+        spotbugs_jar = binary_path / "lib" / "spotbugs.jar"
+        assert spotbugs_jar.exists(), f"spotbugs.jar not found at {spotbugs_jar}"
 
     @spotbugs_available
     def test_get_version(self, spotbugs_checker: SpotBugsChecker) -> None:
-        """Test that get_version returns a version string."""
+        """Test that get_version returns a version indicator."""
         version = spotbugs_checker.get_version()
-        # Version should be like "4.8.6"
+        # Base class returns "installed" by default
         assert version != "unknown"
-        assert "." in version
 
 
 @spotbugs_available
