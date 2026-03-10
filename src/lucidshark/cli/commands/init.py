@@ -147,6 +147,8 @@ LUCIDSHARK_CLAUDE_MD_SECTION = """\
 
 ### How to Scan
 
+**CRITICAL**: By default, LucidShark only scans **git-changed files**. If no code files have changed, no issues will be reported. Use `all_files=true` (MCP) or `--all-files` (CLI) to scan the entire project.
+
 **MCP tools (preferred):**
 ```
 mcp__lucidshark__scan(fix=true)                          # after edits (auto-fix + changed files)
@@ -154,9 +156,18 @@ mcp__lucidshark__scan(domains=["linting","type_checking"]) # targeted scan
 mcp__lucidshark__scan(domains=["testing"])                # run tests
 mcp__lucidshark__scan(domains=["all"])                    # full scan (before commits)
 mcp__lucidshark__scan(files=["path/to/file.py"])          # specific files
+mcp__lucidshark__scan(all_files=true)                     # scan ENTIRE project (not just changed)
+mcp__lucidshark__scan(all_files=true, domains=["all"])    # full project scan, all domains
 ```
 
-**CLI alternative:** `lucidshark scan --fix --format ai` (use `--linting --type-checking`, `--testing`, `--all`, `--files` flags)
+**CLI alternative:** `lucidshark scan --fix --format ai` (use `--linting --type-checking`, `--testing`, `--all`, `--files`, `--all-files` flags)
+
+### Important Flags
+
+| Flag | Purpose |
+|------|---------|
+| `--all` | Enable all scan **domains** (linting, sca, sast, etc.) |
+| `--all-files` | Scan **entire project**, not just git-changed files |
 
 ### Domain Selection
 
