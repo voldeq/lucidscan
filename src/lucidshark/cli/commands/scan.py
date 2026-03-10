@@ -123,6 +123,15 @@ class ScanCommand(Command):
                 if self._check_domain_thresholds(result, config, args):
                     return EXIT_ISSUES_FOUND
 
+            # Check for mandatory tool failures (always fail regardless of fail_on config)
+            if result.tool_skips:
+                mandatory_failures = [s for s in result.tool_skips if s.mandatory]
+                if mandatory_failures:
+                    LOGGER.debug(
+                        f"Failing due to {len(mandatory_failures)} mandatory tool failure(s)"
+                    )
+                    return EXIT_ISSUES_FOUND
+
             return EXIT_SUCCESS
 
         except FileNotFoundError as e:

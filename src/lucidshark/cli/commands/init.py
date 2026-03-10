@@ -112,9 +112,31 @@ lucidshark scan --all --format ai
 
 # Scan specific files
 lucidshark scan --files path/to/file.py --format ai
+
+# PR/CI: filter to files changed since main, with strict thresholds
+lucidshark scan --all --base-branch origin/main \\
+  --coverage-threshold-scope both \\
+  --duplication-threshold-scope both
 ```
 
 **Default:** Scans only uncommitted changes. Use `--all-files` for full project.
+
+## Threshold Scope for CI/PR Workflows
+
+When using `--base-branch` for incremental PR checks:
+
+| Scope | Behavior |
+|-------|----------|
+| `changed` (default) | Threshold applies to changed files only. **Warning:** Can let project-wide metrics creep up over time. |
+| `project` | Threshold applies to full project. |
+| `both` | Threshold applies to both. Fail if **either** exceeds threshold. **Recommended for strict quality gates.** |
+
+```bash
+# Prevent duplication/coverage from creeping up over time
+lucidshark scan --all --base-branch origin/main \\
+  --duplication-threshold-scope both \\
+  --coverage-threshold-scope both
+```
 
 ## Workflow
 

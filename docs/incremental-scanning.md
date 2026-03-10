@@ -161,6 +161,32 @@ Result: FAIL (12% > 10% on changed files)
 
 Like coverage, duplication filtering applies to both display AND the metrics used for threshold calculation (when scope=changed).
 
+> **⚠️ WARNING: Duplication Creep with `scope=changed`**
+>
+> The default `scope=changed` can allow **project-wide duplication to grow over time**. Here's why:
+>
+> The filtered duplication percentage is calculated as:
+> ```
+> (duplicate_lines_involving_changed_files / total_project_lines) * 100
+> ```
+>
+> **Example of creep:**
+> - Project has 100,000 total lines
+> - Threshold is 5%
+> - Each PR adds ~50 duplicate lines involving changed files
+> - Filtered percentage per PR: `50 / 100,000 = 0.05%` → PASS
+> - After 200 PRs: project has 10,000 duplicate lines (10%) but each PR passed!
+>
+> **Recommendation for strict quality gates:**
+> ```yaml
+> pipeline:
+>   duplication:
+>     threshold: 5.0
+>     threshold_scope: both  # or "project"
+> ```
+>
+> With `scope=both`, the scan fails if **either** the filtered percentage OR the full project percentage exceeds the threshold. This prevents duplication from creeping up over time.
+
 ## What Gets Included
 
 ### Default Mode (No `--base-branch`)
@@ -477,6 +503,8 @@ For filtered duplication results:
 - Percentage reflects "what portion of the project these duplicates represent"
 
 This gives context: "50 duplicate lines involving your changes represent 0.5% of the project"
+
+> **Note:** Because the filtered percentage is relative to the full project's line count, each PR's contribution appears small. Over many PRs, this can lead to **duplication creep** where the overall project exceeds the threshold while each individual PR passes. Use `threshold_scope: both` or `threshold_scope: project` to prevent this. See the [Duplication section](#duplication) for details.
 
 ### Testing Always Runs Full Suite
 

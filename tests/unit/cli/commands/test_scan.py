@@ -32,7 +32,9 @@ from lucidshark.core.models import (
     ScanDomain,
     ScanResult,
     Severity,
+    SkipReason,
     ToolDomain,
+    ToolSkipInfo,
     UnifiedIssue,
 )
 
@@ -1097,3 +1099,116 @@ class TestIgnoreIssuesIntegration:
             duplication_threshold_scope=None,
         )
         assert cmd._check_domain_thresholds(result, config, args) is True
+
+
+class TestMandatoryToolFailures:
+    """Tests for mandatory tool failure handling."""
+
+    @patch.object(ScanCommand, "_run_scan")
+    @patch("lucidshark.cli.commands.scan.get_reporter_plugin")
+    def test_mandatory_tool_failure_causes_exit_issues_found(
+        self, mock_get_reporter, mock_run_scan, tmp_path: Path
+    ) -> None:
+        """Mandatory tool failures should cause EXIT_ISSUES_FOUND even without fail_on config."""
+        result = ScanResult(issues=[])
+        result.tool_skips = [
+            ToolSkipInfo(
+                tool_name="jacoco",
+                domain=ToolDomain.COVERAGE,
+                reason=SkipReason.MISSING_PREREQUISITE,
+                message="No JaCoCo report found",
+                suggestion="Run tests first",
+                mandatory=True,
+            )
+        ]
+        mock_run_scan.return_value = result
+        mock_get_reporter.return_value = MagicMock()
+
+        cmd = ScanCommand(version="1.0.0")
+        # No fail_on config - would normally return EXIT_SUCCESS
+        config = _make_config(fail_on=None)
+        args = _make_args(tmp_path)
+
+        exit_code = cmd.execute(args, config)
+
+        assert exit_code == EXIT_ISSUES_FOUND
+
+    @patch.object(ScanCommand, "_run_scan")
+    @patch("lucidshark.cli.commands.scan.get_reporter_plugin")
+    def test_non_mandatory_tool_skip_allows_success(
+        self, mock_get_reporter, mock_run_scan, tmp_path: Path
+    ) -> None:
+        """Non-mandatory tool skips should not cause failure."""
+        result = ScanResult(issues=[])
+        result.tool_skips = [
+            ToolSkipInfo(
+                tool_name="jacoco",
+                domain=ToolDomain.COVERAGE,
+                reason=SkipReason.NO_APPLICABLE_FILES,
+                message="No Java files found",
+                mandatory=False,
+            )
+        ]
+        mock_run_scan.return_value = result
+        mock_get_reporter.return_value = MagicMock()
+
+        cmd = ScanCommand(version="1.0.0")
+        config = _make_config(fail_on=None)
+        args = _make_args(tmp_path)
+
+        exit_code = cmd.execute(args, config)
+
+        assert exit_code == EXIT_SUCCESS
+
+    @patch.object(ScanCommand, "_run_scan")
+    @patch("lucidshark.cli.commands.scan.get_reporter_plugin")
+    def test_multiple_mandatory_failures_still_causes_single_exit(
+        self, mock_get_reporter, mock_run_scan, tmp_path: Path
+    ) -> None:
+        """Multiple mandatory failures should still cause EXIT_ISSUES_FOUND."""
+        result = ScanResult(issues=[])
+        result.tool_skips = [
+            ToolSkipInfo(
+                tool_name="jacoco",
+                domain=ToolDomain.COVERAGE,
+                reason=SkipReason.MISSING_PREREQUISITE,
+                message="No JaCoCo report found",
+                mandatory=True,
+            ),
+            ToolSkipInfo(
+                tool_name="mypy",
+                domain=ToolDomain.TYPE_CHECKING,
+                reason=SkipReason.TOOL_NOT_INSTALLED,
+                message="mypy not installed",
+                mandatory=True,
+            ),
+        ]
+        mock_run_scan.return_value = result
+        mock_get_reporter.return_value = MagicMock()
+
+        cmd = ScanCommand(version="1.0.0")
+        config = _make_config(fail_on=None)
+        args = _make_args(tmp_path)
+
+        exit_code = cmd.execute(args, config)
+
+        assert exit_code == EXIT_ISSUES_FOUND
+
+    @patch.object(ScanCommand, "_run_scan")
+    @patch("lucidshark.cli.commands.scan.get_reporter_plugin")
+    def test_no_tool_skips_allows_success(
+        self, mock_get_reporter, mock_run_scan, tmp_path: Path
+    ) -> None:
+        """No tool skips should allow EXIT_SUCCESS."""
+        result = ScanResult(issues=[])
+        result.tool_skips = []
+        mock_run_scan.return_value = result
+        mock_get_reporter.return_value = MagicMock()
+
+        cmd = ScanCommand(version="1.0.0")
+        config = _make_config(fail_on=None)
+        args = _make_args(tmp_path)
+
+        exit_code = cmd.execute(args, config)
+
+        assert exit_code == EXIT_SUCCESS

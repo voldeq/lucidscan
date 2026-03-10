@@ -311,6 +311,8 @@ Failures are logged as warnings and do not fail the pipeline.
   duplication:
     enabled: true
     threshold: 10.0  # Max allowed duplication percentage
+    threshold_scope: both  # "changed" (default), "project", or "both"
+                           # Use "both" to prevent duplication creep over time
     min_lines: 4     # Minimum lines for a duplicate block
     exclude:         # Patterns to exclude from duplication scan
       - "htmlcov/**"
@@ -577,6 +579,9 @@ pipeline:
     enabled: boolean
     exclude: [string]  # Patterns to exclude from duplication scan
     threshold: number  # Default: 10.0 (max allowed duplication %)
+    threshold_scope: string  # Default: "changed". Options: "changed", "project", "both"
+                             # WARNING: "changed" can let project-wide duplication creep up over time.
+                             # Use "both" or "project" for strict quality gates.
     min_lines: number  # Default: 4 (minimum lines for duplicate block)
     min_chars: number  # Default: 3 (minimum characters per line)
     tools:
