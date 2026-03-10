@@ -9,7 +9,7 @@ SpotBugs is a managed tool - LucidShark auto-downloads it on first use.
 from __future__ import annotations
 
 import hashlib
-import importlib.resources
+import importlib.resources  # nosemgrep: python37-compatibility-importlib2 (requires-python>=3.10)
 import os
 import shutil
 import subprocess
