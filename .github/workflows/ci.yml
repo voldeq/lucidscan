@@ -118,17 +118,16 @@ jobs:
           retention-days: 1
 
   # Update QUALITY.md on main branch (reuses scan results from lucidshark job)
-  # Requires QUALITY_PUSH_TOKEN secret (PAT with repo scope from admin) to bypass branch protection
   update-quality:
     needs: lucidshark
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && vars.ENABLE_QUALITY_OVERVIEW == 'true'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          token: ${{ secrets.QUALITY_PUSH_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v6
