@@ -1,6 +1,6 @@
 # Repository Quality Overview
 
-> **Branch:** main | **Updated:** 2026-03-14 | **Commit:** `ecbf1fa`
+> **Branch:** main | **Updated:** 2026-03-14 | **Commit:** `5644795`
 
 ## Health Score: 9.1 / 10  █████████░
 
@@ -13,7 +13,7 @@
 | SCA | ✓ Pass | 0 | → |
 | SAST | ✓ Pass | 0 | → |
 | Coverage | ✓ Pass | 0 | → |
-| Duplication | ✓ Pass | 87 | ↓ +6.0 |
+| Duplication | ✓ Pass | 87 | → |
 
 ## Issues by Severity
 
@@ -41,13 +41,13 @@
 
 ## Test Coverage
 
-**84.1%** ████████░░ ↑ +0.1%
+**84.1%** ████████░░
 
 ## Score Trend
 
 ```
 Score: 9.1 → 9.1 → 9.1 → 9.1 → 9.1
-       03-13   03-13   03-13   03-14   03-14
+       03-13   03-13   03-14   03-14   03-14
 ```
 
 ---
