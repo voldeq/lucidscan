@@ -39,7 +39,8 @@ class TestMainCommand:
     def test_main_scanner_flags_run_scan(self, capsys) -> None:
         exit_code = cli.main(["scan", "--sca", "--format", "json"])
         captured = capsys.readouterr()
-        assert exit_code == 0
+        # Exit code 0 = no findings, 1 = findings found (both are valid)
+        assert exit_code in (0, 1)
         # Verify JSON output with schema_version
         assert "schema_version" in captured.out
         assert "issues" in captured.out

@@ -58,6 +58,12 @@ fail_on:
   coverage: below_threshold
   duplication: above_threshold
 
+# Acknowledged issues - transitive dependency vulnerabilities awaiting upstream fixes
+ignore_issues:
+  - rule_id: "CVE-2026-32597"
+    reason: "PyJWT vulnerability via mcp dependency - no fix available yet (PyJWT 2.12.1 is latest)"
+    expires: "2026-06-14"
+
 # Global excludes - comprehensive list for Python projects
 exclude:
   # Git and IDE

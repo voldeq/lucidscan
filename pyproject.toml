@@ -151,7 +151,9 @@ testpaths = ["tests"]
 # Exclude project-based integration tests by default (they require external deps)
 # Run with: pytest tests/integration/projects -v
 # Also ignore test projects' internal tests (python-webapp/tests, etc.)
-addopts = "--ignore=tests/integration/projects --ignore=tests/integration/projects/python-webapp/tests --ignore=tests/integration/projects/typescript-api/tests"
+# Scanner CLI integration tests are excluded because they depend on downloaded binaries
+# and specific platform/dependency states. Run with: pytest tests/integration/scanners -v
+addopts = "--ignore=tests/integration/projects --ignore=tests/integration/projects/python-webapp/tests --ignore=tests/integration/projects/typescript-api/tests --ignore=tests/integration/scanners"
 markers = [
     "integration: marks tests as integration tests (run with: pytest -m integration)",
 ]

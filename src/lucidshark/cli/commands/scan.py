@@ -755,7 +755,9 @@ class ScanCommand(Command):
                     "executed_domains": result.metadata.executed_domains
                     if result.metadata
                     else [],
-                    "all_files": result.metadata.all_files if result.metadata else False,
+                    "all_files": result.metadata.all_files
+                    if result.metadata
+                    else False,
                 }
                 if result.metadata
                 else None,

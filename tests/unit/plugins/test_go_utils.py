@@ -309,8 +309,12 @@ class TestGenerateIssueId:
 
     def test_deterministic(self) -> None:
         """Same inputs produce the same ID across calls."""
-        a = generate_issue_id("golangci-lint", "SA1000", "main.go", 10, 5, "invalid regexp")
-        b = generate_issue_id("golangci-lint", "SA1000", "main.go", 10, 5, "invalid regexp")
+        a = generate_issue_id(
+            "golangci-lint", "SA1000", "main.go", 10, 5, "invalid regexp"
+        )
+        b = generate_issue_id(
+            "golangci-lint", "SA1000", "main.go", 10, 5, "invalid regexp"
+        )
         assert a == b
 
     def test_format(self) -> None:

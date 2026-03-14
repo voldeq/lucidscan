@@ -1440,7 +1440,9 @@ class TestCoverageCommand:
             mock_run.return_value = _completed(
                 returncode=1, stdout="", stderr="Coverage below threshold"
             )
-            issues = runner.run_coverage(context, command="coverage run", threshold=80.0)
+            issues = runner.run_coverage(
+                context, command="coverage run", threshold=80.0
+            )
 
         # coverage_result should be set even on failure
         assert context.coverage_result is not None
