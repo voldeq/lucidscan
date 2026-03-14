@@ -72,10 +72,10 @@ class ScanCommand(Command):
         coverage_flag = getattr(args, "coverage", False)
         testing_flag = getattr(args, "testing", False)
         coverage_configured = (
-            config.pipeline.coverage is not None and config.pipeline.coverage.enabled
+            config.pipeline.coverage is None or config.pipeline.coverage.enabled
         )
         testing_configured = (
-            config.pipeline.testing is not None and config.pipeline.testing.enabled
+            config.pipeline.testing is None or config.pipeline.testing.enabled
         )
         coverage_enabled = coverage_flag or (all_flag and coverage_configured)
         testing_enabled = testing_flag or (all_flag and testing_configured)
@@ -167,6 +167,10 @@ class ScanCommand(Command):
             ScanResult containing all issues found.
         """
         project_root = Path(args.path).resolve()
+
+        from datetime import datetime, timezone
+
+        scan_start_time = datetime.now(timezone.utc)
 
         if not project_root.exists():
             raise FileNotFoundError(f"Path does not exist: {project_root}")
@@ -276,8 +280,7 @@ class ScanCommand(Command):
         # Run formatting if requested or if --all and formatting is configured
         formatting_flag = getattr(args, "formatting", False)
         formatting_configured = (
-            config.pipeline.formatting is not None
-            and config.pipeline.formatting.enabled
+            config.pipeline.formatting is None or config.pipeline.formatting.enabled
         )
         formatting_enabled = formatting_flag or (all_flag and formatting_configured)
 
@@ -306,14 +309,14 @@ class ScanCommand(Command):
         # Run tests if requested or if --all and testing is configured
         testing_flag = getattr(args, "testing", False)
         testing_configured = (
-            config.pipeline.testing is not None and config.pipeline.testing.enabled
+            config.pipeline.testing is None or config.pipeline.testing.enabled
         )
         testing_enabled = testing_flag or (all_flag and testing_configured)
 
         # Run coverage if requested or if --all and coverage is configured
         coverage_flag = getattr(args, "coverage", False)
         coverage_configured = (
-            config.pipeline.coverage is not None and config.pipeline.coverage.enabled
+            config.pipeline.coverage is None or config.pipeline.coverage.enabled
         )
         coverage_enabled = coverage_flag or (all_flag and coverage_configured)
 
@@ -452,8 +455,7 @@ class ScanCommand(Command):
         # Run duplication detection if requested or if --all and duplication is configured
         duplication_flag = getattr(args, "duplication", False)
         duplication_configured = (
-            config.pipeline.duplication is not None
-            and config.pipeline.duplication.enabled
+            config.pipeline.duplication is None or config.pipeline.duplication.enabled
         )
         duplication_enabled = duplication_flag or (all_flag and duplication_configured)
 
@@ -649,27 +651,39 @@ class ScanCommand(Command):
         for domain in enabled_domains:
             executed_domains.append(domain.value)
 
+        # Fallback: when no config file is present, get_all_configured_domains()
+        # returns [] because all pipeline sections are None. Use the actually
+        # executed domains so metadata.enabled_domains is populated correctly.
+        if not all_configured_domains:
+            all_configured_domains = list(executed_domains)
+
+        scan_end_time = datetime.now(timezone.utc)
+        duration_ms = int((scan_end_time - scan_start_time).total_seconds() * 1000)
+
         # Preserve metadata from pipeline execution
         if pipeline_result and pipeline_result.metadata:
             result.metadata = pipeline_result.metadata
+            result.metadata.scan_started_at = scan_start_time.isoformat()
+            result.metadata.scan_finished_at = scan_end_time.isoformat()
+            result.metadata.duration_ms = duration_ms
             result.metadata.enabled_domains = all_configured_domains
             result.metadata.executed_domains = executed_domains
             result.metadata.all_files = context.all_files
         else:
-            # Create minimal metadata if pipeline wasn't run
-            from datetime import datetime
-
-            now = datetime.now()
             result.metadata = ScanMetadata(
                 lucidshark_version=self._version,
-                scan_started_at=now.isoformat(),
-                scan_finished_at=now.isoformat(),
-                duration_ms=0,
+                scan_started_at=scan_start_time.isoformat(),
+                scan_finished_at=scan_end_time.isoformat(),
+                duration_ms=duration_ms,
                 project_root=str(project_root),
                 enabled_domains=all_configured_domains,
                 executed_domains=executed_domains,
                 all_files=context.all_files,
             )
+
+        # Add non-security tool info from domain runners
+        if context.tools_executed:
+            result.metadata.scanners_used.extend(context.tools_executed)
 
         # Store full (unfiltered) results for scope-based threshold checking
         if base_branch and full_issues is not all_issues:
@@ -1038,8 +1052,7 @@ class ScanCommand(Command):
         # Formatting
         formatting_flag = getattr(args, "formatting", False)
         formatting_configured = (
-            config.pipeline.formatting is not None
-            and config.pipeline.formatting.enabled
+            config.pipeline.formatting is None or config.pipeline.formatting.enabled
         )
         if formatting_flag or (all_flag and formatting_configured):
             domains_to_run.append("formatting")
@@ -1053,7 +1066,7 @@ class ScanCommand(Command):
         # Testing
         testing_flag = getattr(args, "testing", False)
         testing_configured = (
-            config.pipeline.testing is not None and config.pipeline.testing.enabled
+            config.pipeline.testing is None or config.pipeline.testing.enabled
         )
         if testing_flag or (all_flag and testing_configured):
             domains_to_run.append("testing")
@@ -1067,7 +1080,7 @@ class ScanCommand(Command):
         # Coverage
         coverage_flag = getattr(args, "coverage", False)
         coverage_configured = (
-            config.pipeline.coverage is not None and config.pipeline.coverage.enabled
+            config.pipeline.coverage is None or config.pipeline.coverage.enabled
         )
         if coverage_flag or (all_flag and coverage_configured):
             domains_to_run.append("coverage")
@@ -1080,8 +1093,7 @@ class ScanCommand(Command):
         # Duplication
         duplication_flag = getattr(args, "duplication", False)
         duplication_configured = (
-            config.pipeline.duplication is not None
-            and config.pipeline.duplication.enabled
+            config.pipeline.duplication is None or config.pipeline.duplication.enabled
         )
         if duplication_flag or (all_flag and duplication_configured):
             domains_to_run.append("duplication")
@@ -1182,7 +1194,7 @@ class ScanCommand(Command):
         # Testing
         testing_flag = getattr(args, "testing", False)
         testing_configured = (
-            config.pipeline.testing is not None and config.pipeline.testing.enabled
+            config.pipeline.testing is None or config.pipeline.testing.enabled
         )
         if testing_flag or (all_flag and testing_configured):
             enabled_domains.append("testing")
@@ -1190,7 +1202,7 @@ class ScanCommand(Command):
         # Coverage
         coverage_flag = getattr(args, "coverage", False)
         coverage_configured = (
-            config.pipeline.coverage is not None and config.pipeline.coverage.enabled
+            config.pipeline.coverage is None or config.pipeline.coverage.enabled
         )
         if coverage_flag or (all_flag and coverage_configured):
             enabled_domains.append("coverage")
@@ -1198,8 +1210,7 @@ class ScanCommand(Command):
         # Duplication
         duplication_flag = getattr(args, "duplication", False)
         duplication_configured = (
-            config.pipeline.duplication is not None
-            and config.pipeline.duplication.enabled
+            config.pipeline.duplication is None or config.pipeline.duplication.enabled
         )
         if duplication_flag or (all_flag and duplication_configured):
             enabled_domains.append("duplication")
@@ -1207,8 +1218,7 @@ class ScanCommand(Command):
         # Formatting
         formatting_flag = getattr(args, "formatting", False)
         formatting_configured = (
-            config.pipeline.formatting is not None
-            and config.pipeline.formatting.enabled
+            config.pipeline.formatting is None or config.pipeline.formatting.enabled
         )
         if formatting_flag or (all_flag and formatting_configured):
             enabled_domains.append("formatting")

@@ -109,6 +109,9 @@ class RuffFormatter(FormatterPlugin):
             line = line.strip()
             if not line or line.startswith("error"):
                 continue
+            # Skip summary lines (e.g., "2 files would be reformatted, 1 file already formatted")
+            if "would be reformatted" in line or "already formatted" in line:
+                continue
             # Line format: "Would reformat: path/to/file.py" or just the file path
             file_path_str = line.replace("Would reformat: ", "").strip()
             if not file_path_str:

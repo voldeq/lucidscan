@@ -575,22 +575,45 @@ class MCPToolExecutor:
             return {"error": "Issue has no file path for fixing"}
 
         try:
-            # Create stream handler for progress output (writes to stderr)
-            stream_handler = CLIStreamHandler(
-                output=sys.stderr,
-                show_output=True,
-                use_rich=False,
+            # Use targeted fix: run ruff with --select for only the specific rule
+            from lucidshark.plugins.utils import ensure_python_binary
+
+            try:
+                binary = ensure_python_binary(
+                    self.project_root,
+                    "ruff",
+                    "ruff is not installed. Install with: pip install ruff",
+                )
+            except FileNotFoundError:
+                return {"error": "ruff not found - required for auto-fix"}
+
+            file_path = issue.file_path
+            if not Path(file_path).is_absolute():
+                file_path = self.project_root / file_path
+
+            # Run ruff with --select to only fix the specific rule
+            import subprocess
+
+            cmd = [
+                str(binary),
+                "check",
+                "--select",
+                issue.rule_id,
+                "--fix",
+                str(file_path),
+            ]
+            subprocess.run(
+                cmd,
+                cwd=str(self.project_root),
+                capture_output=True,
+                timeout=30,
             )
-            context = self._build_context(
-                [ToolDomain.LINTING],
-                files=[str(issue.file_path)],
-                stream_handler=stream_handler,
-            )
-            await self._run_linting(context, fix=True)
+
             return {
                 "success": True,
-                "message": f"Applied fix for {issue_id}",
+                "message": f"Applied fix for {issue_id} (rule {issue.rule_id})",
                 "file": str(issue.file_path),
+                "note": f"All {issue.rule_id} issues in this file were fixed",
             }
         except Exception as e:
             return {"error": f"Failed to apply fix: {e}"}
@@ -1496,18 +1519,24 @@ ignore:
                 or self.config.pipeline.type_checking.enabled
             ):
                 result.append(ToolDomain.TYPE_CHECKING)
-            if self.config.pipeline.testing and self.config.pipeline.testing.enabled:
+            if (
+                self.config.pipeline.testing is None
+                or self.config.pipeline.testing.enabled
+            ):
                 result.append(ToolDomain.TESTING)
-            if self.config.pipeline.coverage and self.config.pipeline.coverage.enabled:
+            if (
+                self.config.pipeline.coverage is None
+                or self.config.pipeline.coverage.enabled
+            ):
                 result.append(ToolDomain.COVERAGE)
             if (
-                self.config.pipeline.duplication
-                and self.config.pipeline.duplication.enabled
+                self.config.pipeline.duplication is None
+                or self.config.pipeline.duplication.enabled
             ):
                 result.append(ToolDomain.DUPLICATION)
             if (
-                self.config.pipeline.formatting
-                and self.config.pipeline.formatting.enabled
+                self.config.pipeline.formatting is None
+                or self.config.pipeline.formatting.enabled
             ):
                 result.append(ToolDomain.FORMATTING)
 

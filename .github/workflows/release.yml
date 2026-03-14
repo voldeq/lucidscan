@@ -48,18 +48,22 @@ jobs:
             target: linux-amd64
             artifact_name: lucidshark
             asset_name: lucidshark-linux-amd64
+            docker_image: quay.io/pypa/manylinux_2_28_x86_64
           - os: ubuntu-24.04-arm
             target: linux-arm64
             artifact_name: lucidshark
             asset_name: lucidshark-linux-arm64
+            docker_image: quay.io/pypa/manylinux_2_28_aarch64
           - os: macos-15-intel
             target: darwin-amd64
             artifact_name: lucidshark
             asset_name: lucidshark-darwin-amd64
+            docker_image: ""
           - os: macos-latest
             target: darwin-arm64
             artifact_name: lucidshark
             asset_name: lucidshark-darwin-arm64
+            docker_image: ""
 
     runs-on: ${{ matrix.os }}
 
@@ -67,19 +71,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      # macOS: native Python + PyInstaller
       - name: Set up Python
+        if: matrix.docker_image == ''
         uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
       - name: Install dependencies
+        if: matrix.docker_image == ''
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
       - name: Build binary with PyInstaller
+        if: matrix.docker_image == ''
         run: pyinstaller lucidshark.spec --clean
+
+      # Linux: build inside manylinux container for broad glibc compatibility (>= 2.28)
+      - name: Build binary in manylinux container
+        if: matrix.docker_image != ''
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/work" -w /work \
+            "${{ matrix.docker_image }}" \
+            bash -c "
+              /opt/python/cp311-cp311/bin/pip install -e '.[dev]' && \
+              /opt/python/cp311-cp311/bin/pyinstaller lucidshark.spec --clean
+            "
 
       - name: Rename binary for upload
         shell: bash

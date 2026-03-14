@@ -108,7 +108,10 @@ class CoveragePyPlugin(CoveragePlugin):
             return result
 
         # Generate JSON report from existing coverage data
-        result = self._generate_and_parse_report(binary, context, threshold)
+        # Pass explicit data file path to ensure coverage finds it regardless of cwd
+        result = self._generate_and_parse_report(
+            binary, context, threshold, coverage_data
+        )
 
         # If report generation returned an empty result (failure), add no-data issue
         if result.total_lines == 0 and not result.issues:
@@ -134,6 +137,7 @@ class CoveragePyPlugin(CoveragePlugin):
         binary: Path,
         context: ScanContext,
         threshold: float,
+        data_file: Optional[Path] = None,
     ) -> CoverageResult:
         """Generate JSON report and parse it.
 
@@ -141,6 +145,7 @@ class CoveragePyPlugin(CoveragePlugin):
             binary: Path to coverage binary.
             context: Scan context.
             threshold: Coverage percentage threshold.
+            data_file: Optional explicit path to .coverage data file.
 
         Returns:
             CoverageResult with parsed data.
@@ -154,6 +159,8 @@ class CoveragePyPlugin(CoveragePlugin):
                 "-o",
                 str(report_file),
             ]
+            if data_file:
+                cmd.extend(["--data-file", str(data_file)])
 
             LOGGER.debug(f"Running: {' '.join(cmd)}")
 

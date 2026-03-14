@@ -1,0 +1,2569 @@
+# LucidShark JavaScript/TypeScript Support — End-to-End Test Instructions
+
+**Purpose:** You are performing a comprehensive end-to-end test of LucidShark's JavaScript/TypeScript support. You will test both the CLI and MCP interfaces across all applicable domains, using real open-source JS/TS projects checked out from GitHub. You will test installation via both the install script and pip, run `lucidshark init`, `autoconfigure`, and exercise every scan domain and MCP tool. At the end, write a detailed test report.
+
+**IMPORTANT:** Execute every step below. Do not skip steps or summarize without actually running the commands. Capture actual output, exit codes, and timings. If a step fails, document the failure in detail and continue with the next step.
+
+---
+
+## Tools Under Test
+
+| Domain | Tools | File Types |
+|--------|-------|------------|
+| Linting | ESLint, Biome | `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.tsx`, `.mts`, `.cts` |
+| Type Checking | TypeScript (tsc) | `.ts`, `.tsx`, `.mts`, `.cts` |
+| Formatting | Prettier, Biome | `.js`, `.jsx`, `.ts`, `.tsx`, `.css`, `.json`, `.md` |
+| Testing | Jest, Vitest, Karma, Playwright | `.test.ts`, `.spec.ts`, `.test.js`, `.spec.js` |
+| Coverage | Istanbul/NYC, Vitest Coverage | via test runners |
+| Duplication | Duplo | `.js`, `.jsx`, `.ts`, `.tsx` |
+| SAST | OpenGrep | `.js`, `.jsx`, `.ts`, `.tsx` |
+| SCA | Trivy | `package.json`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` |
+
+---
+
+## Phase 0: Environment Setup
+
+### 0.1 Record Environment Info
+
+```bash
+uname -a
+node --version
+npm --version
+npx --version
+python3 --version
+pip3 --version
+git --version
+echo "Disk space:" && df -h .
+echo "Working directory:" && pwd
+```
+
+Record all output in the test report under "Environment".
+
+### 0.2 Create Clean Test Workspace
+
+```bash
+export TEST_WORKSPACE="/tmp/lucidshark-js-e2e-$(date +%s)"
+mkdir -p "$TEST_WORKSPACE"
+cd "$TEST_WORKSPACE"
+```
+
+All subsequent work happens inside `$TEST_WORKSPACE`. Do NOT use any pre-existing LucidShark installation.
+
+---
+
+## Phase 1: Installation Testing
+
+### 1.1 Install via install.sh (Binary)
+
+```bash
+cd "$TEST_WORKSPACE"
+mkdir install-script-test && cd install-script-test
+git init
+curl -fsSL https://raw.githubusercontent.com/toniantunovi/lucidshark/main/install.sh | bash
+```
+
+**Verify:**
+- [ ] Binary downloaded successfully to `./lucidshark`
+- [ ] `./lucidshark --version` outputs a version string
+- [ ] `./lucidshark --help` shows help text with all subcommands (scan, init, status, doctor, help, validate, overview, serve)
+- [ ] `./lucidshark status` runs without error
+- [ ] `./lucidshark doctor` runs and shows tool availability
+
+Record the version number and which tools `doctor` reports as available/missing.
+
+### 1.2 Install via install.sh with Specific Version
+
+```bash
+cd "$TEST_WORKSPACE"
+mkdir install-version-test && cd install-version-test
+git init
+curl -fsSL https://raw.githubusercontent.com/toniantunovi/lucidshark/main/install.sh | bash -s -- --version v0.5.63
+```
+
+**Verify:**
+- [ ] Correct version installed (check `./lucidshark --version`)
+- [ ] The binary works (`./lucidshark status`)
+
+### 1.3 Install via pip
+
+```bash
+cd "$TEST_WORKSPACE"
+python3 -m venv pip-install-test
+source pip-install-test/bin/activate
+pip install lucidshark
+```
+
+**Verify:**
+- [ ] `pip install lucidshark` succeeds without errors
+- [ ] `lucidshark --version` outputs a version string
+- [ ] `lucidshark --help` shows all subcommands
+- [ ] `lucidshark status` works
+- [ ] `lucidshark doctor` works
+- [ ] Compare: does the pip version match the install.sh latest version? Document any differences.
+
+### 1.4 Install via pip with Specific Version
+
+```bash
+pip install lucidshark==0.5.63
+lucidshark --version
+```
+
+**Verify:**
+- [ ] Correct version installed
+- [ ] Downgrade/upgrade worked cleanly
+
+### 1.5 Install from Source (Development)
+
+```bash
+cd "$TEST_WORKSPACE"
+git clone https://github.com/toniantunovi/lucidshark.git lucidshark-source
+cd lucidshark-source
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+lucidshark --version
+```
+
+**Verify:**
+- [ ] Editable install succeeds
+- [ ] `lucidshark` command is available
+- [ ] Version matches source
+
+**Decide which installation to use for remaining tests.** Prefer the pip install (1.3) for consistency. Keep the venv activated.
+
+---
+
+## Phase 2: Test Project Setup
+
+### 2.1 Clone Test Projects from GitHub
+
+Clone these real-world JavaScript/TypeScript projects. Each serves a different test purpose:
+
+```bash
+cd "$TEST_WORKSPACE"
+
+# Project 1: Express — classic Node.js, plain JS, ESLint, Mocha tests
+# Represents: vanilla JS backend projects (~30% of Node ecosystem)
+git clone --depth 1 https://github.com/expressjs/express.git
+
+# Project 2: Axios — JS/TS HTTP client, Jest tests, widely used
+# Represents: npm libraries, mixed JS/TS, Jest ecosystem
+git clone --depth 1 https://github.com/axios/axios.git
+
+# Project 3: Zustand — TypeScript, Vitest, modern React state management
+# Represents: modern TS + Vite ecosystem, React libraries
+git clone --depth 1 https://github.com/pmndrs/zustand.git
+
+# Project 4: Playwright — TypeScript, Playwright tests, large project
+# Represents: E2E testing projects, monorepo structures
+git clone --depth 1 https://github.com/microsoft/playwright.git
+```
+
+Install dependencies for each:
+```bash
+cd "$TEST_WORKSPACE/express" && npm install --ignore-scripts 2>&1 | tail -5
+cd "$TEST_WORKSPACE/axios" && npm install --ignore-scripts 2>&1 | tail -5
+cd "$TEST_WORKSPACE/zustand" && npm install --ignore-scripts 2>&1 | tail -5
+# Playwright is large — skip full install, just test scanning source files
+```
+
+### 2.2 Create Custom Vulnerable Test Project (Jest variant)
+
+This project has intentional issues across ALL domains for comprehensive testing with **Jest**:
+
+```bash
+mkdir -p "$TEST_WORKSPACE/test-project-jest/src"
+mkdir -p "$TEST_WORKSPACE/test-project-jest/tests"
+cd "$TEST_WORKSPACE/test-project-jest"
+git init
+npm init -y
+```
+
+**Create `tsconfig.json`:**
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": false,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "tests"]
+}
+```
+
+**Create `.eslintrc.json`:**
+```json
+{
+  "env": {
+    "node": true,
+    "es2020": true,
+    "jest": true
+  },
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2020,
+    "sourceType": "module"
+  },
+  "plugins": ["@typescript-eslint"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "rules": {
+    "no-unused-vars": "off",
+    "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "no-eval": "error",
+    "no-implied-eval": "error"
+  }
+}
+```
+
+**Create `.prettierrc`:**
+```json
+{
+  "semi": true,
+  "trailingComma": "all",
+  "singleQuote": true,
+  "printWidth": 80,
+  "tabWidth": 2
+}
+```
+
+**Install dev dependencies:**
+```bash
+npm install --save-dev typescript @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint prettier jest ts-jest @types/jest @types/node
+```
+
+**Create `jest.config.ts`:**
+```typescript
+import type { Config } from 'jest';
+
+const config: Config = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  roots: ['<rootDir>/tests'],
+  testMatch: ['**/*.test.ts'],
+  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
+  coverageDirectory: 'coverage',
+  coverageReporters: ['json-summary', 'json', 'text', 'lcov'],
+};
+
+export default config;
+```
+
+**Create `src/main.ts`** (linting + formatting + type errors):
+```typescript
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import { EventEmitter } from 'events';
+
+// Unused variable
+const unusedConfig = { debug: true, verbose: false };
+
+// Type error: number assigned to string
+const userName: string = 42;
+
+// Badly formatted function (Prettier violations)
+function   processData(  data: string,    count:number  ):    string {
+    const    x:string = 123;  // type error: number to string
+    const unused = "never used";
+    const result = data.toUpperCase(  );
+    return 42;  // type error: returning number from string function
+}
+
+function    badlyFormatted(   a:boolean,b:number,c:number   ) {
+  if(a){
+          return b
+    }
+      else {
+              return c
+      }
+}
+
+interface UserData {
+  name: string;
+  age: number;
+  email: string;
+}
+
+class UserManager {
+  private users: Map<string, UserData> = new Map();
+
+  addUser(name: string, age: number): void {
+    // Type error: age is number but UserData.name expects string
+    this.users.set(name, { name: age, age: name, email: 123 });
+  }
+
+  getUser(name: string): UserData | undefined {
+    return this.users.get(name);
+  }
+
+  // Missing return in some paths
+  findUser(predicate: (u: UserData) => boolean): UserData {
+    for (const [, user] of this.users) {
+      if (predicate(user)) {
+        return user;
+      }
+    }
+    // Missing return — violates noImplicitReturns
+  }
+}
+
+export { processData, badlyFormatted, UserManager };
+export type { UserData };
+```
+
+**Create `src/security.ts`** (SAST issues):
+```typescript
+import { execSync, exec } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as crypto from 'crypto';
+
+// Command Injection via exec
+export function runCommand(userInput: string): string {
+  return execSync(userInput).toString();
+}
+
+// Command Injection via template literal
+export function runShellCommand(cmd: string): void {
+  exec(`bash -c "${cmd}"`, (error, stdout) => {
+    console.log(stdout);
+  });
+}
+
+// Eval usage — code injection
+export function evaluate(expression: string): unknown {
+  return eval(expression);
+}
+
+// SQL Injection (raw string concatenation)
+export function getUser(db: any, username: string): any {
+  const query = "SELECT * FROM users WHERE name = '" + username + "'";
+  return db.query(query);
+}
+
+// SQL Injection via template literal
+export function getUserById(db: any, id: string): any {
+  return db.query(`SELECT * FROM users WHERE id = ${id}`);
+}
+
+// Path Traversal
+export function readFile(baseDir: string, filename: string): string {
+  const filepath = baseDir + '/' + filename;
+  return fs.readFileSync(filepath, 'utf-8');
+}
+
+// Path Traversal via path.join (still vulnerable if filename has ../)
+export function readUserFile(filename: string): string {
+  return fs.readFileSync(path.join('/uploads', filename), 'utf-8');
+}
+
+// Weak Crypto — MD5 for password
+export function hashPassword(password: string): string {
+  return crypto.createHash('md5').update(password).digest('hex');
+}
+
+// Hardcoded Secrets
+export const API_KEY = 'sk-1234567890abcdef1234567890abcdef';
+export const DATABASE_URL = 'postgresql://admin:super_secret_password@localhost:5432/mydb';
+export const JWT_SECRET = 'my-super-secret-jwt-key-dont-share';
+
+// Insecure Deserialization (JSON.parse from untrusted input used in eval-like context)
+export function deserializePayload(data: string): unknown {
+  const parsed = JSON.parse(data);
+  // Using Function constructor as eval alternative
+  return new Function('return ' + parsed.code)();
+}
+
+// Prototype Pollution
+export function merge(target: any, source: any): any {
+  for (const key in source) {
+    if (typeof source[key] === 'object') {
+      target[key] = merge(target[key] || {}, source[key]);
+    } else {
+      target[key] = source[key];
+    }
+  }
+  return target;
+}
+
+// ReDoS vulnerable regex
+export function validateEmail(email: string): boolean {
+  const regex = /^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/;
+  return regex.test(email);
+}
+```
+
+**Create `src/duplicate1.ts`** (duplication detection):
+```typescript
+export interface Statistics {
+  mean: number;
+  total: number;
+  count: number;
+  min: number;
+  max: number;
+  variance: number;
+  stdDev: number;
+}
+
+export function calculateStatistics(numbers: number[]): Statistics {
+  const total = numbers.reduce((sum, n) => sum + n, 0);
+  const count = numbers.length;
+  if (count === 0) {
+    return { mean: 0, total: 0, count: 0, min: 0, max: 0, variance: 0, stdDev: 0 };
+  }
+  const mean = total / count;
+  const minimum = Math.min(...numbers);
+  const maximum = Math.max(...numbers);
+  const variance = numbers.reduce((sum, x) => sum + Math.pow(x - mean, 2), 0) / count;
+  const stdDev = Math.sqrt(variance);
+  return {
+    mean,
+    total,
+    count,
+    min: minimum,
+    max: maximum,
+    variance,
+    stdDev,
+  };
+}
+```
+
+**Create `src/duplicate2.ts`** (near-duplicate of duplicate1.ts):
+```typescript
+export interface MetricResult {
+  mean: number;
+  total: number;
+  count: number;
+  min: number;
+  max: number;
+  variance: number;
+  stdDev: number;
+}
+
+export function computeMetrics(values: number[]): MetricResult {
+  const total = values.reduce((sum, n) => sum + n, 0);
+  const count = values.length;
+  if (count === 0) {
+    return { mean: 0, total: 0, count: 0, min: 0, max: 0, variance: 0, stdDev: 0 };
+  }
+  const mean = total / count;
+  const minimum = Math.min(...values);
+  const maximum = Math.max(...values);
+  const variance = values.reduce((sum, x) => sum + Math.pow(x - mean, 2), 0) / count;
+  const stdDev = Math.sqrt(variance);
+  return {
+    mean,
+    total,
+    count,
+    min: minimum,
+    max: maximum,
+    variance,
+    stdDev,
+  };
+}
+```
+
+**Create `tests/main.test.ts`:**
+```typescript
+import { processData, badlyFormatted, UserManager } from '../src/main';
+
+describe('processData', () => {
+  it('should uppercase the input string', () => {
+    // This will fail because processData returns 42, not a string
+    const result = processData('hello', 1);
+    expect(result).toBe('HELLO');
+  });
+
+  it('should handle empty string', () => {
+    const result = processData('', 0);
+    expect(result).toBe('');
+  });
+});
+
+describe('badlyFormatted', () => {
+  it('should return b when a is true', () => {
+    expect(badlyFormatted(true, 1, 2)).toBe(1);
+  });
+
+  it('should return c when a is false', () => {
+    expect(badlyFormatted(false, 1, 2)).toBe(2);
+  });
+});
+
+describe('UserManager', () => {
+  it('should add and retrieve a user', () => {
+    const mgr = new UserManager();
+    mgr.addUser('alice', 30);
+    const user = mgr.getUser('alice');
+    expect(user).toBeDefined();
+    expect(user?.name).toBe('alice');
+  });
+});
+
+describe('basic passing tests', () => {
+  it('adds numbers correctly', () => {
+    expect(1 + 1).toBe(2);
+  });
+
+  it('uppercases strings', () => {
+    expect('hello'.toUpperCase()).toBe('HELLO');
+  });
+});
+```
+
+**Create `package.json`** (with known vulnerable packages):
+```json
+{
+  "name": "test-project-jest",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/ tests/",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write ."
+  },
+  "dependencies": {
+    "express": "4.17.1",
+    "lodash": "4.17.20",
+    "jsonwebtoken": "8.5.1",
+    "axios": "0.21.1",
+    "minimist": "1.2.5",
+    "node-fetch": "2.6.1",
+    "tar": "6.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0"
+  }
+}
+```
+
+Commit everything:
+```bash
+cd "$TEST_WORKSPACE/test-project-jest"
+npm install --ignore-scripts 2>&1 | tail -5
+git add -A && git commit -m "Initial commit with intentional issues"
+```
+
+### 2.3 Create Custom Vulnerable Test Project (Vitest variant)
+
+This project tests the Vitest + Biome + Prettier + Vite ecosystem:
+
+```bash
+mkdir -p "$TEST_WORKSPACE/test-project-vitest/src"
+mkdir -p "$TEST_WORKSPACE/test-project-vitest/tests"
+cd "$TEST_WORKSPACE/test-project-vitest"
+git init
+npm init -y
+```
+
+**Create `tsconfig.json`:**
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": false,
+    "forceConsistentCasingInFileNames": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "tests"]
+}
+```
+
+**Create `biome.json`:**
+```json
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.0/schema.json",
+  "organizeImports": {
+    "enabled": true
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "noExplicitAny": "warn"
+      },
+      "complexity": {
+        "noUselessFragments": "error"
+      }
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 80
+  }
+}
+```
+
+**Create `vitest.config.ts`:**
+```typescript
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    globals: true,
+    environment: 'node',
+    include: ['tests/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['json-summary', 'json', 'text', 'lcov'],
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.d.ts'],
+    },
+  },
+});
+```
+
+**Install dev dependencies:**
+```bash
+npm install --save-dev typescript vitest @vitest/coverage-v8 @biomejs/biome prettier @types/node
+```
+
+**Create `src/main.ts`** (same intentional issues as Jest variant):
+```typescript
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+
+const unusedConfig = { debug: true };
+
+const userName: string = 42;  // type error
+
+function   processData(  data: string,    count:number  ):    string {
+    const    x:string = 123;
+    const unused = "never used";
+    return 42;
+}
+
+export { processData };
+```
+
+**Create `src/duplicate1.ts` and `src/duplicate2.ts`** (same as Jest variant — copy from 2.2).
+
+**Create `tests/main.test.ts`:**
+```typescript
+import { describe, it, expect } from 'vitest';
+import { processData } from '../src/main';
+
+describe('processData', () => {
+  it('should uppercase the input string', () => {
+    const result = processData('hello', 1);
+    expect(result).toBe('HELLO');
+  });
+});
+
+describe('basic tests', () => {
+  it('adds numbers', () => {
+    expect(1 + 1).toBe(2);
+  });
+
+  it('passes always', () => {
+    expect(true).toBe(true);
+  });
+});
+```
+
+**Create `package.json`:**
+```json
+{
+  "name": "test-project-vitest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "lint": "biome check src/",
+    "format": "prettier --check ."
+  },
+  "dependencies": {
+    "express": "4.17.1",
+    "lodash": "4.17.20",
+    "axios": "0.21.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0",
+    "@vitest/coverage-v8": "^1.0.0",
+    "@biomejs/biome": "^1.9.0",
+    "prettier": "^3.0.0",
+    "@types/node": "^20.0.0"
+  }
+}
+```
+
+Commit:
+```bash
+cd "$TEST_WORKSPACE/test-project-vitest"
+npm install --ignore-scripts 2>&1 | tail -5
+git add -A && git commit -m "Initial commit with intentional issues"
+```
+
+### 2.4 Create Minimal Karma Test Project
+
+This tests the Karma/Angular ecosystem:
+
+```bash
+mkdir -p "$TEST_WORKSPACE/test-project-karma/src"
+mkdir -p "$TEST_WORKSPACE/test-project-karma/tests"
+cd "$TEST_WORKSPACE/test-project-karma"
+git init
+npm init -y
+```
+
+**Create `karma.conf.js`:**
+```javascript
+module.exports = function(config) {
+  config.set({
+    frameworks: ['jasmine'],
+    files: ['tests/**/*.spec.js'],
+    reporters: ['progress', 'json'],
+    browsers: ['ChromeHeadless'],
+    singleRun: true,
+    jsonReporter: {
+      stdout: true
+    }
+  });
+};
+```
+
+**Create `tests/basic.spec.js`:**
+```javascript
+describe('Basic suite', function() {
+  it('should add numbers', function() {
+    expect(1 + 1).toBe(2);
+  });
+
+  it('should concatenate strings', function() {
+    expect('hello' + ' ' + 'world').toBe('hello world');
+  });
+});
+```
+
+**Install deps:**
+```bash
+npm install --save-dev karma karma-jasmine karma-chrome-launcher karma-json-reporter jasmine-core
+```
+
+Commit:
+```bash
+git add -A && git commit -m "Initial Karma test project"
+```
+
+---
+
+## Phase 3: Init & Configuration Testing
+
+### 3.1 Test `lucidshark init` on Jest Test Project
+
+```bash
+cd "$TEST_WORKSPACE/test-project-jest"
+```
+
+#### 3.1.1 Init Dry Run
+```bash
+lucidshark init --dry-run
+```
+
+**Verify:**
+- [ ] Shows what files WOULD be created without creating them
+- [ ] Lists: `.mcp.json`, `.claude/CLAUDE.md`, `.claude/settings.json`, `.claude/skills/lucidshark/SKILL.md`
+- [ ] No files actually created (check with `ls -la .mcp.json .claude/ 2>/dev/null`)
+
+#### 3.1.2 Init (Full)
+```bash
+lucidshark init
+```
+
+**Verify:**
+- [ ] `.mcp.json` created with correct MCP server config
+- [ ] `.claude/CLAUDE.md` created with lucidshark instructions (check for `<!-- lucidshark:start -->` markers)
+- [ ] `.claude/settings.json` created with PostToolUse hooks
+- [ ] `.claude/skills/lucidshark/SKILL.md` created
+- [ ] Read each file and verify contents are sensible
+
+```bash
+cat .mcp.json
+cat .claude/CLAUDE.md
+cat .claude/settings.json
+cat .claude/skills/lucidshark/SKILL.md
+```
+
+#### 3.1.3 Init Re-run (Should Detect Existing)
+```bash
+lucidshark init
+```
+
+**Verify:**
+- [ ] Detects existing configuration
+- [ ] Suggests `--force` to overwrite
+- [ ] Does NOT overwrite existing files
+
+#### 3.1.4 Init Force
+```bash
+lucidshark init --force
+```
+
+**Verify:**
+- [ ] Overwrites all files successfully
+- [ ] Files are identical or updated versions
+
+#### 3.1.5 Init Remove
+```bash
+lucidshark init --remove
+```
+
+**Verify:**
+- [ ] All LucidShark artifacts removed
+- [ ] `.mcp.json` is `{}` (empty object) or removed
+- [ ] `.claude/CLAUDE.md` has lucidshark section removed
+- [ ] `.claude/settings.json` has lucidshark hooks removed
+- [ ] `.claude/skills/lucidshark/` removed
+
+Re-run init for remaining tests:
+```bash
+lucidshark init
+```
+
+### 3.2 Test Autoconfigure via MCP
+
+Call the MCP autoconfigure tool:
+```
+mcp__lucidshark__autoconfigure()
+```
+
+**Verify:**
+- [ ] Returns step-by-step instructions for analyzing the project
+- [ ] Instructions mention detecting JavaScript/TypeScript
+- [ ] Instructions mention detecting Jest (for jest project) or Vitest (for vitest project)
+- [ ] Instructions mention detecting ESLint/Biome
+- [ ] Instructions mention detecting Prettier
+- [ ] Instructions include example `lucidshark.yml` configs
+- [ ] Instructions mention tool installation guidance
+
+### 3.3 Create `lucidshark.yml` for Jest Test Project
+
+Create a config that enables ALL domains with the Jest/ESLint/Prettier toolchain:
+
+```yaml
+version: 1
+languages: [typescript, javascript]
+domains:
+  linting:
+    enabled: true
+    tools: [eslint]
+  type_checking:
+    enabled: true
+    tools: [typescript]
+  formatting:
+    enabled: true
+    tools: [prettier]
+  testing:
+    enabled: true
+    tools: [jest]
+  coverage:
+    enabled: true
+    tools: [istanbul]
+    threshold: 80
+  duplication:
+    enabled: true
+    tools: [duplo]
+    threshold: 10
+    min_lines: 4
+  sca:
+    enabled: true
+    tools: [trivy]
+  sast:
+    enabled: true
+    tools: [opengrep]
+exclude_patterns:
+  - "node_modules/**"
+  - "dist/**"
+  - "coverage/**"
+  - "*.d.ts"
+```
+
+### 3.4 Create `lucidshark.yml` for Vitest Test Project
+
+```bash
+cd "$TEST_WORKSPACE/test-project-vitest"
+```
+
+```yaml
+version: 1
+languages: [typescript, javascript]
+domains:
+  linting:
+    enabled: true
+    tools: [biome]
+  type_checking:
+    enabled: true
+    tools: [typescript]
+  formatting:
+    enabled: true
+    tools: [prettier]
+  testing:
+    enabled: true
+    tools: [vitest]
+  coverage:
+    enabled: true
+    tools: [vitest_coverage]
+    threshold: 80
+  duplication:
+    enabled: true
+    tools: [duplo]
+    threshold: 10
+    min_lines: 4
+  sca:
+    enabled: true
+    tools: [trivy]
+  sast:
+    enabled: true
+    tools: [opengrep]
+exclude_patterns:
+  - "node_modules/**"
+  - "dist/**"
+  - "coverage/**"
+  - "*.d.ts"
+```
+
+### 3.5 Validate Configuration
+
+#### Via CLI:
+```bash
+cd "$TEST_WORKSPACE/test-project-jest"
+lucidshark validate
+echo "Exit code: $?"
+```
+
+**Verify:**
+- [ ] Exit code 0 for valid config
+- [ ] Reports config as valid
+
+#### Via MCP:
+```
+mcp__lucidshark__validate_config()
+```
+
+**Verify:**
+- [ ] Reports config as valid
+- [ ] Shows parsed domain/tool info
+
+#### Test Invalid Configs:
+
+Temporarily modify `lucidshark.yml` and validate each:
+
+1. **Missing version field** — remove `version: 1` line, validate, restore
+2. **Invalid version** — set `version: 99`, validate, restore
+3. **Invalid language** — set `languages: [brainfuck]`, validate, restore
+4. **Invalid tool name** — set `tools: [nonexistent_tool]` under linting, validate, restore
+5. **Coverage without testing** — disable testing but keep coverage enabled, validate, restore
+6. **Invalid threshold** — set `threshold: 200` under coverage, validate, restore
+
+For each: record whether validation catches the error or silently accepts it.
+
+### 3.6 Test `lucidshark init` on GitHub Projects
+
+Run init on each cloned project:
+```bash
+cd "$TEST_WORKSPACE/express" && lucidshark init --dry-run
+cd "$TEST_WORKSPACE/axios" && lucidshark init --dry-run
+cd "$TEST_WORKSPACE/zustand" && lucidshark init --dry-run
+```
+
+**Verify:**
+- [ ] Init works on projects with existing `.eslintrc`, `tsconfig.json`, `package.json`, etc.
+- [ ] Does not conflict with existing project configs
+
+---
+
+## Phase 4: CLI Scan Testing — Jest Project
+
+Use the test-project-jest for all CLI tests unless otherwise noted.
+
+```bash
+cd "$TEST_WORKSPACE/test-project-jest"
+```
+
+### 4.1 Linting (ESLint)
+
+#### 4.1.1 CLI — Linting Only (No Config)
+Remove or rename `lucidshark.yml` temporarily:
+```bash
+mv lucidshark.yml lucidshark.yml.bak
+lucidshark scan --linting --all-files --format json
+echo "Exit code: $?"
+mv lucidshark.yml.bak lucidshark.yml
+```
+
+**Verify:**
+- [ ] ESLint auto-detected for JS/TS project (looks for `.eslintrc.*` or `eslint.config.*`)
+- [ ] Finds `@typescript-eslint/no-unused-vars` errors in `main.ts` — `unusedConfig`, `unused`, `os`, `path`, `fs`, `EventEmitter`
+- [ ] Finds type annotation issues via `@typescript-eslint` rules
+- [ ] Each issue has: file_path, line, column, rule_id, message, severity
+- [ ] Exit code is non-zero (issues found)
+- [ ] Security-related ESLint rules triggered (e.g., `no-eval` in `security.ts`)
+
+#### 4.1.2 CLI — Linting with Config
+```bash
+lucidshark scan --linting --all-files --format json
+```
+
+**Verify:**
+- [ ] Same issues detected as without config
+- [ ] Exclude patterns applied (no `node_modules/**` files scanned)
+- [ ] No `dist/**` or `coverage/**` files scanned
+
+#### 4.1.3 CLI — Linting Auto-Fix
+```bash
+cp -r src src.backup
+lucidshark scan --linting --all-files --fix --format json
+echo "Exit code: $?"
+```
+
+**Verify:**
+- [ ] Auto-fixable issues fixed (e.g., unused imports removed if `--fix` triggers ESLint fix)
+- [ ] Files actually modified on disk (diff `src/main.ts` vs backup)
+- [ ] Issues that can't be auto-fixed remain
+- [ ] Re-scan shows fewer issues
+
+Restore: `rm -rf src && mv src.backup src`
+
+#### 4.1.4 CLI — Linting Specific File
+```bash
+lucidshark scan --linting --files src/security.ts --format json
+```
+
+**Verify:**
+- [ ] Only scans `security.ts`
+- [ ] Does NOT report issues from `main.ts`
+
+#### 4.1.5 CLI — Linting on Express (Clean Project)
+```bash
+cd "$TEST_WORKSPACE/express"
+lucidshark scan --linting --all-files --format json
+echo "Exit code: $?"
+cd "$TEST_WORKSPACE/test-project-jest"
+```
+
+**Verify:**
+- [ ] Zero or very few linting issues on well-maintained project
+- [ ] ESLint auto-detected (Express uses `.eslintrc.yml`)
+- [ ] Handles plain JS files (`.js`) correctly
+
+#### 4.1.6 CLI — Linting on Axios
+```bash
+cd "$TEST_WORKSPACE/axios"
+lucidshark scan --linting --all-files --format json
+echo "Exit code: $?"
+cd "$TEST_WORKSPACE/test-project-jest"
+```
+
+**Verify and record issue count.**
+
+### 4.2 Type Checking (TypeScript / tsc)
+
+#### 4.2.1 CLI — Type Checking Only (No Config)
+```bash
+mv lucidshark.yml lucidshark.yml.bak
+lucidshark scan --type-checking --all-files --format json
+echo "Exit code: $?"
+mv lucidshark.yml.bak lucidshark.yml
+```
+
+**Verify:**
+- [ ] TypeScript compiler (tsc) auto-detected via `tsconfig.json`
+- [ ] Finds type error: `const userName: string = 42` in `main.ts`
+- [ ] Finds type error: `const x: string = 123` in `processData`
+- [ ] Finds type error: `return 42` in `-> string` function
+- [ ] Finds type error: wrong types in `addUser` (name/age swapped)
+- [ ] Finds `noImplicitReturns` error in `findUser`
+- [ ] Finds `noUnusedLocals` / `noUnusedParameters` errors
+- [ ] Each issue has severity mapped (expect HIGH)
+- [ ] Error codes are TS format (e.g., TS2322, TS7030)
+
+#### 4.2.2 CLI — Type Checking with Config
+```bash
+lucidshark scan --type-checking --all-files --format json
+```
+
+**Verify:**
+- [ ] TypeScript tool runs per config
+- [ ] Same type errors detected
+- [ ] Exclude patterns respected
+
+#### 4.2.3 CLI — Type Checking on Zustand (Well-Typed Project)
+```bash
+cd "$TEST_WORKSPACE/zustand"
+lucidshark scan --type-checking --all-files --format json 2>&1 | head -100
+cd "$TEST_WORKSPACE/test-project-jest"
+```
+
+**Record results.** Zustand is well-typed, so expect few/zero errors.
+
+#### 4.2.4 CLI — Type Checking on Express (Plain JS — No tsconfig)
+```bash
+cd "$TEST_WORKSPACE/express"
+lucidshark scan --type-checking --all-files --format json
+echo "Exit code: $?"
+cd "$TEST_WORKSPACE/test-project-jest"
+```
+
+**Verify:**
+- [ ] Handles project with no `tsconfig.json` gracefully
+- [ ] Either skips type checking or reports "no tsconfig.json found"
+- [ ] Does NOT crash
+
+### 4.3 Formatting (Prettier)
+
+#### 4.3.1 CLI — `--formatting` Flag (No Config)
+```bash
+mv lucidshark.yml lucidshark.yml.bak
+lucidshark scan --formatting --all-files --format json
+echo "Exit code: $?"
+mv lucidshark.yml.bak lucidshark.yml
+```
+
+**Verify:**
+- [ ] Does the `--formatting` flag work without config?
+- [ ] Prettier auto-detected via `.prettierrc`
+- [ ] If it fails, record the exact error message
+
+#### 4.3.2 CLI — Formatting with Config
+```bash
+lucidshark scan --formatting --all-files --format json
+```
+
+**Verify:**
+- [ ] Formatting issues detected in `main.ts` (extra spaces, inconsistent indentation)
+- [ ] Prettier-specific issues (semicolons, quotes, trailing commas)
+- [ ] Check for ghost issue: is there an issue with file_path containing "files" in the message?
+
+#### 4.3.3 CLI — Formatting Auto-Fix
+```bash
+cp -r src src.backup
+lucidshark scan --formatting --all-files --fix --format json
+echo "Exit code: $?"
+```
+
+**Verify:**
+- [ ] `main.ts` reformatted on disk
+- [ ] `security.ts` reformatted if needed
+- [ ] Re-scan shows zero formatting issues
+
+Restore: `rm -rf src && mv src.backup src`
+
+### 4.4 Testing (Jest)
+
+#### 4.4.1 CLI — Testing Domain
+```bash
+lucidshark scan --testing --all-files --format json
+echo "Exit code: $?"
+```
+
+**Verify:**
+- [ ] Jest auto-detected via `jest.config.ts` and executed
+- [ ] Reports test results (pass/fail counts)
+- [ ] `processData should uppercase the input string` should FAIL (returns 42)
+- [ ] `processData should handle empty string` should FAIL
+- [ ] `addUser` test should FAIL (types are wrong — name/age swapped)
+- [ ] `basic passing tests` should PASS
+- [ ] `badlyFormatted` tests should PASS
+- [ ] Reports: passed count, failed count, total count
+
+#### 4.4.2 CLI — Testing + Coverage Together
+```bash
+lucidshark scan --testing --coverage --all-files --format json
+```
+
+**Verify:**
+- [ ] Jest runs with `--coverage` flag
+- [ ] Tests run (pass/fail counts reported)
+- [ ] Coverage percentage calculated (Istanbul/NYC format)
+- [ ] `coverage/coverage-summary.json` generated
+- [ ] Coverage threshold comparison works (below 80% → issue)
+- [ ] Gap percentage reported
+
+#### 4.4.3 CLI — Testing Specific File
+```bash
+lucidshark scan --testing --files tests/main.test.ts --format json
+```
+
+**Verify:**
+- [ ] Only runs tests in `main.test.ts`
+- [ ] Jest receives file targeting correctly
+
+### 4.5 Coverage (Istanbul/NYC)
+
+#### 4.5.1 CLI — Coverage Without Testing (Should Error)
+```bash
+lucidshark scan --coverage --all-files --format json
+echo "Exit code: $?"
+```
+
+**Verify:**
+- [ ] Reports error or "no coverage data" (coverage requires testing to run first)
+- [ ] Does not crash
+
+#### 4.5.2 CLI — Coverage Threshold
+Run with different thresholds:
+```bash
+# Low threshold (should pass)
+lucidshark scan --testing --coverage --all-files --coverage-threshold 10 --format json
+echo "Exit code: $?"
+
+# High threshold (should fail)
+lucidshark scan --testing --coverage --all-files --coverage-threshold 90 --format json
+echo "Exit code: $?"
+```
+
+**Verify:**
+- [ ] With 10% threshold: no coverage issue
+- [ ] With 90% threshold: coverage issue reported with gap percentage
+
+### 4.6 Duplication (Duplo)
+
+#### 4.6.1 CLI — Duplication Domain
+```bash
+lucidshark scan --duplication --all-files --format json
+```
+
+**Verify:**
+- [ ] Duplo detects duplicates between `duplicate1.ts` and `duplicate2.ts`
+- [ ] Reports duplication percentage
+- [ ] Reports file locations of duplicate blocks
+- [ ] Respects `min_lines: 4` config
+- [ ] Handles TypeScript files correctly (not just `.js`)
+
+### 4.7 SAST (OpenGrep)
+
+#### 4.7.1 CLI — SAST Domain
+```bash
+lucidshark scan --sast --all-files --format json
+```
+
+**Verify and record which of these are detected:**
+- [ ] Command injection via `execSync(userInput)` in `security.ts`
+- [ ] Command injection via `exec(template literal)` in `security.ts`
+- [ ] `eval()` usage in `security.ts`
+- [ ] SQL injection (string concatenation in query) in `security.ts`
+- [ ] SQL injection via template literal in `security.ts`
+- [ ] Path traversal (string concat in file path) in `security.ts`
+- [ ] Weak crypto via `crypto.createHash('md5')` for password in `security.ts`
+- [ ] Hardcoded secrets (`API_KEY`, `DATABASE_URL`, `JWT_SECRET`) in `security.ts`
+- [ ] `new Function()` constructor (eval alternative) in `security.ts`
+- [ ] Prototype pollution in `merge()` in `security.ts`
+- [ ] ReDoS vulnerable regex in `security.ts`
+- [ ] Each SAST issue has CWE and/or OWASP references
+
+### 4.8 SCA (Trivy)
+
+#### 4.8.1 CLI — SCA Domain
+```bash
+lucidshark scan --sca --all-files --format json
+```
+
+**Verify:**
+- [ ] Trivy scans `package.json` and/or `package-lock.json`
+- [ ] Finds known CVEs in old package versions:
+  - `express@4.17.1` — known vulnerabilities
+  - `lodash@4.17.20` — prototype pollution (CVE-2021-23337)
+  - `jsonwebtoken@8.5.1` — known issues
+  - `axios@0.21.1` — SSRF vulnerability (CVE-2021-3749)
+  - `minimist@1.2.5` — prototype pollution
+  - `node-fetch@2.6.1` — known vulnerabilities
+  - `tar@6.1.0` — path traversal
+- [ ] Each CVE has: CVE ID, severity, affected package, fixed version
+- [ ] If Trivy DB download fails, document the error handling behavior
+
+#### 4.8.2 SCA on Axios
+```bash
+cd "$TEST_WORKSPACE/axios"
+lucidshark scan --sca --all-files --format json
+cd "$TEST_WORKSPACE/test-project-jest"
+```
+
+**Verify and record results.**
+
+### 4.9 Full Scan (`--all`)
+
+#### 4.9.1 CLI — `--all` with Config
+```bash
+lucidshark scan --all --all-files --format json > /tmp/full-scan-jest.json
+echo "Exit code: $?"
+python3 -c "
+import json
+with open('/tmp/full-scan-jest.json') as f:
+    data = json.load(f)
+print('Executed domains:', data.get('metadata', {}).get('executed_domains', []))
+print('Total issues:', data.get('metadata', {}).get('total_issues', 0))
+print('Duration ms:', data.get('metadata', {}).get('duration_ms', 'N/A'))
+for domain, count in data.get('metadata', {}).get('issues_by_domain', {}).items():
+    print(f'  {domain}: {count}')
+"
+```
+
+**Verify:**
+- [ ] ALL domains executed: linting, type_checking, formatting, testing, coverage, duplication, sca, sast
+- [ ] Issues found in each applicable domain
+- [ ] Duration is non-zero
+- [ ] `enabled_domains` populated
+- [ ] `scanners_used` populated
+
+#### 4.9.2 CLI — `--all` WITHOUT Config
+```bash
+mv lucidshark.yml lucidshark.yml.bak
+lucidshark scan --all --all-files --format json > /tmp/full-scan-jest-no-config.json
+echo "Exit code: $?"
+python3 -c "
+import json
+with open('/tmp/full-scan-jest-no-config.json') as f:
+    data = json.load(f)
+print('Executed domains:', data.get('metadata', {}).get('executed_domains', []))
+print('Total issues:', data.get('metadata', {}).get('total_issues', 0))
+"
+mv lucidshark.yml.bak lucidshark.yml
+```
+
+**Verify:**
+- [ ] How many domains execute without config?
+- [ ] Does it auto-detect ESLint, TypeScript, Prettier, Jest?
+- [ ] Compare with `--all` WITH config — are the same domains covered?
+- [ ] If not all domains run, document it
+
+### 4.10 Output Formats
+
+Run a scan and test each output format:
+
+```bash
+lucidshark scan --linting --all-files --format json > /tmp/out-json.json
+lucidshark scan --linting --all-files --format summary > /tmp/out-summary.txt
+lucidshark scan --linting --all-files --format table > /tmp/out-table.txt
+lucidshark scan --linting --all-files --format ai > /tmp/out-ai.txt
+lucidshark scan --linting --all-files --format sarif > /tmp/out-sarif.json
+```
+
+**Verify each format:**
+- [ ] **json**: Valid JSON, has `issues` array and `metadata` object
+- [ ] **summary**: Human-readable text with severity counts and domain breakdown
+- [ ] **table**: Tabular output with columns
+- [ ] **ai**: Rich structured output with priorities, fix steps, instructions
+- [ ] **sarif**: Valid SARIF 2.1.0 schema with `runs`, `results`, `rules`
+
+### 4.11 CLI Flags & Features
+
+#### 4.11.1 `--dry-run`
+```bash
+lucidshark scan --all --all-files --dry-run
+```
+
+**Verify:**
+- [ ] Shows planned domains, tools, file targeting
+- [ ] Does NOT actually execute scans
+
+#### 4.11.2 `--fail-on`
+```bash
+lucidshark scan --linting --all-files --fail-on medium
+echo "Exit code for medium: $?"
+
+lucidshark scan --linting --all-files --fail-on critical
+echo "Exit code for critical: $?"
+```
+
+**Verify:**
+- [ ] `--fail-on medium`: exit code 1 (there are medium+ issues)
+- [ ] `--fail-on critical`: exit code 0 (if no critical issues) or 1 (if there are)
+
+#### 4.11.3 `--base-branch`
+```bash
+git checkout -b test-branch
+echo "// new issue" >> src/main.ts
+git add -A && git commit -m "add change"
+
+lucidshark scan --linting --all-files --base-branch main --format json
+echo "Exit code: $?"
+
+git checkout main
+git branch -D test-branch
+```
+
+**Verify:**
+- [ ] Only reports issues from files changed since `main`
+
+#### 4.11.4 `--debug` and `--verbose`
+```bash
+lucidshark --debug scan --linting --all-files --format summary 2>&1 | head -50
+lucidshark --verbose scan --linting --all-files --format summary 2>&1 | head -50
+```
+
+**Verify:**
+- [ ] `--debug` shows detailed debug logs (tool commands, paths, node_modules resolution, etc.)
+- [ ] `--verbose` shows info-level logs
+- [ ] Note: `--debug` must come BEFORE `scan` subcommand
+
+#### 4.11.5 `--stream`
+```bash
+lucidshark scan --linting --all-files --stream 2>&1 | head -30
+```
+
+**Verify:**
+- [ ] Produces streaming output
+
+#### 4.11.6 Incremental Scanning (Default)
+```bash
+# With no uncommitted changes
+lucidshark scan --linting --format json
+echo "Exit code: $?"
+```
+
+**Verify:**
+- [ ] Scans only uncommitted/changed files (not `--all-files`)
+- [ ] If no changes, may report 0 issues
+
+### 4.12 Other CLI Commands
+
+#### 4.12.1 `lucidshark status`
+```bash
+lucidshark status
+```
+
+**Verify:**
+- [ ] Shows version, platform
+- [ ] Shows available plugins/tools
+- [ ] Shows scanner versions (eslint, typescript, prettier, etc.)
+- [ ] Shows detected languages (javascript, typescript)
+- [ ] Check: does it show configured domains from `lucidshark.yml`?
+
+#### 4.12.2 `lucidshark doctor`
+```bash
+lucidshark doctor
+```
+
+**Verify:**
+- [ ] Checks config validity
+- [ ] Checks tool availability (eslint, tsc, prettier, jest)
+- [ ] Checks node_modules resolution
+- [ ] Checks environment (Node.js version, npm)
+- [ ] Reports any issues/warnings
+
+#### 4.12.3 `lucidshark help`
+```bash
+lucidshark help | head -100
+```
+
+**Verify:**
+- [ ] Outputs comprehensive markdown reference
+- [ ] Documents all subcommands and flags
+
+#### 4.12.4 `lucidshark overview --update`
+```bash
+lucidshark overview --update
+cat QUALITY.md | head -50
+```
+
+**Verify:**
+- [ ] Generates `QUALITY.md` file
+- [ ] Contains health score, issue counts
+- [ ] Contains domain breakdown
+
+#### 4.12.5 `lucidshark serve --mcp`
+```bash
+timeout 5 lucidshark serve --mcp 2>&1 || true
+```
+
+**Verify:**
+- [ ] MCP server starts without crash
+- [ ] Outputs MCP protocol initialization
+
+---
+
+## Phase 5: CLI Scan Testing — Vitest Project
+
+Switch to the Vitest test project to test the Biome + Vitest + Vitest Coverage toolchain:
+
+```bash
+cd "$TEST_WORKSPACE/test-project-vitest"
+```
+
+### 5.1 Linting (Biome)
+
+#### 5.1.1 CLI — Biome Linting
+```bash
+lucidshark scan --linting --all-files --format json
+echo "Exit code: $?"
+```
+
+**Verify:**
+- [ ] Biome auto-detected via `biome.json`
+- [ ] Finds unused variable issues
+- [ ] Finds any issues via Biome's recommended rules
+- [ ] Each issue has: file_path, line, column, rule_id, message, severity
+- [ ] Biome rule IDs are in correct format (e.g., `lint/suspicious/noExplicitAny`)
+
+#### 5.1.2 CLI — Biome Auto-Fix
+```bash
+cp -r src src.backup
+lucidshark scan --linting --all-files --fix --format json
+echo "Exit code: $?"
+```
+
+**Verify:**
+- [ ] Biome `check --apply` invoked
+- [ ] Auto-fixable issues fixed
+- [ ] Re-scan shows fewer issues
+
+Restore: `rm -rf src && mv src.backup src`
+
+### 5.2 Testing (Vitest)
+
+#### 5.2.1 CLI — Vitest Testing
+```bash
+lucidshark scan --testing --all-files --format json
+echo "Exit code: $?"
+```
+
+**Verify:**
+- [ ] Vitest auto-detected via `vitest.config.ts`
+- [ ] Vitest executed (not Jest!)
+- [ ] Reports test results (pass/fail counts)
+- [ ] `processData` test should FAIL (returns 42)
+- [ ] Basic tests should PASS
+- [ ] JSON reporter output parsed correctly
+
+#### 5.2.2 CLI — Vitest + Coverage
+```bash
+lucidshark scan --testing --coverage --all-files --format json
+```
+
+**Verify:**
+- [ ] Vitest runs with `--coverage` flag
+- [ ] Coverage generated via `@vitest/coverage-v8`
+- [ ] Coverage percentage calculated
+- [ ] `coverage/coverage-summary.json` generated
+- [ ] Coverage threshold comparison works
+
+### 5.3 Coverage (Vitest Coverage)
+
+#### 5.3.1 CLI — Vitest Coverage Provider
+```bash
+lucidshark scan --testing --coverage --all-files --coverage-threshold 10 --format json
+echo "Exit code: $?"
+
+lucidshark scan --testing --coverage --all-files --coverage-threshold 90 --format json
+echo "Exit code: $?"
+```
+
+**Verify:**
+- [ ] With 10% threshold: no coverage issue
+- [ ] With 90% threshold: coverage issue with gap
+- [ ] Vitest coverage properly parsed (Istanbul-compatible format)
+
+### 5.4 Full Scan — Vitest Project
+```bash
+lucidshark scan --all --all-files --format json > /tmp/full-scan-vitest.json
+echo "Exit code: $?"
+python3 -c "
+import json
+with open('/tmp/full-scan-vitest.json') as f:
+    data = json.load(f)
+print('Executed domains:', data.get('metadata', {}).get('executed_domains', []))
+print('Total issues:', data.get('metadata', {}).get('total_issues', 0))
+for domain, count in data.get('metadata', {}).get('issues_by_domain', {}).items():
+    print(f'  {domain}: {count}')
+"
+```
+
+**Verify:**
+- [ ] Biome used for linting (not ESLint)
+- [ ] Vitest used for testing (not Jest)
+- [ ] Vitest Coverage used (not Istanbul/NYC)
+- [ ] All domains executed
+
+---
+
+## Phase 6: CLI Scan Testing — Karma Project
+
+```bash
+cd "$TEST_WORKSPACE/test-project-karma"
+```
+
+### 6.1 Karma Detection
+
+#### 6.1.1 CLI — Testing Domain with Karma
+```bash
+lucidshark scan --testing --all-files --format json
+echo "Exit code: $?"
+```
+
+**Verify:**
+- [ ] Karma auto-detected via `karma.conf.js`
+- [ ] Karma executed with `--single-run` flag
+- [ ] If ChromeHeadless not available, document the error handling
+- [ ] If Karma runs, test results reported (pass/fail)
+
+**Note:** Karma requires a browser environment (ChromeHeadless). If not available in the test environment, document the behavior and whether LucidShark handles this gracefully (e.g., clear error message, skip with reason).
+
+---
+
+## Phase 7: MCP Tool Testing
+
+All MCP tests use the Jest test-project with `lucidshark.yml` in place.
+
+```bash
+cd "$TEST_WORKSPACE/test-project-jest"
+```
+
+### 7.1 `mcp__lucidshark__scan()`
+
+#### 7.1.1 Scan — Individual Domains
+
+Test each domain individually via MCP:
+
+```
+mcp__lucidshark__scan(domains=["linting"], all_files=true)
+mcp__lucidshark__scan(domains=["type_checking"], all_files=true)
+mcp__lucidshark__scan(domains=["formatting"], all_files=true)
+mcp__lucidshark__scan(domains=["testing"], all_files=true)
+mcp__lucidshark__scan(domains=["testing", "coverage"], all_files=true)
+mcp__lucidshark__scan(domains=["duplication"], all_files=true)
+mcp__lucidshark__scan(domains=["sca"], all_files=true)
+mcp__lucidshark__scan(domains=["sast"], all_files=true)
+```
+
+For EACH call, verify:
+- [ ] Correct domain executed
+- [ ] Correct JS/TS tool used (ESLint not Ruff, TypeScript not mypy, Jest not pytest, etc.)
+- [ ] Issues returned with proper structure (file_path, line, severity, message)
+- [ ] No errors or crashes
+- [ ] Results consistent with CLI results for same domain
+
+#### 7.1.2 Scan — All Domains
+```
+mcp__lucidshark__scan(domains=["all"], all_files=true)
+```
+
+**Verify:**
+- [ ] All 8 domains execute
+- [ ] Compare total issue counts with CLI `--all` results
+
+#### 7.1.3 Scan — Specific Files
+```
+mcp__lucidshark__scan(files=["src/security.ts"], domains=["linting", "sast"])
+```
+
+**Verify:**
+- [ ] Only `security.ts` scanned
+- [ ] Linting and SAST issues for that file only
+
+#### 7.1.4 Scan — Auto-Fix
+```
+mcp__lucidshark__scan(domains=["linting"], all_files=true, fix=true)
+```
+
+**Verify:**
+- [ ] ESLint `--fix` invoked
+- [ ] Issues auto-fixed
+- [ ] Fewer/zero linting issues in result
+- [ ] Files modified on disk
+
+Restore files after: `git checkout -- .`
+
+#### 7.1.5 Scan — Formatting Fix via MCP
+```
+mcp__lucidshark__scan(domains=["formatting"], all_files=true, fix=true)
+```
+
+**Verify:**
+- [ ] Prettier `--write` invoked
+- [ ] Formatting issues fixed
+- [ ] `main.ts` reformatted
+
+Restore: `git checkout -- .`
+
+### 7.2 `mcp__lucidshark__check_file()`
+
+```
+mcp__lucidshark__check_file(file_path="src/main.ts")
+```
+
+**Verify:**
+- [ ] Returns issues for `main.ts`
+- [ ] Check which domains run (does it run ALL domains including SCA?)
+- [ ] Returns domain_status, issues_by_domain, instructions
+- [ ] Response time reasonable for single-file check
+
+```
+mcp__lucidshark__check_file(file_path="src/security.ts")
+```
+
+**Verify:**
+- [ ] Returns security-related issues
+- [ ] SAST issues included
+- [ ] ESLint `no-eval` rule triggered
+
+### 7.3 `mcp__lucidshark__get_fix_instructions()`
+
+First, run a scan to get issue IDs:
+```
+mcp__lucidshark__scan(domains=["linting", "sast", "sca", "type_checking"], all_files=true)
+```
+
+Then for each type of issue, get fix instructions:
+
+```
+mcp__lucidshark__get_fix_instructions(issue_id="<eslint-issue-id>")
+mcp__lucidshark__get_fix_instructions(issue_id="<typescript-error-id>")
+mcp__lucidshark__get_fix_instructions(issue_id="<sast-issue-id>")
+mcp__lucidshark__get_fix_instructions(issue_id="<sca-issue-id>")
+```
+
+**Verify for each:**
+- [ ] Returns priority, fix_steps, suggested_fix
+- [ ] Returns documentation_url where applicable
+- [ ] Guidance is specific and actionable
+- [ ] ESLint fix instructions reference the correct rule
+- [ ] TypeScript fix instructions reference the TS error code
+
+**Test with nonexistent ID:**
+```
+mcp__lucidshark__get_fix_instructions(issue_id="nonexistent-id-12345")
+```
+
+**Verify:**
+- [ ] Returns "Issue not found" error
+
+### 7.4 `mcp__lucidshark__apply_fix()`
+
+```
+mcp__lucidshark__apply_fix(issue_id="<eslint-auto-fixable-issue-id>")
+```
+
+**Verify:**
+- [ ] Fix applied to file on disk
+- [ ] Check: does it fix ONLY the targeted issue or ALL auto-fixable issues in the file?
+- [ ] Return message indicates success
+
+**Test with non-linting issue (e.g., TypeScript error):**
+```
+mcp__lucidshark__apply_fix(issue_id="<typescript-error-id>")
+```
+
+**Verify:**
+- [ ] Correctly rejects with "Only linting issues support auto-fix" or similar
+
+**Test with SAST issue:**
+```
+mcp__lucidshark__apply_fix(issue_id="<sast-issue-id>")
+```
+
+**Verify:**
+- [ ] Correctly rejects
+
+Restore: `git checkout -- .`
+
+### 7.5 `mcp__lucidshark__get_status()`
+
+```
+mcp__lucidshark__get_status()
+```
+
+**Verify:**
+- [ ] Returns tool inventory
+- [ ] Returns scanner versions (eslint, tsc, prettier, jest versions)
+- [ ] Shows detected languages: javascript, typescript
+- [ ] Check: does `enabled_domains` show all configured domains?
+
+### 7.6 `mcp__lucidshark__get_help()`
+
+```
+mcp__lucidshark__get_help()
+```
+
+**Verify:**
+- [ ] Returns comprehensive documentation
+- [ ] Covers all domains, CLI flags, MCP tools
+- [ ] Mentions JavaScript/TypeScript support
+- [ ] Response size is reasonable (not truncated)
+
+### 7.7 `mcp__lucidshark__autoconfigure()`
+
+```
+mcp__lucidshark__autoconfigure()
+```
+
+**Verify:**
+- [ ] Returns step-by-step analysis instructions
+- [ ] Detects JavaScript/TypeScript languages
+- [ ] Detects Jest for testing
+- [ ] Detects ESLint for linting
+- [ ] Provides example configs for JS/TS projects
+
+### 7.8 `mcp__lucidshark__validate_config()`
+
+```
+mcp__lucidshark__validate_config()
+```
+
+**Verify:**
+- [ ] Reports valid config as valid
+- [ ] Check with intentionally broken configs (same as Phase 3.5)
+
+### 7.9 MCP Scan on Vitest Project
+
+Switch to Vitest project and verify MCP works with different toolchains:
+
+```bash
+cd "$TEST_WORKSPACE/test-project-vitest"
+```
+
+```
+mcp__lucidshark__scan(domains=["linting"], all_files=true)
+```
+
+**Verify:**
+- [ ] Biome used (not ESLint) per config
+
+```
+mcp__lucidshark__scan(domains=["testing", "coverage"], all_files=true)
+```
+
+**Verify:**
+- [ ] Vitest used (not Jest) per config
+- [ ] Vitest coverage generated
+
+### 7.10 MCP vs CLI Parity
+
+For each domain, compare MCP and CLI results on the Jest test project:
+
+| Domain | CLI Issues | MCP Issues | Match? |
+|--------|-----------|------------|--------|
+| linting (ESLint) | | | |
+| type_checking (tsc) | | | |
+| formatting (Prettier) | | | |
+| testing (Jest) | | | |
+| coverage (Istanbul) | | | |
+| duplication (Duplo) | | | |
+| sca (Trivy) | | | |
+| sast (OpenGrep) | | | |
+
+Document any discrepancies.
+
+---
+
+## Phase 8: Real-World Project Testing
+
+### 8.1 Express
+
+```bash
+cd "$TEST_WORKSPACE/express"
+```
+
+#### 8.1.1 Create lucidshark.yml for Express
+Use autoconfigure or manually create a config appropriate for Express (plain JS, ESLint, Mocha):
+
+```yaml
+version: 1
+languages: [javascript]
+domains:
+  linting:
+    enabled: true
+    tools: [eslint]
+  formatting:
+    enabled: true
+    tools: [prettier]
+  sca:
+    enabled: true
+    tools: [trivy]
+  sast:
+    enabled: true
+    tools: [opengrep]
+  duplication:
+    enabled: true
+    tools: [duplo]
+exclude_patterns:
+  - "node_modules/**"
+  - "test/**"
+```
+
+**Note:** Express uses plain JS (no TypeScript), so type_checking is not applicable. Express uses Mocha for tests (not supported by LucidShark), so testing/coverage are skipped.
+
+#### 8.1.2 Full Scan
+```bash
+lucidshark scan --all --all-files --format json > /tmp/express-scan.json
+```
+Also via MCP:
+```
+mcp__lucidshark__scan(domains=["all"], all_files=true)
+```
+
+**Verify:**
+- [ ] Scan completes without errors
+- [ ] Record issue counts per domain
+- [ ] No false positives on well-maintained code (especially linting)
+- [ ] SCA finds known CVEs if any in Express's deps
+- [ ] Record scan duration
+- [ ] Handles `.js` files correctly (no TypeScript errors reported for plain JS)
+
+### 8.2 Axios
+
+```bash
+cd "$TEST_WORKSPACE/axios"
+```
+
+#### 8.2.1 Full Scan (CLI + MCP)
+Create config and run full scan.
+
+**Verify:**
+- [ ] Scan completes
+- [ ] Handles mixed JS/TS codebase correctly
+- [ ] Jest tests detected (Axios uses Jest)
+- [ ] Record results
+
+### 8.3 Zustand
+
+```bash
+cd "$TEST_WORKSPACE/zustand"
+```
+
+#### 8.3.1 Full Scan
+Create config and run full scan.
+
+**Additional checks:**
+- [ ] Type checking works well (Zustand is well-typed)
+- [ ] Vitest detected (Zustand uses Vitest)
+- [ ] Handles monorepo/workspace structure if applicable
+- [ ] Record results
+
+### 8.4 Playwright
+
+```bash
+cd "$TEST_WORKSPACE/playwright"
+```
+
+#### 8.4.1 Linting + Type Checking Scan (Skip Testing)
+Playwright is large; focus on static analysis:
+
+```bash
+lucidshark scan --linting --type-checking --all-files --format json 2>&1 | head -200
+```
+
+**Additional checks:**
+- [ ] Large codebase doesn't cause timeout/OOM
+- [ ] Handles monorepo structure
+- [ ] Record scan duration and issue count
+
+---
+
+## Phase 9: Edge Case Testing
+
+### 9.1 Empty TypeScript File
+```bash
+cd "$TEST_WORKSPACE/test-project-jest"
+touch src/empty.ts
+lucidshark scan --linting --files src/empty.ts --format json
+lucidshark scan --type-checking --files src/empty.ts --format json
+```
+
+**Verify:**
+- [ ] No crash on empty file
+- [ ] Zero issues reported
+
+### 9.2 Syntax Error File
+```bash
+cat > src/broken.ts << 'EOF'
+function broken(
+    // missing closing paren and colon
+    console.log("hello")
+EOF
+lucidshark scan --linting --files src/broken.ts --format json
+lucidshark scan --type-checking --files src/broken.ts --format json
+```
+
+**Verify:**
+- [ ] Handles syntax errors gracefully
+- [ ] Reports syntax error as an issue
+- [ ] Does not crash
+
+### 9.3 JSX / TSX File
+```bash
+cat > src/component.tsx << 'EOF'
+import React from 'react';
+
+interface Props {
+  name: string;
+  count: number;
+}
+
+const MyComponent: React.FC<Props> = ({ name, count }) => {
+  const unused = "not used";
+  return (
+    <div>
+      <h1>Hello, {name}!</h1>
+      <p>Count: {count}</p>
+    </div>
+  );
+};
+
+export default MyComponent;
+EOF
+lucidshark scan --linting --files src/component.tsx --format json
+lucidshark scan --type-checking --files src/component.tsx --format json
+```
+
+**Verify:**
+- [ ] Handles `.tsx` files correctly
+- [ ] ESLint parses JSX without errors
+- [ ] TypeScript handles JSX (may need `jsx` compiler option)
+- [ ] Unused variable detected
+
+### 9.4 Very Large File
+```bash
+python3 -c "
+for i in range(10000):
+    print(f'export function func_{i}(x: number): number {{ return x + {i}; }}')
+" > src/large.ts
+lucidshark scan --linting --files src/large.ts --format json
+echo "Exit code: $?"
+```
+
+**Verify:**
+- [ ] Handles large file without OOM or timeout
+- [ ] Results returned in reasonable time
+
+### 9.5 Non-ASCII / Unicode File
+```bash
+cat > src/unicode.ts << 'EOF'
+/**
+ * Módulo con caracteres españoles y emojis
+ */
+
+export function grüße(name: string): string {
+  return `Hallo, ${name}! 👋`;
+}
+
+export const 変数 = "日本語テスト";
+EOF
+lucidshark scan --linting --files src/unicode.ts --format json
+```
+
+**Verify:**
+- [ ] Handles Unicode content correctly
+- [ ] No encoding errors
+- [ ] ESLint/TypeScript processes file without issues
+
+### 9.6 CommonJS vs ESM
+```bash
+cat > src/cjs.cjs << 'EOF'
+const fs = require('fs');
+const unused = 'test';
+module.exports = { hello: () => 'world' };
+EOF
+
+cat > src/esm.mjs << 'EOF'
+import fs from 'fs';
+const unused = 'test';
+export const hello = () => 'world';
+EOF
+
+lucidshark scan --linting --files src/cjs.cjs --format json
+lucidshark scan --linting --files src/esm.mjs --format json
+```
+
+**Verify:**
+- [ ] Handles `.cjs` (CommonJS) files
+- [ ] Handles `.mjs` (ESM) files
+- [ ] Correct module type detection
+- [ ] Unused variables detected in both
+
+### 9.7 JavaScript-Only Project (No TypeScript)
+```bash
+mkdir -p "$TEST_WORKSPACE/js-only"
+cd "$TEST_WORKSPACE/js-only"
+git init
+echo '{"name": "js-only"}' > package.json
+cat > index.js << 'EOF'
+const unused = 'test';
+function hello(name) {
+    return 'Hello, ' + name;
+}
+module.exports = { hello };
+EOF
+lucidshark scan --linting --all-files --format json
+echo "Exit code: $?"
+
+lucidshark scan --type-checking --all-files --format json
+echo "Exit code: $?"
+cd "$TEST_WORKSPACE/test-project-jest"
+```
+
+**Verify:**
+- [ ] ESLint works on plain JS files without TypeScript config
+- [ ] Type checking gracefully handles no `tsconfig.json`
+- [ ] Does NOT crash on JS-only project
+
+### 9.8 Mixed Language Project
+```bash
+mkdir -p "$TEST_WORKSPACE/mixed-lang"
+cd "$TEST_WORKSPACE/mixed-lang"
+git init
+mkdir src
+echo "import os" > src/app.py
+echo "console.log('hello')" > src/app.js
+echo "export const x: number = 1;" > src/app.ts
+echo "package main" > src/main.go
+lucidshark scan --linting --all-files --format json
+cd "$TEST_WORKSPACE/test-project-jest"
+```
+
+**Verify:**
+- [ ] Handles multiple languages
+- [ ] Runs appropriate linter for each (Ruff for Python, ESLint for JS/TS)
+- [ ] No cross-contamination of results
+
+### 9.9 Monorepo / Workspaces
+```bash
+mkdir -p "$TEST_WORKSPACE/monorepo/packages/api/src"
+mkdir -p "$TEST_WORKSPACE/monorepo/packages/web/src"
+cd "$TEST_WORKSPACE/monorepo"
+git init
+cat > package.json << 'EOF'
+{
+  "name": "monorepo",
+  "private": true,
+  "workspaces": ["packages/*"]
+}
+EOF
+echo '{"compilerOptions":{"strict":true},"include":["packages/*/src/**/*"]}' > tsconfig.json
+echo "export const x: string = 42;" > packages/api/src/index.ts
+echo "export const y: number = 'hello';" > packages/web/src/index.ts
+
+lucidshark scan --type-checking --all-files --format json
+echo "Exit code: $?"
+cd "$TEST_WORKSPACE/test-project-jest"
+```
+
+**Verify:**
+- [ ] TypeScript handles monorepo structure
+- [ ] Issues reported for both packages
+- [ ] File paths are correct (relative to root)
+
+Clean up edge case files:
+```bash
+cd "$TEST_WORKSPACE/test-project-jest"
+rm -f src/empty.ts src/broken.ts src/large.ts src/unicode.ts src/component.tsx src/cjs.cjs src/esm.mjs
+```
+
+---
+
+## Phase 10: Installation Method Comparison
+
+If you completed both install.sh (1.1) and pip (1.3) installations, compare them:
+
+### 10.1 Feature Parity
+Run a subset of scans with BOTH installation methods and compare:
+
+```bash
+# With install.sh binary:
+cd "$TEST_WORKSPACE/install-script-test"
+cp -r "$TEST_WORKSPACE/test-project-jest/src" .
+cp "$TEST_WORKSPACE/test-project-jest/lucidshark.yml" .
+cp "$TEST_WORKSPACE/test-project-jest/tsconfig.json" .
+cp -r "$TEST_WORKSPACE/test-project-jest/node_modules" . 2>/dev/null || true
+./lucidshark scan --linting --all-files --format json > /tmp/install-sh-results.json
+
+# With pip:
+source "$TEST_WORKSPACE/pip-install-test/bin/activate"
+cd "$TEST_WORKSPACE/test-project-jest"
+lucidshark scan --linting --all-files --format json > /tmp/pip-results.json
+```
+
+**Compare:**
+- [ ] Same issues detected?
+- [ ] Same output format?
+- [ ] Same exit codes?
+- [ ] Any behavioral differences?
+
+### 10.2 Tool Availability
+```bash
+# install.sh binary
+cd "$TEST_WORKSPACE/install-script-test"
+./lucidshark doctor
+
+# pip install
+cd "$TEST_WORKSPACE/test-project-jest"
+lucidshark doctor
+```
+
+**Compare which tools are bundled vs. required externally for each method.**
+**Note especially:** Does the binary find `node_modules/.bin/eslint`, `tsc`, `prettier`, `jest` correctly?
+
+---
+
+## Phase 11: Regression Checks for Known Bugs (from Python E2E)
+
+Check whether these previously reported bugs also affect JavaScript/TypeScript scanning:
+
+| Bug | Test | Status |
+|-----|------|--------|
+| BUG-001: `--formatting` CLI flag broken | Run `lucidshark scan --formatting --all-files` without config | |
+| BUG-002: `--all` without config only runs 2 domains | Run `lucidshark scan --all --all-files` without config, check executed_domains | |
+| BUG-003: formatter ghost issue | Run formatting scan, check for issue with tool output in file_path | |
+| BUG-004: Duration always 0ms | Check `duration_ms` in any scan metadata | |
+| BUG-005: `enabled_domains` empty without config | Check metadata when scanning without config | |
+| BUG-006: `scanners_used` empty for non-security | Check metadata when running linting only | |
+| BUG-007: MCP coverage "no data" after testing | Run `mcp__lucidshark__scan(domains=["testing", "coverage"])` | |
+| BUG-008: `apply_fix` fixes ALL issues | Fix one ESLint issue, check if other ESLint issues also fixed | |
+
+---
+
+## Phase 12: Tool-Specific Deep Dives
+
+### 12.1 ESLint Configuration Variants
+
+Test ESLint with different config formats:
+
+```bash
+cd "$TEST_WORKSPACE/test-project-jest"
+```
+
+#### 12.1.1 `.eslintrc.json` (already tested)
+Already in place — baseline results.
+
+#### 12.1.2 Flat Config (`eslint.config.js`)
+```bash
+mv .eslintrc.json .eslintrc.json.bak
+cat > eslint.config.js << 'EOF'
+import tseslint from '@typescript-eslint/eslint-plugin';
+
+export default [
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    plugins: { '@typescript-eslint': tseslint },
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'error',
+      'no-eval': 'error',
+    },
+  },
+];
+EOF
+lucidshark scan --linting --all-files --format json
+echo "Exit code: $?"
+rm eslint.config.js
+mv .eslintrc.json.bak .eslintrc.json
+```
+
+**Verify:**
+- [ ] LucidShark detects flat config
+- [ ] ESLint 9+ flat config format works
+- [ ] Same issues detected (or document differences)
+
+### 12.2 Biome vs ESLint Comparison
+
+Run linting on the same project with both tools:
+
+```bash
+cd "$TEST_WORKSPACE/test-project-jest"
+
+# ESLint (already configured)
+lucidshark scan --linting --all-files --format json > /tmp/eslint-results.json
+
+# Temporarily switch to Biome
+npm install --save-dev @biomejs/biome
+cat > biome.json << 'EOF'
+{ "linter": { "enabled": true, "rules": { "recommended": true } } }
+EOF
+# Edit lucidshark.yml to use biome instead of eslint
+sed 's/tools: \[eslint\]/tools: [biome]/' lucidshark.yml > lucidshark.yml.tmp && mv lucidshark.yml.tmp lucidshark.yml
+lucidshark scan --linting --all-files --format json > /tmp/biome-results.json
+# Restore
+sed 's/tools: \[biome\]/tools: [eslint]/' lucidshark.yml > lucidshark.yml.tmp && mv lucidshark.yml.tmp lucidshark.yml
+rm biome.json
+```
+
+**Compare:**
+- [ ] How many issues each finds
+- [ ] Rule ID formats (ESLint vs Biome)
+- [ ] Severity mapping consistency
+- [ ] Auto-fix behavior differences
+
+### 12.3 Prettier vs Biome Formatting
+
+Compare formatting tools:
+
+```bash
+# Prettier (already configured)
+lucidshark scan --formatting --all-files --format json > /tmp/prettier-results.json
+
+# Temporarily switch to Biome formatting
+sed 's/tools: \[prettier\]/tools: [biome]/' lucidshark.yml > lucidshark.yml.tmp && mv lucidshark.yml.tmp lucidshark.yml
+lucidshark scan --formatting --all-files --format json > /tmp/biome-fmt-results.json
+# Restore
+sed 's/tools: \[biome\]/tools: [prettier]/' lucidshark.yml > lucidshark.yml.tmp && mv lucidshark.yml.tmp lucidshark.yml
+```
+
+**Compare:**
+- [ ] Same files flagged as needing formatting?
+- [ ] Both fix modes work?
+
+### 12.4 Jest vs Vitest Comparison
+
+Compare test runners using the same test logic:
+
+From Phase 4.4 (Jest) and Phase 5.2 (Vitest), compare:
+- [ ] Test discovery behavior
+- [ ] Pass/fail reporting format
+- [ ] Coverage output compatibility
+- [ ] Timeout handling
+- [ ] File targeting behavior
+
+### 12.5 Node Module Resolution
+
+Verify LucidShark finds tools in `node_modules/.bin/`:
+
+```bash
+cd "$TEST_WORKSPACE/test-project-jest"
+
+# Check which binary paths are resolved
+lucidshark --debug scan --linting --all-files --format summary 2>&1 | grep -i "eslint\|node_modules\|binary\|command"
+lucidshark --debug scan --type-checking --all-files --format summary 2>&1 | grep -i "tsc\|typescript\|node_modules\|binary\|command"
+lucidshark --debug scan --formatting --all-files --format summary 2>&1 | grep -i "prettier\|node_modules\|binary\|command"
+lucidshark --debug scan --testing --all-files --format summary 2>&1 | grep -i "jest\|node_modules\|binary\|command"
+```
+
+**Verify:**
+- [ ] ESLint resolved from `node_modules/.bin/eslint`
+- [ ] tsc resolved from `node_modules/.bin/tsc`
+- [ ] Prettier resolved from `node_modules/.bin/prettier`
+- [ ] Jest resolved from `node_modules/.bin/jest`
+- [ ] Falls back to global if not in node_modules
+
+---
+
+## Phase 13: Playwright E2E Detection (Bonus)
+
+If the test project has Playwright configured:
+
+```bash
+cd "$TEST_WORKSPACE/test-project-jest"
+npm install --save-dev @playwright/test
+cat > playwright.config.ts << 'EOF'
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './e2e',
+  timeout: 30000,
+  reporter: 'json',
+});
+EOF
+mkdir -p e2e
+cat > e2e/example.spec.ts << 'EOF'
+import { test, expect } from '@playwright/test';
+
+test('basic test', async ({ page }) => {
+  expect(1 + 1).toBe(2);
+});
+EOF
+```
+
+Update `lucidshark.yml` to include Playwright:
+```yaml
+testing:
+  enabled: true
+  tools: [jest, playwright]
+```
+
+```bash
+lucidshark scan --testing --all-files --format json
+```
+
+**Verify:**
+- [ ] Playwright detected alongside Jest
+- [ ] Playwright tests attempted (may fail without browser install)
+- [ ] Document error handling if browsers not installed
+- [ ] Jest tests still run correctly alongside Playwright
+
+Clean up:
+```bash
+rm -rf e2e playwright.config.ts
+# Restore lucidshark.yml testing to just jest
+```
+
+---
+
+## Test Report Template
+
+Write the report with this structure:
+
+```markdown
+# LucidShark JavaScript/TypeScript Support — E2E Test Report
+
+**Date:** YYYY-MM-DD
+**Tester:** Claude (model version)
+**LucidShark Version:** (from `lucidshark --version`)
+**Installation Methods Tested:** install.sh, pip
+**Node.js Version:** (from `node --version`)
+**npm Version:** (from `npm --version`)
+**Platform:** (from `uname -a`)
+**Tool Versions:** ESLint X.Y.Z, Biome X.Y.Z, TypeScript X.Y.Z, Prettier X.Y.Z, Jest X.Y.Z, Vitest X.Y.Z, OpenGrep X.Y.Z, Trivy X.Y.Z, Duplo X.Y.Z
+
+---
+
+## Executive Summary
+(2-3 paragraph overview: what works, what's broken, overall assessment)
+
+## Installation Testing Results
+### install.sh
+### pip
+### Source Install
+### Comparison
+
+## Init & Configuration Results
+### lucidshark init
+### Autoconfigure
+### Config Validation
+
+## CLI Scan Results — Jest Project
+### Linting (ESLint)
+### Type Checking (TypeScript / tsc)
+### Formatting (Prettier)
+### Testing (Jest)
+### Coverage (Istanbul / NYC)
+### Duplication (Duplo)
+### SAST (OpenGrep)
+### SCA (Trivy)
+
+## CLI Scan Results — Vitest Project
+### Linting (Biome)
+### Testing (Vitest)
+### Coverage (Vitest Coverage)
+### Full Scan Comparison
+
+## CLI Scan Results — Karma Project
+### Testing (Karma)
+
+## MCP Tool Results
+### scan()
+### check_file()
+### get_fix_instructions()
+### apply_fix()
+### get_status()
+### get_help()
+### autoconfigure()
+### validate_config()
+
+## MCP vs CLI Parity
+(Table comparing issue counts and behavior differences)
+
+## Real-World Project Results
+### Express (Plain JS)
+### Axios (JS/TS, Jest)
+### Zustand (TypeScript, Vitest)
+### Playwright (TypeScript, Large Monorepo)
+
+## Edge Case Results
+### Empty File
+### Syntax Error
+### JSX/TSX
+### Large File
+### Unicode
+### CommonJS vs ESM
+### JS-Only Project
+### Mixed Language
+### Monorepo
+
+## Tool-Specific Results
+### ESLint Config Variants
+### Biome vs ESLint Comparison
+### Prettier vs Biome Formatting
+### Jest vs Vitest Comparison
+### Node Module Resolution
+
+## Output Format Results
+(json, summary, table, ai, sarif)
+
+## Regression Check Results
+(Status of each previously reported bug)
+
+## New Bugs Found
+### BUG-XXX: Title
+**Severity:** Critical/Moderate/Minor
+**Reproducibility:** X%
+**Description:** ...
+**Expected:** ...
+**Actual:** ...
+
+## New UX Issues Found
+
+## Missing Tool Support
+(Document any JS/TS ecosystem tools not currently supported that would improve coverage)
+
+## Recommendations (Priority Order)
+### P0 — Must Fix
+### P1 — Should Fix
+### P2 — Nice to Have
+
+## Conclusion
+(Overall assessment with score out of 10)
+```
+
+---
+
+## Important Notes for the Tester
+
+1. **Execute every command.** Do not skip steps even if you think you know the outcome.
+2. **Capture actual output.** Include relevant snippets in the report, not just pass/fail.
+3. **Record exit codes** for every `lucidshark scan` command.
+4. **Measure wall-clock time** for scans on large projects (Playwright, Axios).
+5. **Compare MCP vs CLI** results for the same operation — discrepancies are bugs.
+6. **Check for regressions** against all previously reported bugs (BUG-001 through BUG-008).
+7. **Test BOTH with and without `lucidshark.yml`** to verify config-less experience.
+8. **Clean up** between tests that modify files (`git checkout -- .`).
+9. **If disk space is limited**, skip Trivy/SCA tests and note it.
+10. **If a tool is not installed** (e.g., opengrep, duplo, biome), document it — don't skip the test.
+11. **Verify node_modules resolution** — JS/TS tools must be found in local `node_modules/.bin/` first.
+12. **Test both ESLint and Biome** — they are the two supported linters, projects use one or the other.
+13. **Test both Jest and Vitest** — they are the two main supported test runners, covering ~85% of JS/TS projects.
+14. **Pay attention to `.js` vs `.ts` handling** — LucidShark must handle both correctly.
+15. **Document Karma behavior** — Karma requires browser binaries which may not be available in CI.

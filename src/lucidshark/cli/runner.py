@@ -188,6 +188,7 @@ class CLIRunner:
                 getattr(args, "testing", False),
                 getattr(args, "coverage", False),
                 getattr(args, "duplication", False),
+                getattr(args, "formatting", False),
                 getattr(args, "all", False),
             ]
         )
@@ -215,7 +216,7 @@ class CLIRunner:
                 "All domains in config are disabled. Enable domains in lucidshark.yml or use CLI flags:"
             )
             print(
-                "  lucidshark scan --sca, --sast, --iac, --linting, --type-checking, or --all"
+                "  lucidshark scan --sca, --sast, --iac, --linting, --type-checking, --formatting, --testing, --coverage, --duplication, or --all"
             )
         else:
             print("No lucidshark.yml found and no scan domains specified.")

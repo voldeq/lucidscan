@@ -198,6 +198,8 @@ class ScanContext:
     duplication_result: Any = None
     # Tool skips recorded during scan execution
     tool_skips: List["ToolSkipInfo"] = field(default_factory=list)
+    # Tools executed during domain runner execution (for scanners_used metadata)
+    tools_executed: List[Dict[str, Any]] = field(default_factory=list)
     # True if --all-files was used (full project scan vs incremental)
     all_files: bool = False
 

@@ -460,6 +460,15 @@ class DomainRunner:
                 else:
                     issues.extend(plugin.lint(context))
 
+                context.tools_executed.append(
+                    {
+                        "name": name,
+                        "domains": ["linting"],
+                        "success": True,
+                        "error": None,
+                    }
+                )
+
             except Exception as e:
                 LOGGER.error(f"Linter {name} failed: {e}")
 
@@ -531,6 +540,15 @@ class DomainRunner:
                 else:
                     issues.extend(plugin.check(context))
 
+                context.tools_executed.append(
+                    {
+                        "name": name,
+                        "domains": ["formatting"],
+                        "success": True,
+                        "error": None,
+                    }
+                )
+
             except Exception as e:
                 LOGGER.error(f"Formatter {name} failed: {e}")
 
@@ -593,6 +611,15 @@ class DomainRunner:
                 self._log("info", f"Running type checker: {name}")
                 plugin = plugin_class(project_root=self.project_root)
                 issues.extend(plugin.check(context))
+
+                context.tools_executed.append(
+                    {
+                        "name": name,
+                        "domains": ["type_checking"],
+                        "success": True,
+                        "error": None,
+                    }
+                )
 
             except Exception as e:
                 LOGGER.error(f"Type checker {name} failed: {e}")
@@ -1018,6 +1045,15 @@ class DomainRunner:
 
                     issues.extend(result.issues)
 
+                    context.tools_executed.append(
+                        {
+                            "name": name,
+                            "domains": ["testing"],
+                            "success": True,
+                            "error": None,
+                        }
+                    )
+
                     # Create summary issue if tests failed
                     if not result.success:
                         issues.append(
@@ -1189,6 +1225,15 @@ class DomainRunner:
 
                     issues.extend(result.issues)
 
+                    context.tools_executed.append(
+                        {
+                            "name": name,
+                            "domains": ["coverage"],
+                            "success": True,
+                            "error": None,
+                        }
+                    )
+
                 except FileNotFoundError:
                     LOGGER.debug(f"Coverage plugin {name} not available")
                 except Exception as e:
@@ -1271,6 +1316,15 @@ class DomainRunner:
                 context.duplication_result = result
 
                 issues.extend(result.issues)
+
+                context.tools_executed.append(
+                    {
+                        "name": name,
+                        "domains": ["duplication"],
+                        "success": True,
+                        "error": None,
+                    }
+                )
 
             except FileNotFoundError:
                 LOGGER.debug(f"Duplication plugin {name} not available")
