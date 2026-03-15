@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -18,7 +17,6 @@ from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
     ScanContext,
     Severity,
-    SkipReason,
     ToolDomain,
     UnifiedIssue,
 )
@@ -100,39 +98,8 @@ class KarmaRunner(TestRunnerPlugin):
 
             LOGGER.debug(f"Running: {' '.join(cmd)}")
 
-            try:
-                import os
-
-                full_env = os.environ.copy()
-                full_env.update(env)
-
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    encoding="utf-8",
-                    errors="replace",
-                    cwd=str(context.project_root),
-                    timeout=600,  # 10 minute timeout for test runs
-                    env=full_env,
-                )
-            except subprocess.TimeoutExpired:
-                LOGGER.warning("Karma timed out after 600 seconds")
-                context.record_skip(
-                    tool_name=self.name,
-                    domain=ToolDomain.TESTING,
-                    reason=SkipReason.EXECUTION_FAILED,
-                    message="Karma timed out after 600 seconds",
-                )
-                return TestResult()
-            except Exception as e:
-                LOGGER.error(f"Failed to run Karma: {e}")
-                context.record_skip(
-                    tool_name=self.name,
-                    domain=ToolDomain.TESTING,
-                    reason=SkipReason.EXECUTION_FAILED,
-                    message=f"Failed to run Karma: {e}",
-                )
+            result = self._run_test_subprocess(cmd, context, env=env)
+            if result is None:
                 return TestResult()
 
             # Parse JSON report if karma-json-reporter was used
@@ -427,20 +394,7 @@ class KarmaRunner(TestRunnerPlugin):
 
         return None, None
 
-    def _truncate(self, text: str, max_length: int) -> str:
-        """Truncate text to max length.
-
-        Args:
-            text: Text to truncate.
-            max_length: Maximum length.
-
-        Returns:
-            Truncated text.
-        """
-        text = text.replace("\n", " ").strip()
-        if len(text) <= max_length:
-            return text
-        return text[: max_length - 3] + "..."
+    # _truncate inherited from TestRunnerPlugin base class
 
     def _generate_issue_id(self, full_name: str, message: str) -> str:
         """Generate deterministic issue ID.

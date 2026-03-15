@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -20,7 +19,6 @@ from lucidshark.core.models import (
     ToolDomain,
     UnifiedIssue,
 )
-from lucidshark.core.subprocess_runner import run_with_streaming
 from lucidshark.plugins.linters.base import LinterPlugin, FixResult
 from lucidshark.plugins.utils import ensure_python_binary, get_cli_version
 
@@ -145,6 +143,23 @@ class RuffLinter(LinterPlugin):
             "  uv add --dev ruff",
         )
 
+    def _resolve_ruff_paths(self, context: ScanContext) -> Optional[List[str]]:
+        """Resolve and filter paths for Ruff commands.
+
+        Returns:
+            List of path strings, or None if no applicable files.
+        """
+        if context.paths:
+            paths_to_use = context.paths
+            if context.ignore_patterns is not None:
+                paths_to_use = [
+                    p
+                    for p in paths_to_use
+                    if not context.ignore_patterns.matches(p, context.project_root)
+                ]
+            return self._filter_paths(paths_to_use, context.project_root) or None
+        return ["."]
+
     def lint(self, context: ScanContext) -> List[UnifiedIssue]:
         """Run Ruff linting.
 
@@ -154,42 +169,20 @@ class RuffLinter(LinterPlugin):
         Returns:
             List of linting issues.
         """
-        try:
-            binary = self.ensure_binary()
-        except FileNotFoundError as e:
-            LOGGER.warning(str(e))
+        binary = self._ensure_binary_safe()
+        if binary is None:
             context.record_skip(
                 tool_name=self.name,
                 domain=ToolDomain.LINTING,
                 reason=SkipReason.TOOL_NOT_INSTALLED,
-                message=str(e),
+                message="Ruff is not installed",
                 suggestion="pip install ruff",
             )
             return []
 
-        # Build command
-        cmd = [
-            str(binary),
-            "check",
-            "--output-format",
-            "json",
-        ]
+        cmd = [str(binary), "check", "--output-format", "json"]
 
-        # Filter and add paths to check
-        # Only include Python files; also drop any path that matches ignore patterns
-        if context.paths:
-            paths_to_use = context.paths
-            if context.ignore_patterns is not None:
-                paths_to_use = [
-                    p
-                    for p in paths_to_use
-                    if not context.ignore_patterns.matches(p, context.project_root)
-                ]
-            paths = self._filter_paths(paths_to_use, context.project_root)
-        else:
-            paths = ["."]
-
-        # If no valid paths after filtering, skip linting
+        paths = self._resolve_ruff_paths(context)
         if not paths:
             LOGGER.debug("No Python files to lint")
             context.record_skip(
@@ -202,43 +195,16 @@ class RuffLinter(LinterPlugin):
 
         cmd.extend(paths)
 
-        # Add exclude patterns using --extend-exclude to preserve Ruff's defaults
-        # (--exclude would replace all defaults like .git, .venv, __pycache__, etc.)
         for pattern in self._get_ruff_exclude_patterns(context):
             cmd.extend(["--extend-exclude", pattern])
 
-        # Run Ruff
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
-        try:
-            result = run_with_streaming(
-                cmd=cmd,
-                cwd=context.project_root,
-                tool_name="ruff",
-                stream_handler=context.stream_handler,
-                timeout=120,
-            )
-        except subprocess.TimeoutExpired:
-            LOGGER.warning("Ruff lint timed out after 120 seconds")
-            context.record_skip(
-                tool_name=self.name,
-                domain=ToolDomain.LINTING,
-                reason=SkipReason.EXECUTION_FAILED,
-                message="Ruff lint timed out after 120 seconds",
-            )
-            return []
-        except Exception as e:
-            LOGGER.error(f"Failed to run Ruff: {e}")
-            context.record_skip(
-                tool_name=self.name,
-                domain=ToolDomain.LINTING,
-                reason=SkipReason.EXECUTION_FAILED,
-                message=f"Failed to run Ruff: {e}",
-            )
+        stdout = self._run_linter_command(cmd, context, tool_label="ruff")
+        if stdout is None:
             return []
 
-        # Parse output
-        issues = self._parse_output(result.stdout, context.project_root)
+        issues = self._parse_output(stdout, context.project_root)
 
         LOGGER.info(f"Ruff found {len(issues)} issues")
         return issues
@@ -252,80 +218,32 @@ class RuffLinter(LinterPlugin):
         Returns:
             FixResult with statistics.
         """
-        try:
-            binary = self.ensure_binary()
-        except FileNotFoundError as e:
-            LOGGER.warning(str(e))
+        binary = self._ensure_binary_safe()
+        if binary is None:
             return FixResult()
 
-        # Run without fix to count issues first
         pre_issues = self.lint(context)
 
-        # Build fix command
-        cmd = [
-            str(binary),
-            "check",
-            "--fix",
-            "--output-format",
-            "json",
-        ]
+        cmd = [str(binary), "check", "--fix", "--output-format", "json"]
 
-        # Filter and add paths (same ignore filtering as lint)
-        if context.paths:
-            paths_to_use = context.paths
-            if context.ignore_patterns is not None:
-                paths_to_use = [
-                    p
-                    for p in paths_to_use
-                    if not context.ignore_patterns.matches(p, context.project_root)
-                ]
-            paths = self._filter_paths(paths_to_use, context.project_root)
-        else:
-            paths = ["."]
-
-        # If no valid paths after filtering, skip fix
+        paths = self._resolve_ruff_paths(context)
         if not paths:
             LOGGER.debug("No Python files to fix")
             return FixResult()
 
         cmd.extend(paths)
 
-        # Add exclude patterns using --extend-exclude to preserve Ruff's defaults
         for pattern in self._get_ruff_exclude_patterns(context):
             cmd.extend(["--extend-exclude", pattern])
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
-        try:
-            result = run_with_streaming(
-                cmd=cmd,
-                cwd=context.project_root,
-                tool_name="ruff-fix",
-                stream_handler=context.stream_handler,
-                timeout=120,
-            )
-        except subprocess.TimeoutExpired:
-            LOGGER.warning("Ruff fix timed out after 120 seconds")
-            return FixResult()
-        except Exception as e:
-            LOGGER.error(f"Failed to run Ruff fix: {e}")
+        stdout = self._run_linter_command(cmd, context, tool_label="ruff-fix")
+        if stdout is None:
             return FixResult()
 
-        # Parse remaining issues
-        post_issues = self._parse_output(result.stdout, context.project_root)
-
-        # Calculate stats
-        files_modified = len(
-            set(
-                str(issue.file_path) for issue in pre_issues if issue not in post_issues
-            )
-        )
-
-        return FixResult(
-            files_modified=files_modified,
-            issues_fixed=len(pre_issues) - len(post_issues),
-            issues_remaining=len(post_issues),
-        )
+        post_issues = self._parse_output(stdout, context.project_root)
+        return self._calculate_fix_stats(pre_issues, post_issues)
 
     @staticmethod
     def _simplify_exclude_pattern(pattern: str) -> str:

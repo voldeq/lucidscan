@@ -22,7 +22,7 @@ LucidShark supports 15 programming languages with varying levels of tool coverag
 | **Security (SCA)** | Trivy | All languages with package manifests |
 | **Security (IaC)** | Checkov | Language-agnostic (Terraform, K8s, CloudFormation, etc.) |
 | **Security (Container)** | Trivy | Language-agnostic (Dockerfile, container images) |
-| **Testing** | [pytest](python.md#testing), [Jest](javascript.md#testing), [Vitest](javascript.md#testing), [Karma](javascript.md#testing), [Playwright](javascript.md#testing), [Maven/Gradle](java.md#testing), [cargo test](rust.md#testing), [go test](go.md#testing) | Python, JS/TS, Java, Kotlin, Rust, Go |
+| **Testing** | [pytest](python.md#testing), [Jest](javascript.md#testing), [Vitest](javascript.md#testing), [Mocha](javascript.md#testing), [Karma](javascript.md#testing), [Playwright](javascript.md#testing), [Maven/Gradle](java.md#testing), [cargo test](rust.md#testing), [go test](go.md#testing) | Python, JS/TS, Java, Kotlin, Rust, Go |
 | **Coverage** | [coverage.py](python.md#coverage), [Istanbul](javascript.md#coverage), [Vitest](javascript.md#coverage), [JaCoCo](java.md#coverage), [Tarpaulin](rust.md#coverage), [go cover](go.md#coverage) | Python, JS/TS, Java, Kotlin, Rust, Go |
 | **Duplication** | Duplo | Python, JS/TS, Java, Go, Rust, C, C++, C#, Ruby, Erlang, VB, HTML, CSS |
 

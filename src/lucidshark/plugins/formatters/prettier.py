@@ -114,9 +114,14 @@ class PrettierFormatter(FormatterPlugin):
             return []
 
         # Parse output: prettier outputs file paths that aren't formatted
+        # Prettier v3+ writes [warn] lines to stderr, not stdout
         issues = []
-        stdout = result.stdout.strip() if result.stdout else ""
-        for line in stdout.splitlines():
+        output_lines: list[str] = []
+        if result.stdout:
+            output_lines.extend(result.stdout.strip().splitlines())
+        if result.stderr:
+            output_lines.extend(result.stderr.strip().splitlines())
+        for line in output_lines:
             line = line.strip()
             if not line:
                 continue

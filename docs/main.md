@@ -89,7 +89,7 @@ A single configuration file controls:
 | **Formatting** | Ruff Format, Prettier, rustfmt, google-java-format, gofmt | Code formatting, whitespace style |
 | **Type Checking** | mypy, TypeScript, Pyright, SpotBugs (managed), cargo check, go vet | Type errors, static analysis bugs |
 | **Security** | Trivy, OpenGrep, gosec (Go), Checkov | Vulnerabilities, misconfigurations |
-| **Testing** | pytest, Jest, Vitest, Maven/Gradle, cargo test, go test | Test failures |
+| **Testing** | pytest, Jest, Vitest, Mocha, Maven/Gradle, cargo test, go test | Test failures |
 | **Coverage** | coverage.py, Istanbul, Vitest, JaCoCo, Tarpaulin, go cover | Coverage gaps |
 | **Duplication** | Duplo | Code clones, duplicate blocks |
 
@@ -123,7 +123,7 @@ LucidShark focuses on orchestration and integration, not reimplementing tools:
 LucidShark does **not** implement:
 - Custom linting rules (uses ESLint, Ruff, etc.)
 - Custom security scanning (uses Trivy, OpenGrep, gosec, etc.)
-- Custom test runners (uses pytest, Jest, Vitest, etc.)
+- Custom test runners (uses pytest, Jest, Vitest, Mocha, etc.)
 
 It orchestrates existing best-in-class tools.
 
@@ -366,7 +366,7 @@ LucidShark scans only changed files (uncommitted changes) by default. Use `--all
 | **SAST** | ✅ Full | OpenGrep and gosec scan only changed/specified files |
 | **SCA** | ❌ None | Trivy dependency scan always project-wide |
 | **IaC** | ❌ None | Checkov always project-wide |
-| **Testing** | ⚠️ Partial | pytest/Jest/Vitest/Playwright yes; Karma/Maven/cargo test project-wide; go test runs package-wide (`./...`) |
+| **Testing** | ⚠️ Partial | pytest/Jest/Vitest/Mocha/Playwright yes; Karma/Maven/cargo test project-wide; go test runs package-wide (`./...`) |
 | **Coverage** | ⚠️ Partial | Parses existing data, filter output; Tarpaulin/JaCoCo always project-wide; go cover parses project-wide coverprofile |
 
 **Default workflow (partial scans):**
@@ -1198,7 +1198,7 @@ The MCP server sends progress notifications during scans, reporting domain start
 | SAST | ✅ Yes | OpenGrep supports file-level scanning |
 | SCA | ❌ No | Trivy dependency scan always project-wide |
 | IaC | ❌ No | Checkov always project-wide |
-| Testing | ⚠️ Partial | pytest/Jest/Vitest/Playwright yes; Karma/Maven/cargo test no; go test runs package-wide (`./...`) |
+| Testing | ⚠️ Partial | pytest/Jest/Vitest/Mocha/Playwright yes; Karma/Maven/cargo test no; go test runs package-wide (`./...`) |
 | Coverage | ⚠️ Partial | Parses existing data, filter output; Tarpaulin/JaCoCo always project-wide; go cover parses project-wide coverprofile |
 | Duplication | ❌ No | Duplo always scans project-wide for cross-file duplicates |
 
@@ -1427,7 +1427,7 @@ LucidShark scans only changed files by default, enabling fast feedback loops:
 | **SAST** | OpenGrep | ✅ Supports file args |
 | **SCA** | Trivy | ❌ Project-wide by design |
 | **IaC** | Checkov | ❌ Project-wide by design |
-| **Testing** | pytest, Jest, Vitest, Playwright | ✅ Support file args |
+| **Testing** | pytest, Jest, Vitest, Mocha, Playwright | ✅ Support file args |
 | **Testing** | Karma, Maven/Gradle, cargo test | ❌ Config-based / project-wide |
 | **Testing** | go test | ❌ No (package-wide) |
 | **Coverage** | coverage.py, Istanbul, Vitest coverage | ⚠️ Parse data, filter output |
@@ -1730,7 +1730,7 @@ Formatting tools check code style and whitespace conventions. Ruff Format, Prett
 | Tarpaulin | Rust | cargo install | ❌ No (Cargo workspace) |
 | go cover | Go | system (ships with Go) | ❌ No (project-wide) |
 
-**Note:** Coverage plugins only parse existing coverage data files — they never run tests. Most test runners (pytest, jest, vitest, maven, go test) include coverage instrumentation automatically. Others (cargo test, karma, playwright) require separate coverage tools or config. If no coverage data is found, a `no_coverage_data` error is returned. For partial scanning, coverage output can be filtered to show only changed files.
+**Note:** Coverage plugins only parse existing coverage data files — they never run tests. Most test runners (pytest, jest, vitest, maven, go test) include coverage instrumentation automatically. Mocha wraps with NYC when available. Others (cargo test, karma, playwright) require separate coverage tools or config. If no coverage data is found, a `no_coverage_data` error is returned. For partial scanning, coverage output can be filtered to show only changed files.
 
 **Java Coverage (JaCoCo):** For Java projects with integration tests that require Docker or external services, use `extra_args` to skip them:
 ```yaml

@@ -714,12 +714,22 @@ echo "Exit code: $?"
 
 #### 4.4.2 CLI — Testing + Coverage Together
 ```bash
+# Clean slate — remove any pre-existing coverage data
+rm -f .coverage
+rm -rf htmlcov
 lucidshark scan --testing --coverage --all-files --format json
+echo "Exit code: $?"
+# Prove the testing step produced coverage data
+ls -la .coverage
+echo ".coverage file exists: $?"
+python3 -c "import sqlite3, os; assert os.path.exists('.coverage'), 'No .coverage file'; db=sqlite3.connect('.coverage'); print('Coverage DB tables:', db.execute('SELECT name FROM sqlite_master WHERE type=\"table\"').fetchall())"
 ```
 
 **Verify:**
-- [ ] Tests run
-- [ ] Coverage percentage calculated
+- [ ] `.coverage` file exists on disk after scan (verified with `ls`)
+- [ ] Coverage data is valid (SQLite database with coverage tables)
+- [ ] Tests run (pass/fail counts reported)
+- [ ] Coverage percentage calculated and non-zero
 - [ ] Coverage threshold comparison works (below 80% → issue)
 - [ ] Gap percentage reported
 
@@ -727,12 +737,20 @@ lucidshark scan --testing --coverage --all-files --format json
 
 #### 4.5.1 CLI — Coverage Without Testing (Should Error)
 ```bash
+# Clean slate — ensure no leftover coverage data from previous runs
+rm -f .coverage
+rm -rf htmlcov
 lucidshark scan --coverage --all-files --format json
 echo "Exit code: $?"
+ls .coverage 2>/dev/null
+echo ".coverage exists after coverage-only scan: $?"
 ```
 
 **Verify:**
+- [ ] No `.coverage` file produced (testing didn't run)
 - [ ] Reports error or "no coverage data" (coverage requires testing to run first)
+- [ ] Exit code is non-zero
+- [ ] Does not crash
 
 #### 4.5.2 CLI — Coverage Threshold
 Run with different thresholds:
@@ -1022,6 +1040,24 @@ For EACH call, verify:
 - [ ] Issues returned with proper structure (file_path, line, severity, message)
 - [ ] No errors or crashes
 - [ ] Results consistent with CLI results for same domain
+
+**Additional verification for testing + coverage MCP call:**
+```bash
+# Verify coverage data was produced by the MCP scan
+rm -f .coverage && rm -rf htmlcov
+```
+```
+mcp__lucidshark__scan(domains=["testing", "coverage"], all_files=true)
+```
+```bash
+ls -la .coverage
+echo ".coverage file exists after MCP scan: $?"
+```
+
+**Verify:**
+- [ ] `.coverage` file exists on disk after MCP scan
+- [ ] Coverage percentage in MCP result matches CLI result
+- [ ] Coverage data was produced by the scan itself, not leftover from a previous run
 
 #### 5.1.2 Scan — All Domains
 ```

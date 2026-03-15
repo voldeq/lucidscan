@@ -115,7 +115,10 @@ class TestValidateConfig:
         assert "Unknown scanner domain" in warnings[0].message
 
     def test_suggests_domain_typo_fix(self) -> None:
-        data = {"version": 1, "scanners": {"sac": {"enabled": True}}}  # typo: should be sca
+        data = {
+            "version": 1,
+            "scanners": {"sac": {"enabled": True}},
+        }  # typo: should be sca
         warnings = validate_config(data, source="test.yml")
         assert len(warnings) == 1
         assert warnings[0].suggestion == "sca"
@@ -144,7 +147,7 @@ class TestValidateConfig:
                     "severity": ["HIGH"],  # plugin-specific
                     "custom_option": "value",  # plugin-specific
                 },
-            }
+            },
         }
         warnings = validate_config(data, source="test.yml")
         assert len(warnings) == 0
@@ -345,7 +348,7 @@ class TestValidateConfigFailOnDict:
                 "linting": "error",
                 "security": "high",
                 "testing": "any",
-            }
+            },
         }
         warnings = validate_config(data, source="test.yml")
         assert len(warnings) == 0
@@ -419,7 +422,7 @@ class TestValidateConfigPipeline:
         """Test warning for non-numeric coverage threshold."""
         data = {
             "version": 1,
-            "pipeline": {"coverage": {"tools": ["coverage_py"], "threshold": "80%"}}
+            "pipeline": {"coverage": {"tools": ["coverage_py"], "threshold": "80%"}},
         }
         warnings = validate_config(data, source="test.yml")
         assert any("threshold" in w.message and "number" in w.message for w in warnings)
@@ -430,7 +433,7 @@ class TestValidateConfigPipeline:
             "version": 1,
             "pipeline": {
                 "linting": {"tools": [{"name": "ruff"}], "exclude": ["gen/**"]}
-            }
+            },
         }
         warnings = validate_config(data, source="test.yml")
         assert not any(
@@ -444,7 +447,7 @@ class TestValidateConfigPipeline:
             "version": 1,
             "pipeline": {
                 "type_checking": {"tools": [{"name": "mypy"}], "exclude": ["stubs/**"]}
-            }
+            },
         }
         warnings = validate_config(data, source="test.yml")
         assert not any(
@@ -458,7 +461,7 @@ class TestValidateConfigPipeline:
             "version": 1,
             "pipeline": {
                 "linting": {"tools": [{"name": "ruff"}], "exclude": "not-a-list"}
-            }
+            },
         }
         warnings = validate_config(data, source="test.yml")
         assert any(
@@ -477,7 +480,7 @@ class TestValidateConfigCommand:
             "version": 1,
             "pipeline": {
                 "testing": {"tools": [{"name": "pytest"}], "command": "make test"}
-            }
+            },
         }
         warnings = validate_config(data, source="test.yml")
         assert not any(
@@ -490,7 +493,7 @@ class TestValidateConfigCommand:
             "version": 1,
             "pipeline": {
                 "testing": {"tools": [{"name": "pytest"}], "post_command": "make clean"}
-            }
+            },
         }
         warnings = validate_config(data, source="test.yml")
         assert not any(
@@ -507,7 +510,7 @@ class TestValidateConfigCommand:
                     "command": "npm test",
                     "post_command": "npm run cleanup",
                 }
-            }
+            },
         }
         warnings = validate_config(data, source="test.yml")
         assert not any("Unknown" in w.message for w in warnings)
@@ -516,7 +519,7 @@ class TestValidateConfigCommand:
         """Test warning for non-string command."""
         data = {
             "version": 1,
-            "pipeline": {"testing": {"tools": [{"name": "pytest"}], "command": 123}}
+            "pipeline": {"testing": {"tools": [{"name": "pytest"}], "command": 123}},
         }
         warnings = validate_config(data, source="test.yml")
         assert any(
@@ -534,7 +537,7 @@ class TestValidateConfigCommand:
                     "tools": [{"name": "pytest"}],
                     "post_command": ["cmd1", "cmd2"],
                 }
-            }
+            },
         }
         warnings = validate_config(data, source="test.yml")
         assert any(
@@ -550,7 +553,7 @@ class TestValidateConfigCommand:
                 "version": 1,
                 "pipeline": {
                     domain: {"tools": [{"name": "some_tool"}], "command": "make check"}
-                }
+                },
             }
             warnings = validate_config(data, source="test.yml")
             assert not any(
@@ -628,7 +631,10 @@ class TestValidateConfigSecurity:
 
     def test_warns_on_missing_tool_name(self) -> None:
         """Test warning for security tool missing name."""
-        data = {"version": 1, "pipeline": {"security": {"tools": [{"domains": ["sca"]}]}}}
+        data = {
+            "version": 1,
+            "pipeline": {"security": {"tools": [{"domains": ["sca"]}]}},
+        }
         warnings = validate_config(data, source="test.yml")
         assert any("must have a 'name'" in w.message for w in warnings)
 
@@ -648,7 +654,7 @@ class TestValidateConfigSecurity:
                     "tools": [{"name": "trivy", "domains": ["sca"]}],
                     "exclude": ["tests/**"],
                 }
-            }
+            },
         }
         warnings = validate_config(data, source="test.yml")
         unknown_warnings = [
@@ -667,7 +673,7 @@ class TestValidateConfigSecurity:
                     "tools": [{"name": "trivy", "domains": ["sca"]}],
                     "exclude": "not-a-list",
                 }
-            }
+            },
         }
         warnings = validate_config(data, source="test.yml")
         assert any(
@@ -797,7 +803,7 @@ class TestValidateConfigIgnoreIssues:
             "version": 1,
             "ignore_issues": [
                 {"rule_id": "E501", "reason": "accepted", "expires": "2026-12-31"}
-            ]
+            ],
         }
         warnings = validate_config(data, source="test.yml")
         assert len(warnings) == 0
@@ -820,19 +826,28 @@ class TestValidateConfigIgnoreIssues:
         )
 
     def test_warns_on_non_string_expires(self) -> None:
-        data = {"version": 1, "ignore_issues": [{"rule_id": "E501", "expires": 20261231}]}
+        data = {
+            "version": 1,
+            "ignore_issues": [{"rule_id": "E501", "expires": 20261231}],
+        }
         warnings = validate_config(data, source="test.yml")
         assert any(
             "expires" in w.message and "must be a string" in w.message for w in warnings
         )
 
     def test_warns_on_invalid_expires_format(self) -> None:
-        data = {"version": 1, "ignore_issues": [{"rule_id": "E501", "expires": "12/31/2026"}]}
+        data = {
+            "version": 1,
+            "ignore_issues": [{"rule_id": "E501", "expires": "12/31/2026"}],
+        }
         warnings = validate_config(data, source="test.yml")
         assert any("YYYY-MM-DD" in w.message for w in warnings)
 
     def test_warns_on_unknown_keys_in_structured_entry(self) -> None:
-        data = {"version": 1, "ignore_issues": [{"rule_id": "E501", "unknown_key": "value"}]}
+        data = {
+            "version": 1,
+            "ignore_issues": [{"rule_id": "E501", "unknown_key": "value"}],
+        }
         warnings = validate_config(data, source="test.yml")
         assert any(
             "Unknown key" in w.message and "unknown_key" in w.message for w in warnings
@@ -849,7 +864,7 @@ class TestValidateConfigIgnoreIssues:
             "ignore_issues": [
                 "E501",
                 {"rule_id": "CVE-2021-1234", "reason": "accepted"},
-            ]
+            ],
         }
         warnings = validate_config(data, source="test.yml")
         assert len(warnings) == 0
@@ -858,7 +873,10 @@ class TestValidateConfigIgnoreIssues:
         """PyYAML parses bare dates as datetime.date; validation should accept them."""
         from datetime import date
 
-        data = {"version": 1, "ignore_issues": [{"rule_id": "E501", "expires": date(2026, 12, 31)}]}
+        data = {
+            "version": 1,
+            "ignore_issues": [{"rule_id": "E501", "expires": date(2026, 12, 31)}],
+        }
         warnings = validate_config(data, source="test.yml")
         assert len(warnings) == 0
 
@@ -866,14 +884,17 @@ class TestValidateConfigIgnoreIssues:
         """Valid paths list should not produce warnings."""
         data = {
             "version": 1,
-            "ignore_issues": [{"rule_id": "E501", "paths": ["tests/**", "scripts/*"]}]
+            "ignore_issues": [{"rule_id": "E501", "paths": ["tests/**", "scripts/*"]}],
         }
         warnings = validate_config(data, source="test.yml")
         assert len(warnings) == 0
 
     def test_paths_must_be_list(self) -> None:
         """paths field must be a list."""
-        data = {"version": 1, "ignore_issues": [{"rule_id": "E501", "paths": "tests/**"}]}
+        data = {
+            "version": 1,
+            "ignore_issues": [{"rule_id": "E501", "paths": "tests/**"}],
+        }
         warnings = validate_config(data, source="test.yml")
         assert any(
             "paths" in w.message and "must be a list" in w.message for w in warnings
@@ -881,7 +902,10 @@ class TestValidateConfigIgnoreIssues:
 
     def test_paths_patterns_must_be_strings(self) -> None:
         """Each pattern in paths must be a string."""
-        data = {"version": 1, "ignore_issues": [{"rule_id": "E501", "paths": [123, "tests/**"]}]}
+        data = {
+            "version": 1,
+            "ignore_issues": [{"rule_id": "E501", "paths": [123, "tests/**"]}],
+        }
         warnings = validate_config(data, source="test.yml")
         assert any(
             "paths[0]" in w.message and "must be a string" in w.message
@@ -907,14 +931,17 @@ class TestValidateConfigIgnoreIssues:
                     "expires": "2026-12-31",
                     "paths": ["tests/**"],
                 }
-            ]
+            ],
         }
         warnings = validate_config(data, source="test.yml")
         assert len(warnings) == 0
 
     def test_paths_is_valid_key(self) -> None:
         """paths should not trigger unknown key warning."""
-        data = {"version": 1, "ignore_issues": [{"rule_id": "E501", "paths": ["tests/**"]}]}
+        data = {
+            "version": 1,
+            "ignore_issues": [{"rule_id": "E501", "paths": ["tests/**"]}],
+        }
         warnings = validate_config(data, source="test.yml")
         assert not any(
             "Unknown key" in w.message and "paths" in w.message for w in warnings
@@ -942,7 +969,7 @@ class TestValidateConfigExclude:
         """pipeline.linting.exclude should not trigger unknown key warning."""
         data = {
             "version": 1,
-            "pipeline": {"linting": {"tools": ["ruff"], "exclude": ["generated/**"]}}
+            "pipeline": {"linting": {"tools": ["ruff"], "exclude": ["generated/**"]}},
         }
         warnings = validate_config(data, source="test.yml")
         assert not any("unknown" in w.message.lower() for w in warnings)
@@ -951,7 +978,7 @@ class TestValidateConfigExclude:
         """pipeline.type_checking.exclude should not trigger unknown key warning."""
         data = {
             "version": 1,
-            "pipeline": {"type_checking": {"tools": ["mypy"], "exclude": ["stubs/**"]}}
+            "pipeline": {"type_checking": {"tools": ["mypy"], "exclude": ["stubs/**"]}},
         }
         warnings = validate_config(data, source="test.yml")
         assert not any("unknown" in w.message.lower() for w in warnings)
@@ -960,7 +987,9 @@ class TestValidateConfigExclude:
         """pipeline.testing.exclude should not trigger unknown key warning."""
         data = {
             "version": 1,
-            "pipeline": {"testing": {"tools": ["pytest"], "exclude": ["slow_tests/**"]}}
+            "pipeline": {
+                "testing": {"tools": ["pytest"], "exclude": ["slow_tests/**"]}
+            },
         }
         warnings = validate_config(data, source="test.yml")
         assert not any("unknown" in w.message.lower() for w in warnings)
@@ -971,7 +1000,7 @@ class TestValidateConfigExclude:
             "version": 1,
             "pipeline": {
                 "coverage": {"tools": ["coverage_py"], "exclude": ["tests/**"]}
-            }
+            },
         }
         warnings = validate_config(data, source="test.yml")
         assert not any("unknown" in w.message.lower() for w in warnings)
@@ -985,14 +1014,17 @@ class TestValidateConfigExclude:
                     "tools": [{"name": "trivy", "domains": ["sca"]}],
                     "exclude": ["fixtures/**"],
                 }
-            }
+            },
         }
         warnings = validate_config(data, source="test.yml")
         assert not any("unknown" in w.message.lower() for w in warnings)
 
     def test_domain_exclude_must_be_list_for_linting(self) -> None:
         """pipeline.linting.exclude must be a list."""
-        data = {"version": 1, "pipeline": {"linting": {"tools": ["ruff"], "exclude": "not-a-list"}}}
+        data = {
+            "version": 1,
+            "pipeline": {"linting": {"tools": ["ruff"], "exclude": "not-a-list"}},
+        }
         warnings = validate_config(data, source="test.yml")
         assert any(
             "pipeline.linting.exclude" in (w.key or "")
@@ -1002,7 +1034,10 @@ class TestValidateConfigExclude:
 
     def test_domain_exclude_must_be_list_for_coverage(self) -> None:
         """pipeline.coverage.exclude must be a list."""
-        data = {"version": 1, "pipeline": {"coverage": {"tools": ["coverage_py"], "exclude": 123}}}
+        data = {
+            "version": 1,
+            "pipeline": {"coverage": {"tools": ["coverage_py"], "exclude": 123}},
+        }
         warnings = validate_config(data, source="test.yml")
         assert any(
             "pipeline.coverage.exclude" in (w.key or "")
@@ -1036,233 +1071,125 @@ class TestValidateConfigVersion:
         warnings = validate_config(data, source="test.yml")
         assert len(warnings) == 0
 
-    def test_invalid_version_99(self) -> None:
-        """Version 99 should produce an error."""
-        data = {"version": 99}
-        warnings = validate_config(data, source="test.yml")
-        assert len(warnings) == 1
-        assert "Invalid version" in warnings[0].message
-        assert "99" in warnings[0].message
-
-    def test_invalid_version_0(self) -> None:
-        """Version 0 should produce an error."""
-        data = {"version": 0}
-        warnings = validate_config(data, source="test.yml")
-        assert len(warnings) == 1
-        assert "Invalid version" in warnings[0].message
-
-    def test_version_must_be_integer(self) -> None:
-        """Version must be an integer, not a string."""
-        data = {"version": "1"}
-        warnings = validate_config(data, source="test.yml")
-        assert len(warnings) == 1
-        assert "must be an integer" in warnings[0].message
-
-    def test_invalid_version_is_error_severity(self, tmp_path: Path) -> None:
-        """Invalid version should be classified as ERROR severity."""
-        config_file = tmp_path / "lucidshark.yml"
-        config_file.write_text("version: 99\n")
-        is_valid, issues = validate_config_file(config_file)
-        assert is_valid is False
-        error_issues = [i for i in issues if i.severity == ValidationSeverity.ERROR]
-        assert any("Invalid version" in i.message for i in error_issues)
-
 
 class TestValidateConfigLanguages:
-    """Tests for project.languages value constraint validation."""
+    """Tests for project.languages — validation was removed, languages are pass-through."""
 
-    def test_valid_languages(self) -> None:
-        """Known languages should be accepted."""
+    def test_valid_languages_no_warnings(self) -> None:
+        """Languages under project are not validated; no language-specific warnings."""
         data = {"version": 1, "project": {"languages": ["python", "javascript", "go"]}}
         warnings = validate_config(data, source="test.yml")
-        assert len(warnings) == 0
-
-    def test_invalid_language_brainfuck(self) -> None:
-        """Unknown language 'brainfuck' should produce an error."""
-        data = {"version": 1, "project": {"languages": ["brainfuck"]}}
-        warnings = validate_config(data, source="test.yml")
-        assert len(warnings) == 1
-        assert "Unknown language" in warnings[0].message
-        assert "brainfuck" in warnings[0].message
-
-    def test_mixed_valid_and_invalid_languages(self) -> None:
-        """Mix of valid and invalid languages should only warn on invalid ones."""
-        data = {"version": 1, "project": {"languages": ["python", "brainfuck", "java"]}}
-        warnings = validate_config(data, source="test.yml")
-        assert len(warnings) == 1
-        assert "brainfuck" in warnings[0].message
-
-    def test_languages_must_be_list(self) -> None:
-        """project.languages must be a list."""
-        data = {"version": 1, "project": {"languages": "python"}}
-        warnings = validate_config(data, source="test.yml")
-        assert any("must be a list" in w.message for w in warnings)
-
-    def test_language_case_insensitive(self) -> None:
-        """Language validation should be case-insensitive."""
-        data = {"version": 1, "project": {"languages": ["Python", "JAVASCRIPT"]}}
-        warnings = validate_config(data, source="test.yml")
-        assert len(warnings) == 0
-
-    def test_invalid_language_is_error_severity(self, tmp_path: Path) -> None:
-        """Unknown language should be classified as ERROR severity."""
-        config_file = tmp_path / "lucidshark.yml"
-        config_file.write_text("project:\n  languages:\n    - brainfuck\n")
-        is_valid, issues = validate_config_file(config_file)
-        assert is_valid is False
-        error_issues = [i for i in issues if i.severity == ValidationSeverity.ERROR]
-        assert any("Unknown language" in i.message for i in error_issues)
-
-    def test_all_known_languages_are_valid(self) -> None:
-        """All documented known languages should pass validation."""
-        from lucidshark.config.validation import VALID_LANGUAGES
-
-        data = {"version": 1, "project": {"languages": list(VALID_LANGUAGES)}}
-        warnings = validate_config(data, source="test.yml")
-        assert not any("Unknown language" in w.message for w in warnings)
+        assert not any("language" in w.message.lower() for w in warnings)
 
 
 class TestValidateConfigToolNames:
-    """Tests for pipeline tool name constraint validation."""
+    """Tests for pipeline tool names — tool name validation was removed.
 
-    def test_valid_linting_tool(self) -> None:
-        """Known linting tool should be accepted."""
+    validate_config no longer checks whether tool names are known.
+    Tools are passed through without name validation.
+    """
+
+    def test_any_linting_tool_accepted(self) -> None:
+        """Any linting tool name should be accepted without 'Unknown tool' warnings."""
         data = {"version": 1, "pipeline": {"linting": {"tools": [{"name": "ruff"}]}}}
         warnings = validate_config(data, source="test.yml")
         assert not any("Unknown tool" in w.message for w in warnings)
 
-    def test_invalid_linting_tool(self) -> None:
-        """Unknown linting tool should produce an error."""
-        data = {"version": 1, "pipeline": {"linting": {"tools": [{"name": "nonexistent_tool"}]}}}
-        warnings = validate_config(data, source="test.yml")
-        assert any("Unknown tool" in w.message and "nonexistent_tool" in w.message for w in warnings)
-
-    def test_invalid_tool_string_format(self) -> None:
-        """String-format tool names should also be validated."""
-        data = {"version": 1, "pipeline": {"linting": {"tools": ["nonexistent_tool"]}}}
-        warnings = validate_config(data, source="test.yml")
-        assert any("Unknown tool" in w.message and "nonexistent_tool" in w.message for w in warnings)
-
-    def test_valid_type_checking_tool(self) -> None:
-        """Known type checker should be accepted."""
-        data = {"version": 1, "pipeline": {"type_checking": {"tools": [{"name": "mypy"}]}}}
+    def test_any_type_checking_tool_accepted(self) -> None:
+        """Any type checking tool name should be accepted without 'Unknown tool' warnings."""
+        data = {
+            "version": 1,
+            "pipeline": {"type_checking": {"tools": [{"name": "mypy"}]}},
+        }
         warnings = validate_config(data, source="test.yml")
         assert not any("Unknown tool" in w.message for w in warnings)
 
-    def test_invalid_type_checking_tool(self) -> None:
-        """Unknown type checker should produce an error."""
-        data = {"version": 1, "pipeline": {"type_checking": {"tools": [{"name": "nonexistent_tool"}]}}}
-        warnings = validate_config(data, source="test.yml")
-        assert any("Unknown tool" in w.message for w in warnings)
-
-    def test_valid_testing_tool(self) -> None:
-        """Known test runner should be accepted."""
+    def test_any_testing_tool_accepted(self) -> None:
+        """Any testing tool name should be accepted without 'Unknown tool' warnings."""
         data = {"version": 1, "pipeline": {"testing": {"tools": [{"name": "pytest"}]}}}
         warnings = validate_config(data, source="test.yml")
         assert not any("Unknown tool" in w.message for w in warnings)
 
-    def test_invalid_testing_tool(self) -> None:
-        """Unknown test runner should produce an error."""
-        data = {"version": 1, "pipeline": {"testing": {"tools": [{"name": "nonexistent_tool"}]}}}
-        warnings = validate_config(data, source="test.yml")
-        assert any("Unknown tool" in w.message for w in warnings)
-
-    def test_valid_coverage_tool(self) -> None:
-        """Known coverage tool should be accepted."""
-        data = {"version": 1, "pipeline": {"coverage": {"tools": [{"name": "coverage_py"}]}}}
-        warnings = validate_config(data, source="test.yml")
-        assert not any("Unknown tool" in w.message for w in warnings)
-
-    def test_valid_security_tool(self) -> None:
-        """Known security tool should be accepted."""
+    def test_any_coverage_tool_accepted(self) -> None:
+        """Any coverage tool name should be accepted without 'Unknown tool' warnings."""
         data = {
             "version": 1,
-            "pipeline": {
-                "security": {
-                    "tools": [{"name": "trivy", "domains": ["sca"]}]
-                }
-            }
+            "pipeline": {"coverage": {"tools": [{"name": "coverage_py"}]}},
         }
         warnings = validate_config(data, source="test.yml")
         assert not any("Unknown tool" in w.message for w in warnings)
 
-    def test_invalid_security_tool(self) -> None:
-        """Unknown security tool should produce an error."""
+    def test_any_security_tool_accepted(self) -> None:
+        """Any security tool name should be accepted without 'Unknown tool' warnings."""
         data = {
             "version": 1,
             "pipeline": {
-                "security": {
-                    "tools": [{"name": "nonexistent_tool", "domains": ["sca"]}]
-                }
-            }
+                "security": {"tools": [{"name": "trivy", "domains": ["sca"]}]}
+            },
         }
         warnings = validate_config(data, source="test.yml")
-        assert any("Unknown tool" in w.message and "nonexistent_tool" in w.message for w in warnings)
+        assert not any("Unknown tool" in w.message for w in warnings)
 
-    def test_tool_suggestion_for_typo(self) -> None:
-        """Typos in tool names should suggest the correct tool."""
-        data = {"version": 1, "pipeline": {"linting": {"tools": [{"name": "ruf"}]}}}
-        warnings = validate_config(data, source="test.yml")
-        tool_warnings = [w for w in warnings if "Unknown tool" in w.message]
-        assert len(tool_warnings) == 1
-        assert tool_warnings[0].suggestion == "ruff"
-
-    def test_invalid_tool_is_error_severity(self, tmp_path: Path) -> None:
-        """Unknown tool should be classified as ERROR severity."""
-        config_file = tmp_path / "lucidshark.yml"
-        config_file.write_text(
-            "pipeline:\n  linting:\n    tools:\n      - name: nonexistent_tool\n"
-        )
-        is_valid, issues = validate_config_file(config_file)
-        assert is_valid is False
-        error_issues = [i for i in issues if i.severity == ValidationSeverity.ERROR]
-        assert any("Unknown tool" in i.message for i in error_issues)
-
-    def test_multiple_invalid_tools(self) -> None:
-        """Multiple unknown tools should each produce an error."""
+    def test_unknown_tool_names_not_validated(self) -> None:
+        """Unknown tool names should not produce warnings (validation removed)."""
         data = {
             "version": 1,
-            "pipeline": {
-                "linting": {"tools": [{"name": "fake1"}, {"name": "fake2"}]}
-            }
+            "pipeline": {"linting": {"tools": [{"name": "nonexistent_tool"}]}},
         }
         warnings = validate_config(data, source="test.yml")
-        tool_warnings = [w for w in warnings if "Unknown tool" in w.message]
-        assert len(tool_warnings) == 2
+        assert not any("Unknown tool" in w.message for w in warnings)
 
 
 class TestValidateConfigThresholdRange:
-    """Tests for threshold value range validation (0-100)."""
+    """Tests for threshold values — range validation (0-100) was removed.
+
+    validate_config checks that thresholds are numeric but no longer
+    enforces 0-100 range constraints.
+    """
 
     def test_valid_coverage_threshold(self) -> None:
         """Coverage threshold of 80 should be accepted."""
-        data = {"version": 1, "pipeline": {"coverage": {"tools": [{"name": "coverage_py"}], "threshold": 80}}}
+        data = {
+            "version": 1,
+            "pipeline": {
+                "coverage": {"tools": [{"name": "coverage_py"}], "threshold": 80}
+            },
+        }
         warnings = validate_config(data, source="test.yml")
         assert not any("must be between" in w.message for w in warnings)
 
     def test_coverage_threshold_zero(self) -> None:
         """Coverage threshold of 0 should be accepted."""
-        data = {"version": 1, "pipeline": {"coverage": {"tools": [{"name": "coverage_py"}], "threshold": 0}}}
+        data = {
+            "version": 1,
+            "pipeline": {
+                "coverage": {"tools": [{"name": "coverage_py"}], "threshold": 0}
+            },
+        }
         warnings = validate_config(data, source="test.yml")
         assert not any("must be between" in w.message for w in warnings)
 
     def test_coverage_threshold_100(self) -> None:
         """Coverage threshold of 100 should be accepted."""
-        data = {"version": 1, "pipeline": {"coverage": {"tools": [{"name": "coverage_py"}], "threshold": 100}}}
+        data = {
+            "version": 1,
+            "pipeline": {
+                "coverage": {"tools": [{"name": "coverage_py"}], "threshold": 100}
+            },
+        }
         warnings = validate_config(data, source="test.yml")
         assert not any("must be between" in w.message for w in warnings)
 
-    def test_coverage_threshold_200_invalid(self) -> None:
-        """Coverage threshold of 200 should produce an error."""
-        data = {"version": 1, "pipeline": {"coverage": {"tools": [{"name": "coverage_py"}], "threshold": 200}}}
+    def test_coverage_threshold_out_of_range_no_warning(self) -> None:
+        """Out-of-range coverage thresholds no longer produce range warnings."""
+        data = {
+            "version": 1,
+            "pipeline": {
+                "coverage": {"tools": [{"name": "coverage_py"}], "threshold": 200}
+            },
+        }
         warnings = validate_config(data, source="test.yml")
-        assert any("must be between 0 and 100" in w.message for w in warnings)
-
-    def test_coverage_threshold_negative_invalid(self) -> None:
-        """Negative coverage threshold should produce an error."""
-        data = {"version": 1, "pipeline": {"coverage": {"tools": [{"name": "coverage_py"}], "threshold": -10}}}
-        warnings = validate_config(data, source="test.yml")
-        assert any("must be between 0 and 100" in w.message for w in warnings)
+        assert not any("must be between" in w.message for w in warnings)
 
     def test_duplication_threshold_valid(self) -> None:
         """Duplication threshold of 10 should be accepted."""
@@ -1270,90 +1197,57 @@ class TestValidateConfigThresholdRange:
         warnings = validate_config(data, source="test.yml")
         assert not any("must be between" in w.message for w in warnings)
 
-    def test_duplication_threshold_200_invalid(self) -> None:
-        """Duplication threshold of 200 should produce an error."""
+    def test_duplication_threshold_out_of_range_no_warning(self) -> None:
+        """Out-of-range duplication thresholds no longer produce range warnings."""
         data = {"version": 1, "pipeline": {"duplication": {"threshold": 200}}}
         warnings = validate_config(data, source="test.yml")
-        assert any("must be between 0 and 100" in w.message for w in warnings)
-
-    def test_duplication_threshold_negative_invalid(self) -> None:
-        """Negative duplication threshold should produce an error."""
-        data = {"version": 1, "pipeline": {"duplication": {"threshold": -5}}}
-        warnings = validate_config(data, source="test.yml")
-        assert any("must be between 0 and 100" in w.message for w in warnings)
-
-    def test_threshold_range_error_is_error_severity(self, tmp_path: Path) -> None:
-        """Out-of-range threshold should be classified as ERROR severity."""
-        config_file = tmp_path / "lucidshark.yml"
-        config_file.write_text(
-            "pipeline:\n  coverage:\n    tools:\n      - name: coverage_py\n    threshold: 200\n"
-        )
-        is_valid, issues = validate_config_file(config_file)
-        assert is_valid is False
-        error_issues = [i for i in issues if i.severity == ValidationSeverity.ERROR]
-        assert any("must be between" in i.message for i in error_issues)
+        assert not any("must be between" in w.message for w in warnings)
 
 
 class TestValidateConfigAliasKeys:
-    """Tests that alias keys (languages, domains, exclude_patterns) are accepted."""
+    """Tests that former alias keys are now treated as unknown top-level keys.
 
-    def test_top_level_languages_no_warning(self) -> None:
-        """Top-level 'languages' should not trigger unknown key warning."""
+    Keys like 'languages', 'domains', 'exclude_patterns', 'settings', and
+    'overview' are no longer in VALID_TOP_LEVEL_KEYS and trigger unknown
+    key warnings.
+    """
+
+    def test_top_level_languages_triggers_warning(self) -> None:
+        """Top-level 'languages' should trigger unknown key warning."""
         data = {"version": 1, "languages": ["python", "typescript"]}
         warnings = validate_config(data, source="test.yml")
         unknown_warnings = [w for w in warnings if "Unknown top-level key" in w.message]
-        assert len(unknown_warnings) == 0
+        assert any("languages" in w.message for w in unknown_warnings)
 
-    def test_top_level_domains_no_warning(self) -> None:
-        """Top-level 'domains' should not trigger unknown key warning."""
+    def test_top_level_domains_triggers_warning(self) -> None:
+        """Top-level 'domains' should trigger unknown key warning."""
         data = {
             "version": 1,
             "domains": {
                 "linting": {"enabled": True, "tools": ["ruff"]},
-            }
+            },
         }
         warnings = validate_config(data, source="test.yml")
         unknown_warnings = [w for w in warnings if "Unknown top-level key" in w.message]
-        assert len(unknown_warnings) == 0
+        assert any("domains" in w.message for w in unknown_warnings)
 
-    def test_top_level_exclude_patterns_no_warning(self) -> None:
-        """Top-level 'exclude_patterns' should not trigger unknown key warning."""
+    def test_top_level_exclude_patterns_triggers_warning(self) -> None:
+        """Top-level 'exclude_patterns' should trigger unknown key warning."""
         data = {"version": 1, "exclude_patterns": ["tests/**", "build/**"]}
         warnings = validate_config(data, source="test.yml")
         unknown_warnings = [w for w in warnings if "Unknown top-level key" in w.message]
-        assert len(unknown_warnings) == 0
+        assert any("exclude_patterns" in w.message for w in unknown_warnings)
 
-    def test_top_level_settings_no_warning(self) -> None:
-        """Top-level 'settings' should not trigger unknown key warning."""
+    def test_top_level_settings_triggers_warning(self) -> None:
+        """Top-level 'settings' should trigger unknown key warning."""
         data = {"version": 1, "settings": {"strict_mode": True}}
         warnings = validate_config(data, source="test.yml")
         unknown_warnings = [w for w in warnings if "Unknown top-level key" in w.message]
-        assert len(unknown_warnings) == 0
+        assert any("settings" in w.message for w in unknown_warnings)
 
-    def test_top_level_overview_no_warning(self) -> None:
-        """Top-level 'overview' should not trigger unknown key warning."""
+    def test_top_level_overview_triggers_warning(self) -> None:
+        """Top-level 'overview' should trigger unknown key warning."""
         data = {"version": 1, "overview": {"enabled": True}}
         warnings = validate_config(data, source="test.yml")
         unknown_warnings = [w for w in warnings if "Unknown top-level key" in w.message]
-        assert len(unknown_warnings) == 0
-
-    def test_top_level_languages_invalid_type_warns(self) -> None:
-        """Top-level 'languages' with wrong type should warn."""
-        data = {"version": 1, "languages": "python"}  # should be a list
-        warnings = validate_config(data, source="test.yml")
-        type_warnings = [w for w in warnings if "must be a list" in w.message]
-        assert len(type_warnings) == 1
-
-    def test_top_level_domains_invalid_type_warns(self) -> None:
-        """Top-level 'domains' with wrong type should warn."""
-        data = {"version": 1, "domains": ["linting"]}  # should be a mapping
-        warnings = validate_config(data, source="test.yml")
-        type_warnings = [w for w in warnings if "must be a mapping" in w.message]
-        assert len(type_warnings) == 1
-
-    def test_top_level_exclude_patterns_invalid_type_warns(self) -> None:
-        """Top-level 'exclude_patterns' with wrong type should warn."""
-        data = {"version": 1, "exclude_patterns": "tests/**"}  # should be a list
-        warnings = validate_config(data, source="test.yml")
-        type_warnings = [w for w in warnings if "must be a list" in w.message]
-        assert len(type_warnings) == 1
+        assert any("overview" in w.message for w in unknown_warnings)

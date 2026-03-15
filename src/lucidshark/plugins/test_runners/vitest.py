@@ -6,13 +6,12 @@ https://vitest.dev/
 
 from __future__ import annotations
 
-import subprocess
 import tempfile
 from pathlib import Path
 from typing import List, Optional
 
 from lucidshark.core.logging import get_logger
-from lucidshark.core.models import ScanContext, SkipReason, ToolDomain
+from lucidshark.core.models import ScanContext
 from lucidshark.plugins.test_runners.base import TestRunnerPlugin, TestResult
 from lucidshark.plugins.utils import ensure_node_binary
 
@@ -78,6 +77,8 @@ class VitestRunner(TestRunnerPlugin):
                 f"--outputFile={report_file}",
                 "--passWithNoTests",  # Don't fail if no tests found
                 "--coverage",  # Always generate coverage data
+                "--coverage.reporter=json-summary",  # Generate coverage-summary.json
+                "--coverage.reporter=text",  # Keep text output for terminal
             ]
 
             if context.paths:
@@ -86,33 +87,8 @@ class VitestRunner(TestRunnerPlugin):
 
             LOGGER.debug(f"Running: {' '.join(cmd)}")
 
-            try:
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    encoding="utf-8",
-                    errors="replace",
-                    cwd=str(context.project_root),
-                    timeout=600,
-                )
-            except subprocess.TimeoutExpired:
-                LOGGER.warning("Vitest timed out after 600 seconds")
-                context.record_skip(
-                    tool_name=self.name,
-                    domain=ToolDomain.TESTING,
-                    reason=SkipReason.EXECUTION_FAILED,
-                    message="Vitest timed out after 600 seconds",
-                )
-                return TestResult()
-            except Exception as e:
-                LOGGER.error(f"Failed to run Vitest: {e}")
-                context.record_skip(
-                    tool_name=self.name,
-                    domain=ToolDomain.TESTING,
-                    reason=SkipReason.EXECUTION_FAILED,
-                    message=f"Failed to run Vitest: {e}",
-                )
+            result = self._run_test_subprocess(cmd, context)
+            if result is None:
                 return TestResult()
 
             if report_file.exists():

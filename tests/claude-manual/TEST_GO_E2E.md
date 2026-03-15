@@ -940,14 +940,23 @@ echo "Exit code: $?"
 
 #### 4.4.2 CLI — Testing + Coverage Together
 ```bash
+# Clean slate — remove any pre-existing coverage data
+rm -f coverage.out
 lucidshark scan --testing --coverage --all-files --format json
+echo "Exit code: $?"
+# Prove the testing step produced coverage data
+ls -la coverage.out
+echo "coverage.out exists: $?"
+head -5 coverage.out
 ```
 
 **Verify:**
 - [ ] Tests run with `-coverprofile=coverage.out` flag added
-- [ ] Coverage percentage calculated
+- [ ] `coverage.out` file exists on disk after scan (verified with `ls`)
+- [ ] `coverage.out` starts with `mode:` line (valid Go coverprofile format)
+- [ ] Coverage percentage calculated and non-zero
+- [ ] Coverage percentage in scan output is derived from the `coverage.out` file
 - [ ] Coverage threshold comparison works (below 80% → issue)
-- [ ] `coverage.out` file generated in project root
 - [ ] Per-file coverage stats available
 
 #### 4.4.3 CLI — Testing on Gin
@@ -967,14 +976,19 @@ cd "$TEST_WORKSPACE/test-project"
 
 #### 4.5.1 CLI — Coverage Without Testing (Should Error or Show No Data)
 ```bash
-# Remove any existing coverage.out first
+# Clean slate — ensure no leftover coverage data from previous runs
 rm -f coverage.out
 lucidshark scan --coverage --all-files --format json
 echo "Exit code: $?"
+ls coverage.out 2>/dev/null
+echo "coverage.out exists after coverage-only scan: $?"
 ```
 
 **Verify:**
+- [ ] No `coverage.out` file produced (testing didn't run)
 - [ ] Reports error or "no coverage data" (coverage requires `coverage.out` from testing)
+- [ ] Exit code is non-zero
+- [ ] Does not crash
 
 #### 4.5.2 CLI — Coverage Threshold
 Run with different thresholds:
@@ -1360,6 +1374,26 @@ For EACH call, verify:
 - [ ] No errors or crashes
 - [ ] Results consistent with CLI results for same domain
 - [ ] Go tools used (golangci_lint, go_vet, gofmt, go_test, go_cover, gosec)
+
+**Additional verification for testing + coverage MCP call:**
+```bash
+# Verify coverage data was produced by the MCP scan
+rm -f coverage.out
+```
+```
+mcp__lucidshark__scan(domains=["testing", "coverage"], all_files=true)
+```
+```bash
+ls -la coverage.out
+echo "coverage.out exists after MCP scan: $?"
+head -3 coverage.out
+```
+
+**Verify:**
+- [ ] `coverage.out` file exists on disk after MCP scan
+- [ ] File contains valid Go coverprofile data (starts with `mode:`)
+- [ ] Coverage percentage in MCP result matches CLI result
+- [ ] Coverage data was produced by the scan itself, not leftover from a previous run
 
 #### 5.1.2 Scan — All Domains
 ```

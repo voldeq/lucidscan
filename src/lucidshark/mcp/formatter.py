@@ -93,7 +93,14 @@ class InstructionFormatter:
         # Separate active vs ignored issues
         active_issues = [i for i in issues if not i.ignored]
 
-        instructions = [self._issue_to_instruction(issue) for issue in active_issues]
+        # Exclude duplication issues from instructions — they are already shown
+        # in issues_by_domain and their fix advice is identical ("extract shared
+        # code"), so repeating them here just bloats the output.
+        instructions = [
+            self._issue_to_instruction(issue)
+            for issue in active_issues
+            if issue.domain != ToolDomain.DUPLICATION
+        ]
 
         # Sort by priority
         instructions.sort(key=lambda x: x.priority)
