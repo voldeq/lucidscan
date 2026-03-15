@@ -37,6 +37,7 @@ a = Analysis(
         'lucidshark.generation',
         'lucidshark.mcp',
         'lucidshark.pipeline',
+        'lucidshark.plugins.go_utils',
         # Plugin entry points - linters
         'lucidshark.plugins.linters.ruff',
         'lucidshark.plugins.linters.eslint',
@@ -44,6 +45,7 @@ a = Analysis(
         'lucidshark.plugins.linters.checkstyle',
         'lucidshark.plugins.linters.clippy',
         'lucidshark.plugins.linters.pmd',
+        'lucidshark.plugins.linters.golangci_lint',
         # Plugin entry points - scanners
         'lucidshark.plugins.scanners.trivy',
         'lucidshark.plugins.scanners.opengrep',
@@ -60,6 +62,7 @@ a = Analysis(
         'lucidshark.plugins.type_checkers.typescript',
         'lucidshark.plugins.type_checkers.spotbugs',
         'lucidshark.plugins.type_checkers.cargo_check',
+        'lucidshark.plugins.type_checkers.go_vet',
         # Plugin entry points - test runners
         'lucidshark.plugins.test_runners.pytest',
         'lucidshark.plugins.test_runners.jest',
@@ -68,12 +71,15 @@ a = Analysis(
         'lucidshark.plugins.test_runners.maven',
         'lucidshark.plugins.test_runners.cargo',
         'lucidshark.plugins.test_runners.vitest',
+        'lucidshark.plugins.test_runners.go_test',
+        'lucidshark.plugins.test_runners.mocha',
         # Plugin entry points - coverage
         'lucidshark.plugins.coverage.coverage_py',
         'lucidshark.plugins.coverage.istanbul',
         'lucidshark.plugins.coverage.jacoco',
         'lucidshark.plugins.coverage.tarpaulin',
         'lucidshark.plugins.coverage.vitest',
+        'lucidshark.plugins.coverage.go_cover',
         # Plugin entry points - duplication
         'lucidshark.plugins.duplication.duplo',
         # Plugin entry points - formatters
@@ -81,6 +87,7 @@ a = Analysis(
         'lucidshark.plugins.formatters.prettier',
         'lucidshark.plugins.formatters.rustfmt',
         'lucidshark.plugins.formatters.google_java_format',
+        'lucidshark.plugins.formatters.gofmt',
         # Dependencies that may need explicit import
         'yaml',
         'pathspec',
