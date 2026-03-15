@@ -1,6 +1,6 @@
 # Repository Quality Overview
 
-> **Branch:** main | **Updated:** 2026-03-14 | **Commit:** `5644795`
+> **Branch:** main | **Updated:** 2026-03-15 | **Commit:** `52296e7`
 
 ## Health Score: 9.1 / 10  █████████░
 
@@ -13,24 +13,24 @@
 | SCA | ✓ Pass | 0 | → |
 | SAST | ✓ Pass | 0 | → |
 | Coverage | ✓ Pass | 0 | → |
-| Duplication | ✓ Pass | 87 | → |
+| Duplication | ✓ Pass | 50 | ↑ -37.0 |
 
 ## Issues by Severity
 
 - 🔴 **Critical:** 0
 - 🟠 **High:** 0
 - 🟡 **Medium:** 0
-- 🔵 **Low:** 87
+- 🔵 **Low:** 50
 
 ## Top Files by Issues
 
 | File | Issues |
 |------|--------|
-| `src/lucidshark/plugins/linters/biome.py` | 10 |
-| `src/lucidshark/plugins/go_utils.py` | 8 |
-| `src/lucidshark/plugins/coverage/istanbul.py` | 6 |
-| `src/lucidshark/plugins/test_runners/jest.py` | 6 |
-| `src/lucidshark/plugins/linters/eslint.py` | 5 |
+| `src/lucidshark/core/domain_runner.py` | 3 |
+| `src/lucidshark/plugins/duplication/duplo.py` | 3 |
+| `src/lucidshark/plugins/linters/clippy.py` | 3 |
+| `src/lucidshark/plugins/scanners/checkov.py` | 3 |
+| `src/lucidshark/plugins/coverage/istanbul.py` | 2 |
 
 ## Security Summary
 
@@ -41,13 +41,13 @@
 
 ## Test Coverage
 
-**84.1%** ████████░░
+**84.3%** ████████░░ ↑ +0.2%
 
 ## Score Trend
 
 ```
 Score: 9.1 → 9.1 → 9.1 → 9.1 → 9.1
-       03-13   03-13   03-14   03-14   03-14
+       03-13   03-14   03-14   03-14   03-14
 ```
 
 ---
