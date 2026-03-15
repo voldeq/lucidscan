@@ -1207,24 +1207,48 @@ cd "$TEST_WORKSPACE/test-project"
 
 #### 4.7.1 CLI — Coverage Without Testing (Should Error)
 ```bash
+# Clean slate — ensure no leftover coverage data from previous runs
+rm -rf target/site/jacoco
 lucidshark scan --coverage --all-files --format json
 echo "Exit code: $?"
+ls target/site/jacoco/jacoco.xml 2>/dev/null
+echo "jacoco.xml exists after coverage-only scan: $?"
 ```
 
 **Verify:**
+- [ ] No `target/site/jacoco/jacoco.xml` produced (testing didn't run)
 - [ ] Reports error or "no coverage data" (JaCoCo requires test execution first)
+- [ ] Exit code is non-zero
 - [ ] Does not crash
 
 #### 4.7.2 CLI — Testing + Coverage Together
 ```bash
+# Clean slate — remove any pre-existing coverage data
+rm -rf target/site/jacoco
 lucidshark scan --testing --coverage --all-files --format json
 echo "Exit code: $?"
+# Prove the testing step produced coverage data
+ls -la target/site/jacoco/jacoco.xml
+echo "jacoco.xml exists: $?"
+python3 -c "
+import xml.etree.ElementTree as ET
+tree = ET.parse('target/site/jacoco/jacoco.xml')
+root = tree.getroot()
+for counter in root.findall('.//counter[@type=\"LINE\"]'):
+    missed = int(counter.get('missed', 0))
+    covered = int(counter.get('covered', 0))
+    total = missed + covered
+    if total > 0:
+        print(f'Line coverage: {covered}/{total} = {100*covered/total:.1f}%')
+        break
+"
 ```
 
 **Verify:**
 - [ ] Tests run first, then coverage parsed
-- [ ] JaCoCo XML report found at `target/site/jacoco/jacoco.xml`
-- [ ] Coverage percentage calculated
+- [ ] `target/site/jacoco/jacoco.xml` exists on disk after scan (verified with `ls`)
+- [ ] JaCoCo XML contains valid coverage counters (non-zero line coverage)
+- [ ] Coverage percentage in scan output matches the JaCoCo XML data
 - [ ] Coverage threshold comparison works (below 80% → issue)
 - [ ] Per-file coverage data available
 - [ ] Gap percentage reported
@@ -1554,6 +1578,24 @@ For EACH call, verify:
 - [ ] No errors or crashes
 - [ ] Results consistent with CLI results for same domain
 - [ ] Java-specific tools used (Checkstyle/PMD for linting, SpotBugs for type_checking, etc.)
+
+**Additional verification for testing + coverage MCP call:**
+```bash
+# Verify coverage data was produced by the MCP scan
+rm -rf target/site/jacoco
+```
+```
+mcp__lucidshark__scan(domains=["testing", "coverage"], all_files=true)
+```
+```bash
+ls -la target/site/jacoco/jacoco.xml
+echo "jacoco.xml exists after MCP scan: $?"
+```
+
+**Verify:**
+- [ ] `target/site/jacoco/jacoco.xml` exists on disk after MCP scan
+- [ ] Coverage percentage in MCP result matches CLI result
+- [ ] Coverage data was produced by the scan itself, not leftover from a previous run
 
 #### 5.1.2 Scan — All Domains
 ```

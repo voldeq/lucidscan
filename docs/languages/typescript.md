@@ -24,6 +24,7 @@ TypeScript has full tool coverage in LucidShark across all quality domains inclu
 | **Security (SCA)** | Trivy | -- | Scans `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` |
 | **Testing** | Jest | -- | JSON output, assertion extraction |
 | **Testing** | Vitest | -- | Modern test runner, Vite-native |
+| **Testing** | Mocha | -- | Feature-rich test framework, NYC coverage |
 | **Testing** | Karma | -- | Angular projects |
 | **Testing** | Playwright | -- | E2E browser testing |
 | **Coverage** | Istanbul (NYC) | -- | Lines, statements, branches, functions |
@@ -136,6 +137,24 @@ pipeline:
     enabled: true
     tools:
       - name: vitest
+```
+
+**Tool: [Mocha](https://mochajs.org/)**
+
+Feature-rich JavaScript/TypeScript test framework running on Node.js.
+
+- JSON reporter output via `--reporter json`
+- Assertion failure extraction from stack traces
+- Automatic NYC (Istanbul CLI) coverage wrapping when NYC is installed
+- Config detection: `.mocharc.yml`, `.mocharc.yaml`, `.mocharc.json`, `.mocharc.js`, `.mocharc.cjs`, `.mocharc.mjs`
+- TypeScript support via `ts-node`, `ts-mocha`, or `tsx`
+
+```yaml
+pipeline:
+  testing:
+    enabled: true
+    tools:
+      - name: mocha
 ```
 
 **Tool: [Karma](https://karma-runner.github.io/)**

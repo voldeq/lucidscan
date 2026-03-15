@@ -167,7 +167,7 @@ class TestESLintLinter:
                 linter, "ensure_binary", return_value=Path("/usr/bin/eslint")
             ):
                 with patch(
-                    "lucidshark.plugins.linters.eslint.run_with_streaming",
+                    "lucidshark.plugins.linters.base.run_with_streaming",
                     return_value=mock_result,
                 ):
                     issues = linter.lint(context)
@@ -194,7 +194,7 @@ class TestESLintLinter:
                 linter, "ensure_binary", return_value=Path("/usr/bin/eslint")
             ):
                 with patch(
-                    "lucidshark.plugins.linters.eslint.run_with_streaming",
+                    "lucidshark.plugins.linters.base.run_with_streaming",
                     side_effect=subprocess.TimeoutExpired("eslint", 120),
                 ):
                     issues = linter.lint(context)
@@ -215,7 +215,7 @@ class TestESLintLinter:
                 linter, "ensure_binary", return_value=Path("/usr/bin/eslint")
             ):
                 with patch(
-                    "lucidshark.plugins.linters.eslint.run_with_streaming",
+                    "lucidshark.plugins.linters.base.run_with_streaming",
                     side_effect=OSError("command failed"),
                 ):
                     issues = linter.lint(context)
@@ -244,7 +244,7 @@ class TestESLintLinter:
                 linter, "ensure_binary", return_value=Path("/usr/bin/eslint")
             ):
                 with patch(
-                    "lucidshark.plugins.linters.eslint.run_with_streaming",
+                    "lucidshark.plugins.linters.base.run_with_streaming",
                     return_value=mock_result,
                 ) as mock_run:
                     linter.lint(context)
@@ -295,7 +295,7 @@ class TestESLintFix:
                 linter, "ensure_binary", return_value=Path("/usr/bin/eslint")
             ):
                 with patch(
-                    "lucidshark.plugins.linters.eslint.run_with_streaming"
+                    "lucidshark.plugins.linters.base.run_with_streaming"
                 ) as mock_run:
                     # First call (pre_issues lint) succeeds, second call (fix) times out
                     mock_run.side_effect = [
@@ -368,7 +368,7 @@ class TestESLintFix:
                 linter, "ensure_binary", return_value=Path("/usr/bin/eslint")
             ):
                 with patch(
-                    "lucidshark.plugins.linters.eslint.run_with_streaming"
+                    "lucidshark.plugins.linters.base.run_with_streaming"
                 ) as mock_run:
                     mock_run.side_effect = [pre_result, post_result]
                     result = linter.fix(context)

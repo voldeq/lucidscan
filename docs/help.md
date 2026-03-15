@@ -93,7 +93,7 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 | `--sast` | sast | Code security patterns (OpenGrep, gosec for Go) |
 | `--iac` | iac | Infrastructure-as-Code scanning (Checkov) |
 | `--container` | container | Container image scanning (Trivy) |
-| `--testing` | testing | Run test suite (pytest, Jest, Vitest, Karma, Playwright, Maven, cargo test, go test) |
+| `--testing` | testing | Run test suite (pytest, Jest, Vitest, Mocha, Karma, Playwright, Maven, cargo test, go test) |
 | `--coverage` | coverage | Coverage analysis (coverage.py, Istanbul, Vitest, JaCoCo, Tarpaulin, go cover). **Requires `--testing`** |
 | `--duplication` | duplication | Code duplication detection (Duplo) |
 | `--all` | all | Enable all domains |
@@ -482,7 +482,7 @@ Run quality checks on the codebase or specific files. Supports partial scanning 
 | `sast` | ✅ Full support | OpenGrep and gosec scan only specified/changed files |
 | `sca` | ❌ Project-wide only | Trivy dependency scan is inherently project-wide |
 | `iac` | ❌ Project-wide only | Checkov scans entire project |
-| `testing` | ⚠️ Partial support | pytest/Jest/Vitest/Playwright support file args; Karma/Maven/cargo test/go test are project-wide |
+| `testing` | ⚠️ Partial support | pytest/Jest/Vitest/Mocha/Playwright support file args; Karma/Maven/cargo test/go test are project-wide |
 | `coverage` | ⚠️ Parse data, filter output | Coverage reads existing data files; output can be filtered to changed files; Tarpaulin/JaCoCo/go cover always project-wide |
 | `duplication` | ❌ Project-wide only | Duplo scans entire project to detect cross-file duplicates |
 

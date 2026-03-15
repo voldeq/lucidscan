@@ -54,6 +54,23 @@ class JSONReporter(ReporterPlugin):
         if result.duplication_summary:
             output["duplication_summary"] = asdict(result.duplication_summary)
 
+        if result.tool_skips:
+            output["tool_skips"] = [
+                {
+                    "tool": skip.tool_name,
+                    "domain": (
+                        skip.domain.value
+                        if hasattr(skip.domain, "value")
+                        else str(skip.domain)
+                    ),
+                    "reason": skip.reason.value,
+                    "message": skip.message,
+                    "suggestion": skip.suggestion,
+                    "mandatory": skip.mandatory,
+                }
+                for skip in result.tool_skips
+            ]
+
         return output
 
     def _issue_to_dict(self, issue: UnifiedIssue) -> Dict[str, Any]:

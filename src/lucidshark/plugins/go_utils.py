@@ -80,16 +80,20 @@ def find_gofmt() -> Path:
     )
 
 
-def get_go_version() -> str:
-    """Get Go version string.
+def _get_tool_version(binary_finder, version_flag: str) -> str:
+    """Get version string from a Go-based tool.
+
+    Args:
+        binary_finder: Callable that returns a Path to the binary.
+        version_flag: CLI flag to get version (e.g., "version", "-version", "--version").
 
     Returns:
-        Version string (e.g., "go version go1.22.0 linux/amd64") or "unknown".
+        Version string or "unknown".
     """
     try:
-        go_bin = find_go()
+        binary = binary_finder()
         result = subprocess.run(
-            [str(go_bin), "version"],
+            [str(binary), version_flag],
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -101,6 +105,15 @@ def get_go_version() -> str:
     except Exception:
         pass
     return "unknown"
+
+
+def get_go_version() -> str:
+    """Get Go version string.
+
+    Returns:
+        Version string (e.g., "go version go1.22.0 linux/amd64") or "unknown".
+    """
+    return _get_tool_version(find_go, "version")
 
 
 def find_gosec() -> Path:
@@ -139,21 +152,7 @@ def get_gosec_version() -> str:
     Returns:
         Version string or "unknown".
     """
-    try:
-        binary = find_gosec()
-        result = subprocess.run(
-            [str(binary), "-version"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=30,
-        )
-        if result.returncode == 0:
-            return result.stdout.strip()
-    except Exception:
-        pass
-    return "unknown"
+    return _get_tool_version(find_gosec, "-version")
 
 
 def get_golangci_lint_version() -> str:
@@ -162,21 +161,7 @@ def get_golangci_lint_version() -> str:
     Returns:
         Version string or "unknown".
     """
-    try:
-        binary = find_golangci_lint()
-        result = subprocess.run(
-            [str(binary), "--version"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=30,
-        )
-        if result.returncode == 0:
-            return result.stdout.strip()
-    except Exception:
-        pass
-    return "unknown"
+    return _get_tool_version(find_golangci_lint, "--version")
 
 
 def generate_issue_id(

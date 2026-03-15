@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -16,7 +15,6 @@ from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
     ScanContext,
     Severity,
-    SkipReason,
     ToolDomain,
     UnifiedIssue,
 )
@@ -102,33 +100,8 @@ class PlaywrightRunner(TestRunnerPlugin):
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                cwd=str(context.project_root),
-                timeout=900,  # 15 minute timeout for E2E tests
-            )
-        except subprocess.TimeoutExpired:
-            LOGGER.warning("Playwright timed out after 900 seconds")
-            context.record_skip(
-                tool_name=self.name,
-                domain=ToolDomain.TESTING,
-                reason=SkipReason.EXECUTION_FAILED,
-                message="Playwright timed out after 900 seconds",
-            )
-            return TestResult()
-        except Exception as e:
-            LOGGER.error(f"Failed to run Playwright: {e}")
-            context.record_skip(
-                tool_name=self.name,
-                domain=ToolDomain.TESTING,
-                reason=SkipReason.EXECUTION_FAILED,
-                message=f"Failed to run Playwright: {e}",
-            )
+        result = self._run_test_subprocess(cmd, context, timeout=900)
+        if result is None:
             return TestResult()
 
         # Playwright outputs JSON to stdout when using --reporter=json
@@ -384,22 +357,7 @@ class PlaywrightRunner(TestRunnerPlugin):
 
         return None, None
 
-    def _truncate(self, text: str, max_length: int) -> str:
-        """Truncate text to max length.
-
-        Args:
-            text: Text to truncate.
-            max_length: Maximum length.
-
-        Returns:
-            Truncated text.
-        """
-        if not text:
-            return "Test failed"
-        text = text.replace("\n", " ").strip()
-        if len(text) <= max_length:
-            return text
-        return text[: max_length - 3] + "..."
+    # _truncate inherited from TestRunnerPlugin base class
 
     def _generate_issue_id(self, full_name: str, message: str) -> str:
         """Generate deterministic issue ID.

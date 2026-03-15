@@ -933,12 +933,12 @@ class TestDuplicationResult:
 class TestDuploGitMode:
     """Tests for git mode file discovery."""
 
-    def test_git_ls_files_used_when_in_git_repo(self) -> None:
-        """Test that git ls-files + filtering is used when in a git repo.
+    def test_git_flag_used_when_in_git_repo_no_excludes(self) -> None:
+        """Test that --git flag is used when in a git repo with no exclude patterns.
 
-        The raw --git flag is no longer used because it bypasses exclude
-        pattern filtering (including default excludes like node_modules).
-        Instead, git ls-files is used for file discovery with filtering applied.
+        When there are no exclude patterns to apply, the raw --git flag is used
+        directly for efficient file discovery. When exclude patterns are present,
+        git ls-files + filtering is used instead.
         """
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
@@ -949,12 +949,15 @@ class TestDuploGitMode:
             )
 
             mock_run = _run_detect_with_mocks(
-                plugin, context, is_git=True, use_git=True,
+                plugin,
+                context,
+                is_git=True,
+                use_git=True,
                 duplo_output=_make_empty_duplo_output(files_analyzed=1, total_lines=10),
             )
             cmd = _extract_cmd(mock_run)
-            # --git should NOT be in the command (we use filtered file lists now)
-            assert "--git" not in cmd
+            # --git IS used directly when in a git repo with no exclude patterns
+            assert "--git" in cmd
 
     def test_fallback_to_file_list_when_not_git_repo(self) -> None:
         """Test fallback to file list when not in a git repo."""

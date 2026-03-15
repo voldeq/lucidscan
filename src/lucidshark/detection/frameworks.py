@@ -183,6 +183,19 @@ def detect_frameworks(project_root: Path) -> tuple[list[str], list[str]]:
         if "jest" not in test_frameworks:
             test_frameworks.append("jest")
 
+    # Check for Mocha config files
+    mocha_configs = [
+        ".mocharc.yml",
+        ".mocharc.yaml",
+        ".mocharc.json",
+        ".mocharc.js",
+        ".mocharc.cjs",
+        ".mocharc.mjs",
+    ]
+    if any((project_root / cfg).exists() for cfg in mocha_configs):
+        if "mocha" not in test_frameworks:
+            test_frameworks.append("mocha")
+
     return frameworks, test_frameworks
 
 
