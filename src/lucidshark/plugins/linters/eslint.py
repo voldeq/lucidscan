@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -16,11 +15,9 @@ from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
     ScanContext,
     Severity,
-    SkipReason,
     ToolDomain,
     UnifiedIssue,
 )
-from lucidshark.core.subprocess_runner import run_with_streaming
 from lucidshark.plugins.linters.base import FixResult, LinterPlugin
 from lucidshark.plugins.utils import ensure_node_binary, get_cli_version
 
@@ -118,20 +115,12 @@ class ESLintLinter(LinterPlugin):
         Returns:
             List of linting issues.
         """
-        try:
-            binary = self.ensure_binary()
-        except FileNotFoundError as e:
-            LOGGER.warning(str(e))
+        binary = self._ensure_binary_safe()
+        if binary is None:
             return []
 
-        # Build command
-        cmd = [
-            str(binary),
-            "--format",
-            "json",
-        ]
+        cmd = [str(binary), "--format", "json"]
 
-        # Add paths to check - filter to only include JS/TS files
         paths = self._resolve_target_paths(context)
         if not paths:
             LOGGER.debug("No JavaScript/TypeScript files to lint")
@@ -139,42 +128,17 @@ class ESLintLinter(LinterPlugin):
 
         cmd.extend(paths)
 
-        # Add ignore patterns
         exclude_patterns = context.get_exclude_patterns()
         for pattern in exclude_patterns:
             cmd.extend(["--ignore-pattern", pattern])
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
-        try:
-            result = run_with_streaming(
-                cmd=cmd,
-                cwd=context.project_root,
-                tool_name="eslint",
-                stream_handler=context.stream_handler,
-                timeout=120,
-            )
-        except subprocess.TimeoutExpired:
-            LOGGER.warning("ESLint lint timed out after 120 seconds")
-            context.record_skip(
-                tool_name=self.name,
-                domain=ToolDomain.LINTING,
-                reason=SkipReason.EXECUTION_FAILED,
-                message="ESLint lint timed out after 120 seconds",
-            )
-            return []
-        except Exception as e:
-            LOGGER.error(f"Failed to run ESLint: {e}")
-            context.record_skip(
-                tool_name=self.name,
-                domain=ToolDomain.LINTING,
-                reason=SkipReason.EXECUTION_FAILED,
-                message=f"Failed to run ESLint: {e}",
-            )
+        stdout = self._run_linter_command(cmd, context, tool_label="eslint")
+        if stdout is None:
             return []
 
-        # Parse output
-        issues = self._parse_output(result.stdout, context.project_root)
+        issues = self._parse_output(stdout, context.project_root)
 
         LOGGER.info(f"ESLint found {len(issues)} issues")
         return issues
@@ -188,22 +152,13 @@ class ESLintLinter(LinterPlugin):
         Returns:
             FixResult with statistics.
         """
-        try:
-            binary = self.ensure_binary()
-        except FileNotFoundError as e:
-            LOGGER.warning(str(e))
+        binary = self._ensure_binary_safe()
+        if binary is None:
             return FixResult()
 
-        # Run without fix to count issues first
         pre_issues = self.lint(context)
 
-        # Build fix command
-        cmd = [
-            str(binary),
-            "--fix",
-            "--format",
-            "json",
-        ]
+        cmd = [str(binary), "--fix", "--format", "json"]
 
         paths = self._resolve_target_paths(context)
         if not paths:
@@ -218,36 +173,12 @@ class ESLintLinter(LinterPlugin):
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
-        try:
-            result = run_with_streaming(
-                cmd=cmd,
-                cwd=context.project_root,
-                tool_name="eslint-fix",
-                stream_handler=context.stream_handler,
-                timeout=120,
-            )
-        except subprocess.TimeoutExpired:
-            LOGGER.warning("ESLint fix timed out after 120 seconds")
-            return FixResult()
-        except Exception as e:
-            LOGGER.error(f"Failed to run ESLint fix: {e}")
+        stdout = self._run_linter_command(cmd, context, tool_label="eslint-fix")
+        if stdout is None:
             return FixResult()
 
-        # Parse remaining issues
-        post_issues = self._parse_output(result.stdout, context.project_root)
-
-        # Calculate stats
-        files_modified = len(
-            set(
-                str(issue.file_path) for issue in pre_issues if issue not in post_issues
-            )
-        )
-
-        return FixResult(
-            files_modified=files_modified,
-            issues_fixed=len(pre_issues) - len(post_issues),
-            issues_remaining=len(post_issues),
-        )
+        post_issues = self._parse_output(stdout, context.project_root)
+        return self._calculate_fix_stats(pre_issues, post_issues)
 
     def _filter_paths(
         self,

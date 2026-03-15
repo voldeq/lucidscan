@@ -113,16 +113,21 @@ class TestMCPToolExecutor:
     def test_parse_domains_with_all_empty_config(
         self, executor: MCPToolExecutor
     ) -> None:
-        """Test parsing 'all' with empty config includes all domains."""
+        """Test parsing 'all' with empty config includes default tool domains."""
         domains = executor._parse_domains(["all"])
         # With empty config, tool domains are enabled by default (None means enabled)
         assert ToolDomain.LINTING in domains
         assert ToolDomain.TYPE_CHECKING in domains
-        # --all means ALL domains, including all security domains
-        assert ScanDomain.SCA in domains
-        assert ScanDomain.SAST in domains
-        assert ScanDomain.IAC in domains
-        assert ScanDomain.CONTAINER in domains
+        assert ToolDomain.TESTING in domains
+        assert ToolDomain.COVERAGE in domains
+        assert ToolDomain.DUPLICATION in domains
+        assert ToolDomain.FORMATTING in domains
+        # Security domains are only included when explicitly configured;
+        # an empty config has no security domains enabled.
+        assert ScanDomain.SCA not in domains
+        assert ScanDomain.SAST not in domains
+        assert ScanDomain.IAC not in domains
+        assert ScanDomain.CONTAINER not in domains
 
     def test_parse_domains_with_specific(self, executor: MCPToolExecutor) -> None:
         """Test parsing specific domains."""

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -16,6 +17,7 @@ from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
     ScanContext,
     Severity,
+    SkipReason,
     ToolDomain,
     UnifiedIssue,
 )
@@ -134,6 +136,80 @@ class TestRunnerPlugin(ABC):
         Returns:
             TestResult with test statistics and issues for failures.
         """
+
+    # --- Shared subprocess execution ---
+
+    def _run_test_subprocess(
+        self,
+        cmd: List[str],
+        context: ScanContext,
+        timeout: int = 600,
+        env: Optional[Dict[str, str]] = None,
+    ) -> Optional[subprocess.CompletedProcess]:
+        """Run a test command with standard timeout and error handling.
+
+        Args:
+            cmd: Command to execute.
+            context: Scan context for recording skips.
+            timeout: Timeout in seconds (default 600).
+            env: Optional environment variables (merged with os.environ).
+
+        Returns:
+            CompletedProcess on success, or None on timeout/error.
+        """
+        run_kwargs: Dict[str, Any] = {
+            "capture_output": True,
+            "text": True,
+            "encoding": "utf-8",
+            "errors": "replace",
+            "cwd": str(context.project_root),
+            "timeout": timeout,
+        }
+        if env is not None:
+            import os
+
+            full_env = os.environ.copy()
+            full_env.update(env)
+            run_kwargs["env"] = full_env
+
+        try:
+            return subprocess.run(cmd, **run_kwargs)
+        except subprocess.TimeoutExpired:
+            LOGGER.warning(f"{self.name} timed out after {timeout} seconds")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TESTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"{self.name} timed out after {timeout} seconds",
+            )
+            return None
+        except Exception as e:
+            LOGGER.error(f"Failed to run {self.name}: {e}")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TESTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"Failed to run {self.name}: {e}",
+            )
+            return None
+
+    @staticmethod
+    def _truncate(text: str, max_length: int) -> str:
+        """Truncate text to max length, replacing newlines with spaces.
+
+        Args:
+            text: Text to truncate.
+            max_length: Maximum length.
+
+        Returns:
+            Truncated text.
+        """
+        if not text:
+            return "Test failed"
+        text = text.replace("\n", " ").strip()
+        if len(text) <= max_length:
+            return text
+        return text[: max_length - 3] + "..."
 
     # --- Shared helpers for Jest-compatible JSON report processing ---
 

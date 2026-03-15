@@ -6,13 +6,17 @@ https://jestjs.io/
 
 from __future__ import annotations
 
-import subprocess
 import tempfile
 from pathlib import Path
 from typing import List, Optional
 
 from lucidshark.core.logging import get_logger
-from lucidshark.core.models import ScanContext, SkipReason, ToolDomain
+from lucidshark.core.models import (
+    ScanContext,
+    Severity,
+    ToolDomain,
+    UnifiedIssue,
+)
 from lucidshark.plugins.test_runners.base import TestRunnerPlugin, TestResult
 from lucidshark.plugins.utils import ensure_node_binary
 
@@ -85,39 +89,81 @@ class JestRunner(TestRunnerPlugin):
 
             LOGGER.debug(f"Running: {' '.join(cmd)}")
 
-            try:
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    encoding="utf-8",
-                    errors="replace",
-                    cwd=str(context.project_root),
-                    timeout=600,
-                )
-            except subprocess.TimeoutExpired:
-                LOGGER.warning("Jest timed out after 600 seconds")
-                context.record_skip(
-                    tool_name=self.name,
-                    domain=ToolDomain.TESTING,
-                    reason=SkipReason.EXECUTION_FAILED,
-                    message="Jest timed out after 600 seconds",
-                )
-                return TestResult()
-            except Exception as e:
-                LOGGER.error(f"Failed to run Jest: {e}")
-                context.record_skip(
-                    tool_name=self.name,
-                    domain=ToolDomain.TESTING,
-                    reason=SkipReason.EXECUTION_FAILED,
-                    message=f"Failed to run Jest: {e}",
-                )
+            result = self._run_test_subprocess(cmd, context)
+            if result is None:
                 return TestResult()
 
             if report_file.exists():
                 return self._parse_json_report(report_file, context.project_root)
-            else:
-                return self._parse_json_output(result.stdout, context.project_root)
+
+            # Check for compilation errors (e.g. ts-jest failing to compile TypeScript)
+            if result.returncode != 0 and result.stderr:
+                compilation_result = self._check_compilation_errors(
+                    result.stderr, context.project_root
+                )
+                if compilation_result is not None:
+                    return compilation_result
+
+            return self._parse_json_output(result.stdout, context.project_root)
+
+    def _check_compilation_errors(
+        self,
+        stderr: str,
+        project_root: Path,
+    ) -> Optional[TestResult]:
+        """Check stderr for compilation errors that prevented tests from running.
+
+        When ts-jest or other transpilers fail, Jest exits with a non-zero code
+        and no JSON report. This method detects those failures and returns a
+        TestResult with the compilation error as an issue.
+
+        Args:
+            stderr: Standard error output from Jest.
+            project_root: Project root directory.
+
+        Returns:
+            TestResult with compilation error issue, or None if no compilation error.
+        """
+        error_patterns = [
+            "error TS",
+            "SyntaxError",
+            "Cannot find module",
+            "Failed to parse the TypeScript config",
+            "ts-node",
+            "compilation failed",
+            "Could not load",
+        ]
+        if not any(pattern in stderr for pattern in error_patterns):
+            return None
+
+        # Extract a concise error summary (first few meaningful lines)
+        lines = stderr.strip().splitlines()
+        summary_lines = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped and not stripped.startswith("at "):
+                summary_lines.append(stripped)
+            if len(summary_lines) >= 5:
+                break
+        summary = "\n".join(summary_lines) if summary_lines else stderr[:500]
+
+        issue = UnifiedIssue(
+            id="jest-compilation-error",
+            domain=ToolDomain.TESTING,
+            source_tool=self.name,
+            severity=Severity.HIGH,
+            rule_id="compilation-error",
+            title="Jest failed: TypeScript/JavaScript compilation error",
+            description=summary,
+            fixable=False,
+        )
+
+        result = TestResult(errors=1)
+        result.issues.append(issue)
+        LOGGER.warning(
+            f"Jest compilation error detected: {summary_lines[0] if summary_lines else 'unknown'}"
+        )
+        return result
 
     def _parse_json_report(
         self,

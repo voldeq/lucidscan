@@ -223,7 +223,7 @@ class TestBiomeLint:
                 linter, "ensure_binary", return_value=Path("/usr/bin/biome")
             ):
                 with patch(
-                    "lucidshark.plugins.linters.biome.run_with_streaming",
+                    "lucidshark.plugins.linters.base.run_with_streaming",
                     return_value=mock_result,
                 ):
                     issues = linter.lint(context)
@@ -249,7 +249,7 @@ class TestBiomeLint:
                 linter, "ensure_binary", return_value=Path("/usr/bin/biome")
             ):
                 with patch(
-                    "lucidshark.plugins.linters.biome.run_with_streaming",
+                    "lucidshark.plugins.linters.base.run_with_streaming",
                     side_effect=subprocess.TimeoutExpired("biome", 120),
                 ):
                     issues = linter.lint(context)
@@ -270,7 +270,7 @@ class TestBiomeLint:
                 linter, "ensure_binary", return_value=Path("/usr/bin/biome")
             ):
                 with patch(
-                    "lucidshark.plugins.linters.biome.run_with_streaming",
+                    "lucidshark.plugins.linters.base.run_with_streaming",
                     side_effect=OSError("command failed"),
                 ):
                     issues = linter.lint(context)
@@ -335,7 +335,7 @@ class TestBiomeFix:
                 linter, "ensure_binary", return_value=Path("/usr/bin/biome")
             ):
                 with patch(
-                    "lucidshark.plugins.linters.biome.run_with_streaming"
+                    "lucidshark.plugins.linters.base.run_with_streaming"
                 ) as mock_run:
                     # lint(pre) -> fix -> lint(post)
                     mock_run.side_effect = [pre_result, fix_result, post_result]
@@ -372,7 +372,7 @@ class TestBiomeFix:
                 linter, "ensure_binary", return_value=Path("/usr/bin/biome")
             ):
                 with patch(
-                    "lucidshark.plugins.linters.biome.run_with_streaming"
+                    "lucidshark.plugins.linters.base.run_with_streaming"
                 ) as mock_run:
                     mock_run.side_effect = [
                         pre_result,  # lint (pre)
@@ -438,7 +438,6 @@ class TestBiomeParseOutput:
         assert len(issues) == 2
         assert issues[0].severity == Severity.HIGH
         assert issues[1].severity == Severity.MEDIUM
-
 
     def test_parse_mixed_string_and_dict_diagnostics(self) -> None:
         """Test parsing output where diagnostics contain both strings and dicts.

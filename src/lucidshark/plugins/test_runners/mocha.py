@@ -7,7 +7,6 @@ https://mochajs.org/
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 import subprocess
@@ -18,7 +17,6 @@ from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
     ScanContext,
     Severity,
-    SkipReason,
     ToolDomain,
     UnifiedIssue,
 )
@@ -132,19 +130,24 @@ class MochaRunner(TestRunnerPlugin):
         # Wrap with NYC for coverage if available
         nyc_binary = self._find_nyc_binary()
         if nyc_binary:
-            cmd.extend([
-                str(nyc_binary),
-                "--reporter=json",
-                "--reporter=text",
-                "--",
-            ])
+            cmd.extend(
+                [
+                    str(nyc_binary),
+                    "--reporter=json",
+                    "--reporter=text",
+                    "--",
+                ]
+            )
             LOGGER.debug("NYC found, wrapping mocha with coverage instrumentation")
 
-        cmd.extend([
-            str(binary),
-            "--reporter", "json",
-            "--exit",  # Force Mocha to exit after tests complete
-        ])
+        cmd.extend(
+            [
+                str(binary),
+                "--reporter",
+                "json",
+                "--exit",  # Force Mocha to exit after tests complete
+            ]
+        )
 
         if context.paths:
             paths = [str(p) for p in context.paths]
@@ -152,34 +155,30 @@ class MochaRunner(TestRunnerPlugin):
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                cwd=str(context.project_root),
-                timeout=600,
-            )
-        except subprocess.TimeoutExpired:
-            LOGGER.warning("Mocha timed out after 600 seconds")
-            context.record_skip(
-                tool_name=self.name,
-                domain=ToolDomain.TESTING,
-                reason=SkipReason.EXECUTION_FAILED,
-                message="Mocha timed out after 600 seconds",
-            )
+        result = self._run_test_subprocess(cmd, context)
+        if result is None:
             return TestResult()
-        except Exception as e:
-            LOGGER.error(f"Failed to run Mocha: {e}")
-            context.record_skip(
-                tool_name=self.name,
-                domain=ToolDomain.TESTING,
-                reason=SkipReason.EXECUTION_FAILED,
-                message=f"Failed to run Mocha: {e}",
-            )
-            return TestResult()
+
+        # After NYC-wrapped run, generate coverage-summary.json for Istanbul plugin
+        if nyc_binary:
+            nyc_output_dir = context.project_root / ".nyc_output"
+            if nyc_output_dir.exists():
+                try:
+                    subprocess.run(
+                        [
+                            str(nyc_binary),
+                            "report",
+                            "--reporter=json-summary",
+                            f"--report-dir={context.project_root / 'coverage'}",
+                        ],
+                        cwd=str(context.project_root),
+                        capture_output=True,
+                        text=True,
+                        timeout=60,
+                    )
+                    LOGGER.debug("Generated NYC coverage-summary.json")
+                except Exception as e:
+                    LOGGER.warning(f"Failed to generate NYC coverage summary: {e}")
 
         # Mocha outputs JSON to stdout when using --reporter json
         return self._parse_mocha_output(
@@ -466,16 +465,4 @@ class MochaRunner(TestRunnerPlugin):
 
         return message[:100]
 
-    def _generate_issue_id(self, full_title: str, assertion: str) -> str:
-        """Generate deterministic issue ID for Mocha test failures.
-
-        Args:
-            full_title: Full test title including suite names.
-            assertion: Assertion message.
-
-        Returns:
-            Unique issue ID.
-        """
-        content = f"{full_title}:{assertion}"
-        hash_val = hashlib.sha256(content.encode()).hexdigest()[:12]
-        return f"mocha-{hash_val}"
+    # _generate_issue_id inherited from TestRunnerPlugin base class

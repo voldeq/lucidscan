@@ -1425,14 +1425,22 @@ echo "Exit code: $?"
 
 #### 4.4.2 CLI — Testing + Coverage Together
 ```bash
+# Clean slate — remove any pre-existing coverage data
+rm -rf coverage .nyc_output
 lucidshark scan --testing --coverage --all-files --format json
+echo "Exit code: $?"
+# Prove the testing step produced coverage data
+ls -la coverage/coverage-summary.json
+echo "coverage-summary.json exists: $?"
+cat coverage/coverage-summary.json | python3 -c "import sys,json; d=json.load(sys.stdin); print('Line coverage:', d.get('total',{}).get('lines',{}).get('pct','MISSING'))"
 ```
 
 **Verify:**
 - [ ] Jest runs with `--coverage` flag
 - [ ] Tests run (pass/fail counts reported)
-- [ ] Coverage percentage calculated (Istanbul/NYC format)
-- [ ] `coverage/coverage-summary.json` generated
+- [ ] `coverage/coverage-summary.json` exists on disk after scan (verified with `ls`)
+- [ ] Coverage percentage in the file is non-zero
+- [ ] Coverage percentage in scan output matches the file on disk
 - [ ] Coverage threshold comparison works (below 80% → issue)
 - [ ] Gap percentage reported
 
@@ -1449,12 +1457,18 @@ lucidshark scan --testing --files tests/main.test.ts --format json
 
 #### 4.5.1 CLI — Coverage Without Testing (Should Error)
 ```bash
+# Clean slate — ensure no leftover coverage data from previous runs
+rm -rf coverage .nyc_output
 lucidshark scan --coverage --all-files --format json
 echo "Exit code: $?"
+ls coverage/coverage-summary.json 2>/dev/null
+echo "coverage-summary.json exists after coverage-only scan: $?"
 ```
 
 **Verify:**
+- [ ] No `coverage/coverage-summary.json` produced (testing didn't run)
 - [ ] Reports error or "no coverage data" (coverage requires testing to run first)
+- [ ] Exit code is non-zero
 - [ ] Does not crash
 
 #### 4.5.2 CLI — Coverage Threshold
@@ -1784,14 +1798,22 @@ echo "Exit code: $?"
 
 #### 5.2.2 CLI — Vitest + Coverage
 ```bash
+# Clean slate — remove any pre-existing coverage data
+rm -rf coverage
 lucidshark scan --testing --coverage --all-files --format json
+echo "Exit code: $?"
+# Prove the testing step produced coverage data
+ls -la coverage/coverage-summary.json
+echo "coverage-summary.json exists: $?"
+cat coverage/coverage-summary.json | python3 -c "import sys,json; d=json.load(sys.stdin); print('Line coverage:', d.get('total',{}).get('lines',{}).get('pct','MISSING'))"
 ```
 
 **Verify:**
 - [ ] Vitest runs with `--coverage` flag
 - [ ] Coverage generated via `@vitest/coverage-v8`
-- [ ] Coverage percentage calculated
-- [ ] `coverage/coverage-summary.json` generated
+- [ ] `coverage/coverage-summary.json` exists on disk after scan (verified with `ls`)
+- [ ] Coverage percentage in the file is non-zero
+- [ ] Coverage percentage in scan output matches the file on disk
 - [ ] Coverage threshold comparison works
 
 ### 5.3 Coverage (Vitest Coverage)
@@ -1971,37 +1993,47 @@ echo "Exit code: $?"
 
 #### 6.1.7 Mocha + NYC/Istanbul Coverage
 
-This is critical — Mocha is the only supported test runner that lacks built-in coverage. It relies on NYC/Istanbul as an external wrapper.
+This is critical — Mocha is the only supported test runner that lacks built-in coverage. It relies on NYC/Istanbul as an external wrapper. LucidShark must invoke NYC to wrap Mocha automatically.
 
 ```bash
-# First run tests to generate coverage data
+# Clean slate — no pre-existing coverage data
 cd "$TEST_WORKSPACE/test-project-mocha"
-npx nyc mocha --recursive --exit 2>/dev/null
-ls coverage/ 2>/dev/null || ls .nyc_output/ 2>/dev/null
-```
+rm -rf coverage .nyc_output
+ls coverage/coverage-summary.json 2>/dev/null && echo "FAIL: stale coverage data exists" || echo "OK: clean slate"
 
-```bash
-# Then run LucidShark coverage scan
+# LucidShark must produce coverage data itself — no manual npx nyc step
 lucidshark scan --testing --coverage --all-files --format json
 echo "Exit code: $?"
+
+# Prove the testing step produced coverage data
+ls -la coverage/coverage-summary.json 2>/dev/null || ls -la .nyc_output/ 2>/dev/null
+echo "Coverage data exists: $?"
+cat coverage/coverage-summary.json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print('Line coverage:', d.get('total',{}).get('lines',{}).get('pct','MISSING'))" 2>/dev/null || echo "No coverage-summary.json found"
 ```
 
 **Verify:**
+- [ ] No pre-existing coverage data before scan (clean slate confirmed)
 - [ ] Mocha tests execute
-- [ ] NYC generates coverage data (check `coverage/` or `.nyc_output/`)
-- [ ] Istanbul plugin finds and parses coverage data
-- [ ] Coverage percentage calculated
+- [ ] LucidShark's testing step itself produces coverage output (NYC wraps Mocha automatically)
+- [ ] `coverage/coverage-summary.json` or `.nyc_output/` exists on disk after scan
+- [ ] Coverage percentage is non-zero
+- [ ] Istanbul plugin finds and parses the coverage data it produced
 - [ ] Coverage threshold comparison works (below 50% → issue)
 - [ ] Gap percentage reported
 
 Via MCP:
+```bash
+rm -rf coverage .nyc_output
+```
 ```
 mcp__lucidshark__scan(domains=["testing", "coverage"], all_files=true)
 ```
 
 **Verify:**
-- [ ] Same behavior as CLI
+- [ ] Same behavior as CLI — coverage data produced by the scan itself
+- [ ] `coverage/coverage-summary.json` or `.nyc_output/` exists after MCP scan
 - [ ] Coverage data parsed correctly
+- [ ] Coverage percentage matches CLI result
 
 #### 6.1.8 Mocha Coverage Threshold Levels
 ```bash

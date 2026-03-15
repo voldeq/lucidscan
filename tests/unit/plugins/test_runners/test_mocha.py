@@ -359,20 +359,22 @@ class TestMochaRunTests:
             context.project_root = project_root
             context.paths = []
 
-            mocha_output = json.dumps({
-                "stats": {
-                    "suites": 2,
-                    "tests": 5,
-                    "passes": 4,
-                    "pending": 1,
-                    "failures": 0,
-                    "duration": 250,
-                },
-                "tests": [],
-                "pending": [],
-                "failures": [],
-                "passes": [],
-            })
+            mocha_output = json.dumps(
+                {
+                    "stats": {
+                        "suites": 2,
+                        "tests": 5,
+                        "passes": 4,
+                        "pending": 1,
+                        "failures": 0,
+                        "duration": 250,
+                    },
+                    "tests": [],
+                    "pending": [],
+                    "failures": [],
+                    "passes": [],
+                }
+            )
 
             mock_result = MagicMock()
             mock_result.stdout = mocha_output
@@ -522,10 +524,12 @@ class TestMochaOutputParsing:
 
     def test_parse_clean_json(self) -> None:
         runner = MochaRunner()
-        output = json.dumps({
-            "stats": {"passes": 5, "failures": 0, "pending": 0, "duration": 100},
-            "failures": [],
-        })
+        output = json.dumps(
+            {
+                "stats": {"passes": 5, "failures": 0, "pending": 0, "duration": 100},
+                "failures": [],
+            }
+        )
         result = runner._parse_mocha_output(output, "", Path("/project"))
         assert result.passed == 5
 
@@ -554,10 +558,12 @@ class TestMochaOutputParsing:
             "All files |     100 |      100 |     100 |     100 |\n"
             "----------|---------|----------|---------|---------|---\n"
         )
-        json_output = json.dumps({
-            "stats": {"passes": 3, "failures": 0, "pending": 0, "duration": 50},
-            "failures": [],
-        })
+        json_output = json.dumps(
+            {
+                "stats": {"passes": 3, "failures": 0, "pending": 0, "duration": 50},
+                "failures": [],
+            }
+        )
         output = nyc_prefix + json_output
         result = runner._parse_mocha_output(output, "", Path("/project"))
         assert result.passed == 3
@@ -565,10 +571,12 @@ class TestMochaOutputParsing:
     def test_parse_json_with_nyc_suffix(self) -> None:
         """NYC coverage text may appear after JSON."""
         runner = MochaRunner()
-        json_output = json.dumps({
-            "stats": {"passes": 2, "failures": 0, "pending": 0, "duration": 30},
-            "failures": [],
-        })
+        json_output = json.dumps(
+            {
+                "stats": {"passes": 2, "failures": 0, "pending": 0, "duration": 30},
+                "failures": [],
+            }
+        )
         nyc_suffix = "\n----------|---------|----------|---------|---------|---\n"
         output = json_output + nyc_suffix
         result = runner._parse_mocha_output(output, "", Path("/project"))
