@@ -47,7 +47,7 @@ class LucidSharkMCPServer:
                     description=(
                         "Run comprehensive code quality checks. LucidShark is a unified pipeline "
                         "for: LINTING (Ruff, ESLint, Biome, Clippy, Checkstyle, PMD - style issues, code smells); "
-                        "FORMATTING (Ruff Format, Prettier, rustfmt, google-java-format - code formatting); "
+                        "FORMATTING (Ruff Format, Prettier, rustfmt - code formatting); "
                         "TYPE_CHECKING (mypy, Pyright, tsc, SpotBugs, cargo check - type errors); "
                         "SAST security (OpenGrep - code vulnerabilities); "
                         "SCA security (Trivy - dependency vulnerabilities); "

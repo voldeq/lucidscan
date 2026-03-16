@@ -68,7 +68,6 @@ INSTALL_INSTRUCTIONS: Dict[str, str] = {
     "ruff_format": "pip install ruff",
     "prettier": "npm install -g prettier",
     "rustfmt": "rustup component add rustfmt",
-    "google_java_format": "Download from github.com/google/google-java-format",
     # Note: checkstyle and pmd are managed tools (auto-downloaded) and not listed here
 }
 

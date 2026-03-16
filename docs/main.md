@@ -86,7 +86,7 @@ A single configuration file controls:
 | Domain | Tools | What It Catches |
 |--------|-------|-----------------|
 | **Linting** | Ruff, ESLint, Biome, Clippy, Checkstyle, PMD, golangci-lint | Style, code smells, bug detection |
-| **Formatting** | Ruff Format, Prettier, rustfmt, google-java-format, gofmt | Code formatting, whitespace style |
+| **Formatting** | Ruff Format, Prettier, rustfmt, gofmt | Code formatting, whitespace style |
 | **Type Checking** | mypy, TypeScript, Pyright, SpotBugs (managed), cargo check, go vet | Type errors, static analysis bugs |
 | **Security** | Trivy, OpenGrep, gosec (Go), Checkov | Vulnerabilities, misconfigurations |
 | **Testing** | pytest, Jest, Vitest, Mocha, Maven/Gradle, cargo test, go test | Test failures |
@@ -305,7 +305,6 @@ Failures are logged as warnings and do not fail the pipeline.
     tools:
       - name: ruff_format
       - name: prettier
-      - name: google_java_format
       - name: rustfmt
 
   duplication:
@@ -361,7 +360,7 @@ LucidShark scans only changed files (uncommitted changes) by default. Use `--all
 | Domain | Partial Scan Support | Behavior |
 |--------|---------------------|----------|
 | **Linting** | ⚠️ Partial | Ruff/ESLint/Biome/Checkstyle/PMD support file args; Clippy is workspace-wide; golangci-lint runs workspace-wide (`./...`) |
-| **Formatting** | ⚠️ Partial | Ruff Format/Prettier support file args; rustfmt/google-java-format project-wide; gofmt supports file args |
+| **Formatting** | ⚠️ Partial | Ruff Format/Prettier support file args; rustfmt project-wide; gofmt supports file args |
 | **Type Checking** | ⚠️ Partial | mypy/pyright yes; tsc/SpotBugs/cargo check always full; go vet runs package-wide (`./...`) |
 | **SAST** | ✅ Full | OpenGrep and gosec scan only changed/specified files |
 | **SCA** | ❌ None | Trivy dependency scan always project-wide |
@@ -585,7 +584,7 @@ pipeline:
     post_command: string  # Optional: runs after formatting check completes
     exclude: [string]  # Patterns to exclude from formatting check
     tools:
-      - name: string  # ruff_format, prettier, rustfmt, google_java_format
+      - name: string  # ruff_format, prettier, rustfmt
 
   duplication:
     enabled: boolean
@@ -857,7 +856,7 @@ spotbugs = "4.9.8"
 duplo = "0.1.7"
 ```
 
-**Language-specific tools** (ruff, eslint, biome, mypy, pyright, google-java-format, etc.) are **not** version-pinned by LucidShark. Install these via your package manager (pip, npm, cargo) to ensure compatibility with your project. PMD, Checkstyle, and SpotBugs are exceptions — they are managed (auto-downloaded) like security tools, since they are distributed as cross-platform JARs/zips.
+**Language-specific tools** (ruff, eslint, biome, mypy, pyright, etc.) are **not** version-pinned by LucidShark. Install these via your package manager (pip, npm, cargo) to ensure compatibility with your project. PMD, Checkstyle, and SpotBugs are exceptions — they are managed (auto-downloaded) like security tools, since they are distributed as cross-platform JARs/zips.
 
 When installed as a package, LucidShark uses hardcoded fallback versions from `src/lucidshark/bootstrap/versions.py`.
 
@@ -922,7 +921,7 @@ Binaries are cached in `{project_root}/.lucidshark/` by default. The `LUCIDSHARK
 │  │                VitestCoveragePlugin, JaCoCoPlugin,            │
 │  │                TarpaulinPlugin                               │
 │  ├── Formatting:  RuffFormatter, PrettierFormatter,             │
-│  │                RustfmtFormatter, GoogleJavaFormatFormatter   │
+│  │                RustfmtFormatter                              │
 │  ├── Duplication: DuploPlugin                                   │
 │  └── Enrichers:   (post-processing pipeline)                    │
 ├─────────────────────────────────────────────────────────────────┤
@@ -1193,7 +1192,7 @@ The MCP server sends progress notifications during scans, reporting domain start
 | Domain | Partial Scan | Notes |
 |--------|--------------|-------|
 | Linting | ⚠️ Partial | Ruff/ESLint/Biome/Checkstyle/PMD support file-level; Clippy is workspace-wide; golangci-lint runs workspace-wide (`./...`) |
-| Formatting | ⚠️ Partial | Ruff Format/Prettier support file-level; rustfmt/google-java-format project-wide; gofmt supports file args |
+| Formatting | ⚠️ Partial | Ruff Format/Prettier support file-level; rustfmt project-wide; gofmt supports file args |
 | Type Checking | ⚠️ Partial | mypy/pyright yes; tsc/SpotBugs/cargo check no; go vet runs package-wide (`./...`) |
 | SAST | ✅ Yes | OpenGrep supports file-level scanning |
 | SCA | ❌ No | Trivy dependency scan always project-wide |
@@ -1419,7 +1418,7 @@ LucidShark scans only changed files by default, enabling fast feedback loops:
 | **Linting** | Clippy | ❌ Cargo workspace only |
 | **Linting** | golangci-lint | ✅ Yes (via file/package args) |
 | **Formatting** | Ruff Format, Prettier | ✅ Support file args |
-| **Formatting** | rustfmt, google-java-format | ❌ Project-wide only |
+| **Formatting** | rustfmt | ❌ Project-wide only |
 | **Formatting** | gofmt | ✅ Yes (explicit file list) |
 | **Type Checking** | mypy, pyright | ✅ Support file args |
 | **Type Checking** | TypeScript (tsc), SpotBugs (managed), cargo check | ❌ Project-wide only |
@@ -1676,7 +1675,6 @@ All linting tools support partial scanning via the `files` parameter, except Cli
 | Ruff Format | Python | pip / binary | ✅ Yes |
 | Prettier | JavaScript, TypeScript, CSS, HTML, JSON | npm | ✅ Yes |
 | rustfmt | Rust | system (rustup) | ❌ No (Cargo workspace) |
-| google-java-format | Java | binary (jar) | ❌ No |
 | gofmt | Go | system (ships with Go) | ✅ Yes |
 
 Formatting tools check code style and whitespace conventions. Ruff Format, Prettier, and gofmt support partial scanning via the `files` parameter.

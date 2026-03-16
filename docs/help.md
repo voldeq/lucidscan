@@ -88,7 +88,7 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 |------|--------|-------------|
 | `--linting` | linting | Code style and linting (Ruff, ESLint, Biome, Clippy, Checkstyle, PMD, golangci-lint) |
 | `--type-checking` | type_checking | Static type analysis (mypy, pyright, TypeScript, SpotBugs, cargo check, go vet) |
-| `--formatting` | formatting | Code formatting (Ruff Format, Prettier, rustfmt, google-java-format, gofmt) |
+| `--formatting` | formatting | Code formatting (Ruff Format, Prettier, rustfmt, gofmt) |
 | `--sca` | sca | Dependency vulnerability scanning (Trivy) |
 | `--sast` | sast | Code security patterns (OpenGrep, gosec for Go) |
 | `--iac` | iac | Infrastructure-as-Code scanning (Checkov) |
@@ -616,7 +616,7 @@ Get current LucidShark status and configuration.
   "available_tools": {
     "scanners": ["trivy", "opengrep", "gosec", "checkov"],
     "linters": ["ruff", "eslint", "biome", "clippy", "pmd", "golangci_lint"],
-    "formatters": ["ruff_format", "prettier", "rustfmt", "google_java_format", "gofmt"],
+    "formatters": ["ruff_format", "prettier", "rustfmt", "gofmt"],
     "type_checkers": ["mypy", "pyright", "typescript", "spotbugs", "cargo_check", "go_vet"],
     "test_runners": ["pytest", "jest", "vitest", "karma", "playwright", "maven", "cargo", "go_test"],
     "coverage": ["coverage_py", "istanbul", "vitest_coverage", "jacoco", "tarpaulin", "go_cover"],
@@ -671,7 +671,7 @@ autoconfigure()
 |----------|--------|-----------|-------------|-------------|----------|
 | Python | ruff | ruff_format | mypy or pyright | pytest | coverage_py |
 | JavaScript/TypeScript | eslint or biome | prettier | typescript (tsc) | jest, vitest, karma, or playwright | istanbul or vitest_coverage |
-| Java | checkstyle, pmd | google_java_format | spotbugs | maven (JUnit) | jacoco |
+| Java | checkstyle, pmd | -- | spotbugs | maven (JUnit) | jacoco |
 | Kotlin | -- | -- | -- | maven (JUnit) | jacoco |
 | Rust | clippy | rustfmt | cargo_check | cargo | tarpaulin |
 | Go | golangci_lint | gofmt | go_vet | go_test | go_cover |
@@ -809,7 +809,6 @@ pipeline:
     tools:
       - name: ruff_format
       - name: prettier
-      - name: google_java_format
       - name: rustfmt
       - name: gofmt
 
@@ -1292,7 +1291,7 @@ exclude:
 
 #### Java Project
 
-Checkstyle and PMD for linting, google-java-format for formatting, SpotBugs for type/bug analysis, Maven for testing, and JaCoCo for coverage. Checkstyle enforces coding style, while PMD detects bugs, design issues, and complexity problems.
+Checkstyle and PMD for linting, SpotBugs for type/bug analysis, Maven for testing, and JaCoCo for coverage. Checkstyle enforces coding style, while PMD detects bugs, design issues, and complexity problems.
 
 ```yaml
 version: 1
@@ -1305,10 +1304,6 @@ pipeline:
     tools:
       - name: checkstyle
       - name: pmd
-  formatting:
-    enabled: true
-    tools:
-      - name: google_java_format
   type_checking:
     enabled: true
     tools:

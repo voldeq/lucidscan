@@ -176,7 +176,7 @@ class TestResolvePathsFallbackToCwd:
 
 
 class TestResolvePathsWithDiscovery:
-    """Tests for _resolve_paths with fallback_to_cwd=False (rustfmt, google-java-format style)."""
+    """Tests for _resolve_paths with fallback_to_cwd=False (rustfmt style)."""
 
     def test_empty_paths_discovers_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

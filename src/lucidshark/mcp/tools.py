@@ -1240,7 +1240,6 @@ class MCPToolExecutor:
                 },
                 "java_kotlin": {
                     "linter": "checkstyle (style) + pmd (bugs/design, managed)",
-                    "formatter": "google_java_format",
                     "type_checker": "spotbugs (bug detection via static analysis)",
                     "test_runner": "maven (runs JUnit/TestNG tests)",
                     "coverage": "jacoco (Maven/Gradle plugin)",

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lucidshark"
-version = "0.6.5"
+version = "0.6.6"
 description = "Unified code quality and security scanner for AI-assisted development"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -140,7 +140,6 @@ duplo = "lucidshark.plugins.duplication.duplo:DuploPlugin"
 ruff_format = "lucidshark.plugins.formatters.ruff_format:RuffFormatter"
 prettier = "lucidshark.plugins.formatters.prettier:PrettierFormatter"
 rustfmt = "lucidshark.plugins.formatters.rustfmt:RustfmtFormatter"
-google_java_format = "lucidshark.plugins.formatters.google_java_format:GoogleJavaFormatFormatter"
 gofmt = "lucidshark.plugins.formatters.gofmt:GofmtFormatter"
 
 [tool.setuptools.package-data]

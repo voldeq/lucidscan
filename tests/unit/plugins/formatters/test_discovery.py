@@ -14,7 +14,6 @@ class TestFormatterDiscovery:
         assert "ruff_format" in plugins
         assert "prettier" in plugins
         assert "rustfmt" in plugins
-        assert "google_java_format" in plugins
 
     def test_discovered_plugins_inherit_from_base(self) -> None:
         """Test that all discovered plugins inherit from FormatterPlugin."""

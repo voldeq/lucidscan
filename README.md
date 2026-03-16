@@ -12,7 +12,7 @@ AI writes code → LucidShark checks → AI fixes → repeat
 ```
 
 <p align="center">
-  <img src="docs/lucidshark.gif" alt="LucidShark Demo" width="600">
+  <img src="docs/lucidshark-terminal.gif" alt="LucidShark Demo" width="600">
 </p>
 
 ## Why LucidShark
@@ -160,7 +160,7 @@ For detailed per-language tool coverage, configuration examples, and detection i
 | Domain | Tools | What It Catches |
 |--------|-------|-----------------|
 | **Linting** | Ruff, ESLint, Biome, Clippy, Checkstyle, PMD, golangci-lint | Style issues, code smells, bug detection |
-| **Formatting** | Ruff Format, Prettier, rustfmt, google-java-format, gofmt | Code formatting, whitespace style |
+| **Formatting** | Ruff Format, Prettier, rustfmt, gofmt | Code formatting, whitespace style |
 | **Type Checking** | mypy, Pyright, TypeScript (tsc), SpotBugs (managed), cargo check, go vet | Type errors, static analysis bugs |
 | **Security (SAST)** | OpenGrep, gosec (Go) | Code vulnerabilities |
 | **Security (SCA)** | Trivy | Dependency vulnerabilities |

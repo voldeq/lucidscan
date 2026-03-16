@@ -61,7 +61,6 @@ Your job is to **FIND BUGS**, not to confirm that things work. Approach every te
 | Linting | Checkstyle | 13.3.0 | Managed (auto-download JAR) |
 | Linting | PMD | 7.22.0 | Managed (auto-download JAR) |
 | Type Checking | SpotBugs | 4.9.8 | Managed (auto-download JAR) |
-| Formatting | google-java-format | — | System (requires manual install) |
 | Testing | Maven / Gradle | — | System (build tool) |
 | Coverage | JaCoCo | — | Integrated (parses XML reports) |
 | Duplication | Duplo | — | System (language-agnostic) |
@@ -143,7 +142,7 @@ curl -fsSL https://raw.githubusercontent.com/toniantunovi/lucidshark/main/instal
 - [ ] `./lucidshark status` runs without error
 - [ ] `./lucidshark doctor` runs and shows tool availability
 
-Record the version number and which tools `doctor` reports as available/missing. Pay special attention to Java-specific tools: Checkstyle, PMD, SpotBugs, google-java-format.
+Record the version number and which tools `doctor` reports as available/missing. Pay special attention to Java-specific tools: Checkstyle, PMD, SpotBugs.
 
 ### 1.2 Install via install.sh with Specific Version
 
@@ -1400,58 +1399,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 **Record results.** Gson is well-maintained, so expect few findings.
 
-### 4.4 Formatting (google-java-format)
-
-#### 4.4.1 CLI — Check if google-java-format is Available
-```bash
-which google-java-format 2>/dev/null || echo "google-java-format not installed"
-```
-
-If not installed:
-```bash
-# Install google-java-format (may need to download JAR manually)
-# Document the installation method and whether LucidShark provides guidance
-lucidshark doctor 2>&1 | grep -i "google-java-format\|formatting"
-```
-
-#### 4.4.2 CLI — Formatting Scan
-```bash
-lucidshark scan --formatting --all-files --format json
-echo "Exit code: $?"
-```
-
-**Verify:**
-- [ ] google-java-format detected (or reports tool not available)
-- [ ] If available: finds formatting issues in `FormattingIssues.java`
-- [ ] Detects inconsistent indentation
-- [ ] Detects missing spaces around operators
-- [ ] Each issue has file_path and indication of what needs reformatting
-
-#### 4.4.3 CLI — Formatting Auto-Fix
-```bash
-cp -r src src.backup
-lucidshark scan --formatting --all-files --fix --format json
-echo "Exit code: $?"
-```
-
-**Verify:**
-- [ ] Files reformatted on disk (if tool available)
-- [ ] `FormattingIssues.java` properly formatted after fix
-- [ ] Re-scan shows zero formatting issues
-- [ ] google-java-format uses `--replace` flag for fixing
-
-Restore: `rm -rf src && mv src.backup src`
-
-#### 4.4.4 CLI — Formatting on Spring PetClinic
-```bash
-cd "$TEST_WORKSPACE/spring-petclinic"
-lucidshark scan --formatting --all-files --format json 2>&1 | head -20
-cd "$TEST_WORKSPACE/test-project"
-```
-
-**Verify and record issue count.** Spring PetClinic may not follow Google Java Style.
-
-### 4.5 Testing (Maven)
+### 4.4 Testing (Maven)
 
 #### 4.5.1 CLI — Testing Domain
 ```bash

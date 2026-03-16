@@ -24,9 +24,7 @@ class InitChoices:
     linter_config: Optional[str] = None  # Path to existing config or None
 
     # Formatting
-    formatter: Optional[str] = (
-        None  # "ruff_format", "prettier", "rustfmt", "google_java_format", or None
-    )
+    formatter: Optional[str] = None  # "ruff_format", "prettier", "rustfmt", or None
 
     # Type checking
     type_checker: Optional[str] = (

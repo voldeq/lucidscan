@@ -86,7 +86,6 @@ a = Analysis(
         'lucidshark.plugins.formatters.ruff_format',
         'lucidshark.plugins.formatters.prettier',
         'lucidshark.plugins.formatters.rustfmt',
-        'lucidshark.plugins.formatters.google_java_format',
         'lucidshark.plugins.formatters.gofmt',
         # Dependencies that may need explicit import
         'yaml',

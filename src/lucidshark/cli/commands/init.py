@@ -50,7 +50,7 @@ Run scans proactively after code changes. Don't wait for user to ask.
 | **container** | Container image vulnerabilities | Trivy |
 | **testing** | Run tests, report failures | pytest, Jest, Karma, Playwright, JUnit, cargo test |
 | **coverage** | Code coverage analysis | coverage.py, Istanbul, JaCoCo, Tarpaulin |
-| **formatting** | Code formatting checks, auto-fix | ruff format, Prettier, rustfmt, google-java-format |
+| **formatting** | Code formatting checks, auto-fix | ruff format, Prettier, rustfmt |
 | **duplication** | Detect code clones | Duplo |
 
 ## When to Scan

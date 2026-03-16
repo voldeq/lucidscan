@@ -18,7 +18,6 @@ Java has full tool coverage in LucidShark across all six quality domains, with s
 |--------|------|----------|-------|
 | **Linting** | Checkstyle | No | Style checking with Google or custom checks (managed, auto-downloaded) |
 | **Linting** | PMD | No | Bug detection, design issues, complexity (managed, auto-downloaded) |
-| **Formatting** | google-java-format | Yes | Google's opinionated Java formatter |
 | **Type Checking** | SpotBugs | -- | Static analysis for bugs, requires compiled classes (managed, auto-downloaded) |
 | **Security (SAST)** | OpenGrep | -- | Java-specific vulnerability rules |
 | **Security (SCA)** | Trivy | -- | Scans `pom.xml`, `build.gradle`, `gradle.lockfile` |
@@ -62,24 +61,6 @@ pipeline:
     tools:
       - name: checkstyle   # Style checking
       - name: pmd          # Bug detection and design analysis
-```
-
-## Formatting
-
-**Tool: [google-java-format](https://github.com/google/google-java-format)**
-
-Google's opinionated Java source code formatter.
-
-- Supports auto-fix via `google-java-format --replace`
-- Check-only mode via `google-java-format --dry-run --set-exit-if-changed`
-- Requires `google-java-format` binary installed
-
-```yaml
-pipeline:
-  formatting:
-    enabled: true
-    tools:
-      - name: google_java_format
 ```
 
 ## Type Checking
@@ -170,10 +151,6 @@ pipeline:
     tools:
       - { name: checkstyle }
       - { name: pmd }
-  formatting:
-    enabled: true
-    tools:
-      - { name: google_java_format }
   type_checking:
     enabled: true
     tools: [{ name: spotbugs }]
