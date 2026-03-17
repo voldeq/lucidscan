@@ -391,7 +391,8 @@ class TestMCPToolExecutorAsync:
         )
         executor._issue_cache["linting-issue"] = issue
 
-        with patch.object(executor, "_run_linting", return_value=[]):
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = None
             result = await executor.apply_fix("linting-issue")
             assert result["success"] is True
 

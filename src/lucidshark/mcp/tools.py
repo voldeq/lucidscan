@@ -864,7 +864,13 @@ class MCPToolExecutor:
                                 "coverage_py": "coverage_py",
                                 "ruff_format": "ruff_format",
                             },
-                            "install_packages": ["ruff", "mypy", "pytest", "coverage", "pytest-cov"],
+                            "install_packages": [
+                                "ruff",
+                                "mypy",
+                                "pytest",
+                                "coverage",
+                                "pytest-cov",
+                            ],
                             "check_command": "pip list | grep -iE '^(ruff|mypy|pytest|coverage) '",
                             "install_command": "pip install {missing_tools}",
                             "add_to_file": {
@@ -882,7 +888,13 @@ class MCPToolExecutor:
                             "supported_tools": {
                                 "linting": ["eslint", "biome"],
                                 "type_checking": ["typescript"],
-                                "testing": ["jest", "vitest", "mocha", "karma", "playwright"],
+                                "testing": [
+                                    "jest",
+                                    "vitest",
+                                    "mocha",
+                                    "karma",
+                                    "playwright",
+                                ],
                                 "coverage": ["istanbul", "vitest_coverage"],
                                 "formatting": ["prettier"],
                             },
@@ -899,7 +911,12 @@ class MCPToolExecutor:
                                 "vitest_coverage": "vitest_coverage",
                                 "prettier": "prettier",
                             },
-                            "install_packages": ["eslint", "typescript", "jest", "prettier"],
+                            "install_packages": [
+                                "eslint",
+                                "typescript",
+                                "jest",
+                                "prettier",
+                            ],
                             "check_command": "npm list {tool} || yarn list {tool}",
                             "install_command": "npm install --save-dev {missing_tools}",
                         },

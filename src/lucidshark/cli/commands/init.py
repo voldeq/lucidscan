@@ -733,6 +733,7 @@ class InitCommand(Command):
                     print(f"  Would remove LucidShark hooks from {settings_path}")
                 else:
                     self._remove_lucidshark_hooks(existing_settings)
+                    print(f"  Removed LucidShark hooks from {settings_path}")
                     changes_made = True
             else:
                 print(f"  LucidShark hooks not found in {settings_path}")
@@ -762,7 +763,9 @@ class InitCommand(Command):
                 else:
                     success = self._write_json_config(settings_path, existing_settings)
                     if success:
-                        print(f"  Removed LucidShark configuration from {settings_path}")
+                        print(
+                            f"  Removed LucidShark configuration from {settings_path}"
+                        )
                     return success
             return True
 

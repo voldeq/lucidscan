@@ -703,7 +703,10 @@ class TestConfigureClaudeHooks:
         cmd = InitCommand(version="1.0.0")
         settings_path = tmp_path / ".claude" / "settings.json"
         settings_path.parent.mkdir(parents=True)
-        settings_path.write_text(json.dumps(LUCIDSHARK_HOOKS_CONFIG), encoding="utf-8")
+        # Include both hooks and enabledMcpjsonServers to trigger "already configured" check
+        config_with_server = dict(LUCIDSHARK_HOOKS_CONFIG)
+        config_with_server["enabledMcpjsonServers"] = ["lucidshark"]
+        settings_path.write_text(json.dumps(config_with_server), encoding="utf-8")
 
         with patch.object(Path, "cwd", return_value=tmp_path):
             success = cmd._configure_claude_hooks(
