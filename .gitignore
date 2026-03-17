@@ -51,6 +51,7 @@ docs/instructions/
 # Integration test build artifacts
 tests/integration/projects/rust-cli/target/
 tests/integration/projects/rust-cli/Cargo.lock
+tests/integration/projects/java-webapp/target/
 tests/integration/projects/**/.lucidshark/
 
 .env
