@@ -31,11 +31,15 @@ jobs:
           python-version: ${{ matrix.python }}
           cache: 'pip'
 
-      - name: Install lucidshark with dev dependencies
-        run: pip install -e ".[dev]"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+          # Add src to PYTHONPATH so lucidshark module can be imported
+          echo "PYTHONPATH=$PWD/src:$PYTHONPATH" >> $GITHUB_ENV
 
       - name: Run tests
-        run: pytest tests/ -v --ignore=tests/integration/scanners --ignore=tests/integration/projects
+        run: python -m pytest tests/ -v --ignore=tests/integration/scanners --ignore=tests/integration/projects
 
   # Build standalone binaries for all platforms
   build-binaries:
@@ -76,7 +80,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Build binary with PyInstaller
         run: pyinstaller lucidshark.spec --clean
@@ -92,39 +96,9 @@ jobs:
           path: dist/${{ matrix.asset_name }}
           if-no-files-found: error
 
-  # Build and publish Python package to PyPI
-  publish-pypi:
-    needs: [test]
-    runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
-
-      - name: Install build tools
-        run: |
-          python -m pip install --upgrade pip
-          pip install build
-
-      - name: Build package
-        run: python -m build
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-
   # Create GitHub Release with binaries
   create-release:
-    needs: [publish-pypi, build-binaries]
+    needs: [test, build-binaries]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -166,13 +140,6 @@ jobs:
 
             ## Installation
 
-            ### Option 1: Pip (requires Python 3.10+)
-            ```bash
-            pip install lucidshark
-            ```
-
-            ### Option 2: Standalone Binary (no Python required)
-
             **Linux/macOS:**
             ```bash
             curl -fsSL https://raw.githubusercontent.com/toniantunovi/lucidshark/main/install.sh | bash
@@ -186,7 +153,7 @@ jobs:
 
             - **Security Scanning**: Trivy (SCA), OpenGrep (SAST), gosec (Go SAST), Checkov (IaC)
             - **Linting**: Ruff, ESLint, Biome, Clippy, Checkstyle
-            - **Formatting**: Ruff Format, Prettier, rustfmt, google-java-format
+            - **Formatting**: Ruff Format, Prettier, rustfmt, gofmt
             - **Type Checking**: mypy, pyright, TypeScript
             - **Testing**: pytest, Jest
             - **Coverage**: coverage.py, Istanbul
@@ -196,22 +163,19 @@ jobs:
 
             ```bash
             # Initialize project
-            lucidshark init
+            ./lucidshark init
 
             # Run all checks
-            lucidshark scan --all
+            ./lucidshark scan --all
 
             # Run specific domains
-            lucidshark scan --lint --type-check --test --coverage
+            ./lucidshark scan --linting --type-checking --testing --coverage
 
             # Auto-fix linting issues
-            lucidshark scan --lint --fix
+            ./lucidshark scan --linting --fix
 
             # MCP server for AI tools
-            lucidshark serve --mcp
-
-            # File watcher mode
-            lucidshark serve --watch
+            ./lucidshark serve
             ```
 
             ## AI Tool Integration
@@ -222,8 +186,8 @@ jobs:
             {
               "mcpServers": {
                 "lucidshark": {
-                  "command": "lucidshark",
-                  "args": ["serve", "--mcp"]
+                  "command": "./lucidshark",
+                  "args": ["serve"]
                 }
               }
             }
