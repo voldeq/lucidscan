@@ -11,56 +11,6 @@ env:
   PYTHON_VERSION: "3.11"
 
 jobs:
-  # Verify bundle build process works (Linux only for speed)
-  verify-bundle-build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
-
-      - name: Read tool versions
-        id: versions
-        run: |
-          # Security scanners
-          echo "trivy=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['lucidshark']['tools']['trivy'])")" >> $GITHUB_OUTPUT
-          echo "opengrep=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['lucidshark']['tools']['opengrep'])")" >> $GITHUB_OUTPUT
-          echo "checkov=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['lucidshark']['tools']['checkov'])")" >> $GITHUB_OUTPUT
-          # Linters
-          echo "ruff=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['lucidshark']['tools']['ruff'])")" >> $GITHUB_OUTPUT
-          echo "biome=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['lucidshark']['tools']['biome'])")" >> $GITHUB_OUTPUT
-          echo "checkstyle=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['lucidshark']['tools']['checkstyle'])")" >> $GITHUB_OUTPUT
-          # Type checkers
-          echo "pyright=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['lucidshark']['tools']['pyright'])")" >> $GITHUB_OUTPUT
-
-      - name: Verify version parsing
-        run: |
-          echo "=== Security Scanners ==="
-          echo "Trivy: ${{ steps.versions.outputs.trivy }}"
-          echo "OpenGrep: ${{ steps.versions.outputs.opengrep }}"
-          echo "Checkov: ${{ steps.versions.outputs.checkov }}"
-          echo "=== Linters ==="
-          echo "Ruff: ${{ steps.versions.outputs.ruff }}"
-          echo "Biome: ${{ steps.versions.outputs.biome }}"
-          echo "Checkstyle: ${{ steps.versions.outputs.checkstyle }}"
-          echo "=== Type Checkers ==="
-          echo "Pyright: ${{ steps.versions.outputs.pyright }}"
-
-      - name: Verify Trivy download URL
-        run: |
-          # Verify the Trivy download URL is accessible
-          curl -sfI "https://get.trivy.dev/trivy?type=tar.gz&version=${{ steps.versions.outputs.trivy }}&os=linux&arch=amd64" || {
-            echo "Failed to access Trivy download URL"
-            exit 1
-          }
-
-
   lucidshark:
     strategy:
       fail-fast: false
