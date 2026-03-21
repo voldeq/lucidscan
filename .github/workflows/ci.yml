@@ -87,9 +87,13 @@ jobs:
           # Install lucidshark in editable mode to register entry points
           pip install -e .
 
+      - name: Build binary with PyInstaller
+        run: |
+          pyinstaller lucidshark.spec --clean
+
       - name: Run LucidShark (full scan)
         run: |
-          python -m lucidshark.cli --verbose scan --all --all-files --format summary
+          ./dist/lucidshark --verbose scan --all --all-files --format summary
 
       - name: Generate coverage XML for Codecov
         if: matrix.os == 'ubuntu-latest'
@@ -139,6 +143,10 @@ jobs:
           # Install lucidshark in editable mode to register entry points
           pip install -e .
 
+      - name: Build binary with PyInstaller
+        run: |
+          pyinstaller lucidshark.spec --clean
+
       - name: Download scan results
         uses: actions/download-artifact@v8
         with:
@@ -147,7 +155,7 @@ jobs:
 
       - name: Update quality overview
         run: |
-          python -m lucidshark.cli overview --update
+          ./dist/lucidshark overview --update
 
       - name: Commit and push QUALITY.md
         run: |
