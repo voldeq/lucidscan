@@ -12,8 +12,8 @@ env:
   PYTHON_VERSION: "3.11"
 
 jobs:
-  # Run tests and quality checks across platforms before releasing
-  test:
+  # Run quality checks (includes tests) across platforms before releasing
+  quality-check:
     strategy:
       fail-fast: false
       matrix:
@@ -43,16 +43,13 @@ jobs:
         run: |
           pyinstaller lucidshark.spec --clean
 
-      - name: Run tests
-        run: python -m pytest tests/ -v --ignore=tests/integration/scanners --ignore=tests/integration/projects
-
       - name: Run LucidShark quality scan
         run: |
           ./dist/lucidshark --verbose scan --all --all-files --format summary
 
   # Build standalone binaries for all platforms
   build-binaries:
-    needs: [test]
+    needs: [quality-check]
     strategy:
       fail-fast: false
       matrix:
@@ -109,7 +106,7 @@ jobs:
 
   # Create GitHub Release with binaries
   create-release:
-    needs: [test, build-binaries]
+    needs: [quality-check, build-binaries]
     runs-on: ubuntu-latest
     permissions:
       contents: write
