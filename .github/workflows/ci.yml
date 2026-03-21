@@ -87,6 +87,15 @@ jobs:
           # Add src to PYTHONPATH so lucidshark module can be imported
           echo "PYTHONPATH=$PWD/src:$PYTHONPATH" >> $GITHUB_ENV
 
+      - name: Debug - Check tool availability
+        run: |
+          echo "Checking which tools:"
+          which ruff || echo "ruff not in PATH"
+          which mypy || echo "mypy not in PATH"
+          which pytest || echo "pytest not in PATH"
+          which coverage || echo "coverage not in PATH"
+          echo "PATH: $PATH"
+
       - name: Run LucidShark (full scan)
         run: |
           python -m lucidshark.cli --verbose scan --all --all-files --format summary
