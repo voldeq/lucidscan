@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.15] - 2026-03-23
+
+### Improved
+- **`ignore_issues` configuration documentation and error messages**  -  significantly improved user experience when configuring issue suppression
+  - Added comprehensive "Finding rule IDs" section to help documentation explaining how to extract correct rule identifiers from scan output
+  - Enhanced validation error messages with concrete examples showing both simple and structured formats
+  - Intelligent unmatched entry warnings that detect when users mistakenly use internal LucidShark IDs (e.g., `trivy-38a779a616911baf`) instead of CVE/GHSA identifiers (e.g., `CVE-2026-29062`)
+  - Clear distinction between security issues (use CVE/GHSA from title) and linting issues (use rule code in brackets)
+  - Common mistake examples in documentation showing incorrect vs. correct usage
+
 ## [0.6.4] - 2026-03-15
 
 ### Added

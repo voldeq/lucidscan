@@ -1820,6 +1820,29 @@ ignore_issues:
 | `expires` | no | date | ISO date (`YYYY-MM-DD`). After this date, the ignore stops working and a warning is emitted |
 | `paths` | no | list | Gitignore-style patterns to scope the ignore. If not specified or empty, the ignore applies globally |
 
+**Finding rule IDs:**
+
+To find the correct `rule_id` to use in your configuration, look at the scan output:
+
+- **Security issues (SCA/SAST/IaC/Container)**: Use the CVE or GHSA identifier from the issue title
+  - Example: `CVE-2026-29062`, `GHSA-72hv-8253-57qq`, `CKV_AWS_18`
+  - **Do NOT use** the internal LucidShark ID (e.g., `trivy-38a779a616911baf`) - this won't match
+- **Linting/Type checking issues**: Use the rule code shown in brackets
+  - Example: `E501`, `F401`, `S101`, `MethodArgumentCouldBeFinal`
+- **Check the `rule_id` field** in JSON/AI output formats - this is the exact value you need
+
+**Common mistake:**
+```yaml
+# ❌ WRONG - using internal LucidShark ID from scan output
+ignore_issues:
+  - trivy-38a779a616911baf
+
+# ✅ CORRECT - using CVE/GHSA identifier from issue title
+ignore_issues:
+  - rule_id: CVE-2026-29062
+    reason: "Waiting for Spring Boot update"
+```
+
 **Behavior:**
 - Matched issues are tagged `ignored: true` in all output formats
 - Ignored issues do not count toward `fail_on` thresholds

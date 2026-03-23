@@ -136,8 +136,19 @@ def apply_ignore_issues(
     # Warn about unmatched entries
     for rule_id in active_entries:
         if rule_id not in matched_rule_ids:
-            warnings.append(
-                f"ignore_issues entry for '{rule_id}' did not match any issues"
-            )
+            # Check if this looks like an internal LucidShark ID (tool-hash pattern)
+            import re
+            if re.match(r"^[a-z]+-[0-9a-f]{16}$", rule_id):
+                warnings.append(
+                    f"ignore_issues entry for '{rule_id}' did not match any issues. "
+                    f"This looks like an internal LucidShark ID. "
+                    f"Use the CVE/GHSA identifier from the issue title instead (e.g., CVE-2026-29062), "
+                    f"not the internal ID from scan output."
+                )
+            else:
+                warnings.append(
+                    f"ignore_issues entry for '{rule_id}' did not match any issues. "
+                    f"Verify the rule_id is correct - check scan output for the exact CVE/GHSA/rule code."
+                )
 
     return warnings

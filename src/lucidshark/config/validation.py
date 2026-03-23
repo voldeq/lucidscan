@@ -364,7 +364,10 @@ def validate_config(
                     if "rule_id" not in entry:
                         warnings.append(
                             ConfigValidationWarning(
-                                message=f"'ignore_issues[{i}]' must have a 'rule_id' field",
+                                message=(
+                                    f"'ignore_issues[{i}]' must have a 'rule_id' field. "
+                                    f"Example: {{ rule_id: 'CVE-2026-29062', reason: 'Waiting for fix' }}"
+                                ),
                                 source=source,
                                 key=f"ignore_issues[{i}].rule_id",
                             )
@@ -453,7 +456,10 @@ def validate_config(
                 else:
                     warnings.append(
                         ConfigValidationWarning(
-                            message=f"'ignore_issues[{i}]' must be a string or mapping, got {type(entry).__name__}",
+                            message=(
+                                f"'ignore_issues[{i}]' must be a string or mapping, got {type(entry).__name__}. "
+                                f"Use 'CVE-2026-29062' (string) or {{ rule_id: 'CVE-2026-29062', reason: '...' }} (mapping)"
+                            ),
                             source=source,
                             key=f"ignore_issues[{i}]",
                         )
