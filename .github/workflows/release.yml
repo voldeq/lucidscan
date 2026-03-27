@@ -48,6 +48,8 @@ jobs:
           ./dist/lucidshark --verbose scan --all --all-files --format summary
 
   # Build standalone binaries for all platforms
+  # Build Linux binaries in a Debian 11 container (glibc 2.31) for broad compatibility.
+  # This avoids requiring glibc 2.38+ which ubuntu-latest (24.04) would produce.
   build-binaries:
     needs: [quality-check]
     strategy:
@@ -58,10 +60,12 @@ jobs:
             target: linux-amd64
             artifact_name: lucidshark
             asset_name: lucidshark-linux-amd64
+            container: python:3.11-slim-bullseye
           - os: ubuntu-24.04-arm
             target: linux-arm64
             artifact_name: lucidshark
             asset_name: lucidshark-linux-arm64
+            container: python:3.11-slim-bullseye
           - os: macos-15-intel
             target: darwin-amd64
             artifact_name: lucidshark
@@ -72,12 +76,18 @@ jobs:
             asset_name: lucidshark-darwin-arm64
 
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container || '' }}
 
     steps:
+      - name: Install build dependencies (container)
+        if: ${{ matrix.container }}
+        run: apt-get update && apt-get install -y --no-install-recommends git
+
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Set up Python
+      - name: Set up Python (native runner)
+        if: ${{ !matrix.container }}
         uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
