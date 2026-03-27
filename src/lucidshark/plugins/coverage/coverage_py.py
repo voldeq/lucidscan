@@ -158,6 +158,7 @@ class CoveragePyPlugin(CoveragePlugin):
                 "json",
                 "-o",
                 str(report_file),
+                "--ignore-errors",  # Ignore files without source (e.g., .pyx files)
             ]
             if data_file:
                 cmd.extend(["--data-file", str(data_file)])
