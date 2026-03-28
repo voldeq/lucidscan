@@ -86,6 +86,7 @@ MARKER_FILES = {
     "java": ["pom.xml", "build.gradle", "build.gradle.kts"],
     "ruby": ["Gemfile"],
     "php": ["composer.json"],
+    "swift": ["Package.swift"],
 }
 
 
@@ -198,6 +199,8 @@ def _detect_version(language: str, project_root: Path) -> Optional[str]:
         return _detect_rust_version(project_root)
     elif language == "java":
         return _detect_java_version(project_root)
+    elif language == "swift":
+        return _detect_swift_version(project_root)
     return None
 
 
@@ -331,6 +334,38 @@ def _detect_java_version(project_root: Path) -> Optional[str]:
             version = java_version_file.read_text().strip()
             # Extract major version (e.g., "17.0.2" -> "17")
             match = re.match(r"(\d+)", version)
+            if match:
+                return match.group(1)
+        except Exception:
+            pass
+
+    return None
+
+
+def _detect_swift_version(project_root: Path) -> Optional[str]:
+    """Detect Swift tools version from Package.swift.
+
+    Package.swift starts with a comment like:
+        // swift-tools-version: 5.9
+    """
+    package_swift = project_root / "Package.swift"
+    if package_swift.exists():
+        try:
+            content = package_swift.read_text()
+            match = re.search(
+                r"swift-tools-version:\s*(\d+\.\d+)", content
+            )
+            if match:
+                return match.group(1)
+        except Exception:
+            pass
+
+    # Check .swift-version file
+    swift_version_file = project_root / ".swift-version"
+    if swift_version_file.exists():
+        try:
+            version = swift_version_file.read_text().strip()
+            match = re.match(r"(\d+\.\d+)", version)
             if match:
                 return match.group(1)
         except Exception:
