@@ -23,6 +23,7 @@ clang_tidy = "lucidshark.plugins.linters.clang_tidy:ClangTidyLinter"
 scalafix = "lucidshark.plugins.linters.scalafix:ScalafixLinter"
 swiftlint = "lucidshark.plugins.linters.swiftlint:SwiftLintLinter"
 rubocop = "lucidshark.plugins.linters.rubocop:RubocopLinter"
+phpcs = "lucidshark.plugins.linters.phpcs:PhpcsLinter"
 
 [project.entry-points."lucidshark.scanners"]
 trivy = "lucidshark.plugins.scanners.trivy:TrivyScanner"
@@ -50,6 +51,7 @@ cppcheck = "lucidshark.plugins.type_checkers.cppcheck:CppcheckChecker"
 scala_compile = "lucidshark.plugins.type_checkers.scala_compile:ScalaCompileChecker"
 swift_compiler = "lucidshark.plugins.type_checkers.swift_compiler:SwiftCompilerChecker"
 sorbet = "lucidshark.plugins.type_checkers.sorbet:SorbetChecker"
+phpstan = "lucidshark.plugins.type_checkers.phpstan:PhpstanChecker"
 
 [project.entry-points."lucidshark.test_runners"]
 pytest = "lucidshark.plugins.test_runners.pytest:PytestRunner"
@@ -66,6 +68,7 @@ ctest = "lucidshark.plugins.test_runners.ctest:CTestRunner"
 sbt = "lucidshark.plugins.test_runners.sbt:SbtTestRunner"
 swift_test = "lucidshark.plugins.test_runners.swift_test:SwiftTestRunner"
 rspec = "lucidshark.plugins.test_runners.rspec:RspecRunner"
+phpunit = "lucidshark.plugins.test_runners.phpunit:PhpunitRunner"
 
 [project.entry-points."lucidshark.coverage"]
 coverage_py = "lucidshark.plugins.coverage.coverage_py:CoveragePyPlugin"
@@ -80,6 +83,7 @@ lcov = "lucidshark.plugins.coverage.lcov:LcovPlugin"
 scoverage = "lucidshark.plugins.coverage.scoverage:ScoveragePlugin"
 swift_coverage = "lucidshark.plugins.coverage.swift_coverage:SwiftCoveragePlugin"
 simplecov = "lucidshark.plugins.coverage.simplecov:SimpleCovPlugin"
+phpunit_coverage = "lucidshark.plugins.coverage.phpunit_coverage:PhpunitCoveragePlugin"
 
 [project.entry-points."lucidshark.duplication"]
 duplo = "lucidshark.plugins.duplication.duplo:DuploPlugin"
@@ -95,6 +99,7 @@ clang_format = "lucidshark.plugins.formatters.clang_format:ClangFormatFormatter"
 scalafmt = "lucidshark.plugins.formatters.scalafmt:ScalafmtFormatter"
 swiftformat = "lucidshark.plugins.formatters.swiftformat:SwiftFormatFormatter"
 rubocop_format = "lucidshark.plugins.formatters.rubocop_format:RubocopFormatter"
+php_cs_fixer = "lucidshark.plugins.formatters.php_cs_fixer:PhpCsFixerFormatter"
 
 [build-system]
 requires = ["setuptools>=61.0"]

@@ -16,6 +16,7 @@ from lucidshark.detection.languages import (
     _detect_go_version,
     _detect_rust_version,
     _detect_java_version,
+    _detect_php_version,
     SKIP_DIRS,
     EXTENSION_MAP,
     MARKER_FILES,
@@ -514,6 +515,7 @@ class TestConstants:
         assert EXTENSION_MAP[".go"] == "go"
         assert EXTENSION_MAP[".rs"] == "rust"
         assert EXTENSION_MAP[".java"] == "java"
+        assert EXTENSION_MAP[".php"] == "php"
 
     def test_marker_files_covers_common_languages(self) -> None:
         """Test MARKER_FILES covers common languages."""
@@ -522,3 +524,61 @@ class TestConstants:
         assert "tsconfig.json" in MARKER_FILES["typescript"]
         assert "go.mod" in MARKER_FILES["go"]
         assert "Cargo.toml" in MARKER_FILES["rust"]
+        assert "composer.json" in MARKER_FILES["php"]
+
+
+class TestDetectPhpVersion:
+    """Tests for PHP version detection."""
+
+    def test_detect_from_composer_json(self, tmp_path: Path) -> None:
+        """Test detecting PHP version from composer.json require.php."""
+        composer = {"require": {"php": ">=8.1"}}
+        (tmp_path / "composer.json").write_text(json.dumps(composer))
+        assert _detect_php_version(tmp_path) == "8.1"
+
+    def test_detect_from_composer_json_caret(self, tmp_path: Path) -> None:
+        """Test detecting PHP version with caret constraint."""
+        composer = {"require": {"php": "^8.2.0"}}
+        (tmp_path / "composer.json").write_text(json.dumps(composer))
+        assert _detect_php_version(tmp_path) == "8.2"
+
+    def test_detect_from_composer_json_tilde(self, tmp_path: Path) -> None:
+        """Test detecting PHP version with tilde constraint."""
+        composer = {"require": {"php": "~8.3"}}
+        (tmp_path / "composer.json").write_text(json.dumps(composer))
+        assert _detect_php_version(tmp_path) == "8.3"
+
+    def test_detect_from_php_version_file(self, tmp_path: Path) -> None:
+        """Test detecting PHP version from .php-version file."""
+        (tmp_path / ".php-version").write_text("8.2.10\n")
+        assert _detect_php_version(tmp_path) == "8.2"
+
+    def test_no_php_version_info(self, tmp_path: Path) -> None:
+        """Test returns None when no PHP version info available."""
+        assert _detect_php_version(tmp_path) is None
+
+    def test_composer_json_no_php_require(self, tmp_path: Path) -> None:
+        """Test returns None when composer.json has no php requirement."""
+        composer = {"require": {"laravel/framework": "^10.0"}}
+        (tmp_path / "composer.json").write_text(json.dumps(composer))
+        assert _detect_php_version(tmp_path) is None
+
+    def test_detect_version_dispatches_to_php(self, tmp_path: Path) -> None:
+        """Test that _detect_version dispatches to PHP."""
+        composer = {"require": {"php": ">=8.1"}}
+        (tmp_path / "composer.json").write_text(json.dumps(composer))
+        assert _detect_version("php", tmp_path) == "8.1"
+
+    def test_detect_php_by_marker_file(self, tmp_path: Path) -> None:
+        """Test detecting PHP by composer.json marker file."""
+        (tmp_path / "composer.json").write_text("{}")
+        languages = detect_languages(tmp_path)
+        lang_names = [l.name for l in languages]
+        assert "php" in lang_names
+
+    def test_detect_php_by_extension(self, tmp_path: Path) -> None:
+        """Test detecting PHP by .php file extension."""
+        (tmp_path / "index.php").write_text("<?php echo 'hello'; ?>")
+        languages = detect_languages(tmp_path)
+        lang_names = [l.name for l in languages]
+        assert "php" in lang_names

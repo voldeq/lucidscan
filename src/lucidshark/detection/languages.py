@@ -223,6 +223,8 @@ def _detect_version(language: str, project_root: Path) -> Optional[str]:
         return _detect_swift_version(project_root)
     elif language == "ruby":
         return _detect_ruby_version(project_root)
+    elif language == "php":
+        return _detect_php_version(project_root)
     return None
 
 
@@ -507,6 +509,41 @@ def _detect_ruby_version(project_root: Path) -> Optional[str]:
                 version_match = re.search(r"(\d+\.\d+)", version_spec)
                 if version_match:
                     return version_match.group(1)
+        except Exception:
+            pass
+
+    return None
+
+
+def _detect_php_version(project_root: Path) -> Optional[str]:
+    """Detect PHP version from composer.json.
+
+    Reads the ``require.php`` field from composer.json, which typically
+    contains a constraint like ``">=8.1"`` or ``"^8.2"``.
+    """
+    import json
+
+    composer_json = project_root / "composer.json"
+    if composer_json.exists():
+        try:
+            data = json.loads(composer_json.read_text())
+            php_constraint = data.get("require", {}).get("php", "")
+            if php_constraint:
+                # Extract version number (e.g., ">=8.1" -> "8.1", "^8.2.0" -> "8.2")
+                match = re.search(r"(\d+\.\d+)", php_constraint)
+                if match:
+                    return match.group(1)
+        except Exception:
+            pass
+
+    # Check .php-version file
+    php_version_file = project_root / ".php-version"
+    if php_version_file.exists():
+        try:
+            version = php_version_file.read_text().strip()
+            match = re.search(r"(\d+\.\d+)", version)
+            if match:
+                return match.group(1)
         except Exception:
             pass
 

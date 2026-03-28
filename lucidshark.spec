@@ -52,6 +52,7 @@ a = Analysis(
         'lucidshark.plugins.linters.scalafix',
         'lucidshark.plugins.linters.swiftlint',
         'lucidshark.plugins.linters.rubocop',
+        'lucidshark.plugins.linters.phpcs',
         # Plugin entry points - scanners
         'lucidshark.plugins.scanners.trivy',
         'lucidshark.plugins.scanners.opengrep',
@@ -76,6 +77,7 @@ a = Analysis(
         'lucidshark.plugins.type_checkers.scala_compile',
         'lucidshark.plugins.type_checkers.swift_compiler',
         'lucidshark.plugins.type_checkers.sorbet',
+        'lucidshark.plugins.type_checkers.phpstan',
         # Plugin entry points - test runners
         'lucidshark.plugins.test_runners.pytest',
         'lucidshark.plugins.test_runners.jest',
@@ -91,6 +93,7 @@ a = Analysis(
         'lucidshark.plugins.test_runners.sbt',
         'lucidshark.plugins.test_runners.swift_test',
         'lucidshark.plugins.test_runners.rspec',
+        'lucidshark.plugins.test_runners.phpunit',
         # Plugin entry points - coverage
         'lucidshark.plugins.coverage.coverage_py',
         'lucidshark.plugins.coverage.istanbul',
@@ -104,6 +107,7 @@ a = Analysis(
         'lucidshark.plugins.coverage.scoverage',
         'lucidshark.plugins.coverage.swift_coverage',
         'lucidshark.plugins.coverage.simplecov',
+        'lucidshark.plugins.coverage.phpunit_coverage',
         # Plugin entry points - duplication
         'lucidshark.plugins.duplication.duplo',
         # Plugin entry points - formatters
@@ -117,6 +121,7 @@ a = Analysis(
         'lucidshark.plugins.formatters.scalafmt',
         'lucidshark.plugins.formatters.swiftformat',
         'lucidshark.plugins.formatters.rubocop_format',
+        'lucidshark.plugins.formatters.php_cs_fixer',
         # Dependencies that may need explicit import
         'yaml',
         'pathspec',

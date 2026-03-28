@@ -34,6 +34,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "dotnet_format": ["csharp"],
     "clang_tidy": ["c", "c++"],
     "rubocop": ["ruby"],
+    "phpcs": ["php"],
     # Type checkers
     "mypy": ["python"],
     "pyright": ["python"],
@@ -45,6 +46,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "dotnet_build": ["csharp"],
     "cppcheck": ["c", "c++"],
     "sorbet": ["ruby"],
+    "phpstan": ["php"],
     # Test runners
     "pytest": ["python"],
     "jest": ["javascript", "typescript"],
@@ -57,6 +59,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "dotnet_test": ["csharp"],
     "ctest": ["c", "c++"],
     "rspec": ["ruby"],
+    "phpunit": ["php"],
     # Coverage
     "coverage_py": ["python"],
     "istanbul": ["javascript", "typescript"],
@@ -68,6 +71,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "gcov": ["c"],
     "lcov": ["c++"],
     "simplecov": ["ruby"],
+    "phpunit_coverage": ["php"],
     # Duplication detection
     "duplo": [
         "python",
@@ -81,6 +85,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
         "csharp",
         "go",
         "ruby",
+        "php",
     ],
     # Formatters
     "ruff_format": ["python"],
@@ -92,6 +97,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "dotnet_format_whitespace": ["csharp"],
     "clang_format": ["c", "c++"],
     "rubocop_format": ["ruby"],
+    "php_cs_fixer": ["php"],
 }
 
 # File extension to language mapping
@@ -116,6 +122,7 @@ EXTENSION_LANGUAGE: Dict[str, str] = {
     ".hxx": "c++",
     ".rb": "ruby",
     ".cs": "csharp",
+    ".php": "php",
     ".tf": "terraform",
     ".yaml": "yaml",
     ".yml": "yaml",
@@ -253,6 +260,8 @@ def get_domains_for_language(language: str) -> List[str]:
     elif language == "go":
         domains.extend(["type_checking", "testing", "coverage", "formatting"])
     elif language in ("c", "c++"):
+        domains.extend(["type_checking", "testing", "coverage", "formatting"])
+    elif language == "php":
         domains.extend(["type_checking", "testing", "coverage", "formatting"])
     elif language == "terraform":
         domains = ["iac"]

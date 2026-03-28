@@ -61,6 +61,7 @@ def _get_frozen_plugins(group: str) -> Dict[str, Type]:
             ('scalafix', 'lucidshark.plugins.linters.scalafix', 'ScalafixLinter'),
             ('swiftlint', 'lucidshark.plugins.linters.swiftlint', 'SwiftLintLinter'),
             ('rubocop', 'lucidshark.plugins.linters.rubocop', 'RubocopLinter'),
+            ('phpcs', 'lucidshark.plugins.linters.phpcs', 'PhpcsLinter'),
         ],
         SCANNER_ENTRY_POINT_GROUP: [
             ('trivy', 'lucidshark.plugins.scanners.trivy', 'TrivyScanner'),
@@ -88,6 +89,7 @@ def _get_frozen_plugins(group: str) -> Dict[str, Type]:
             ('scala_compile', 'lucidshark.plugins.type_checkers.scala_compile', 'ScalaCompileChecker'),
             ('swift_compiler', 'lucidshark.plugins.type_checkers.swift_compiler', 'SwiftCompilerChecker'),
             ('sorbet', 'lucidshark.plugins.type_checkers.sorbet', 'SorbetChecker'),
+            ('phpstan', 'lucidshark.plugins.type_checkers.phpstan', 'PhpstanChecker'),
         ],
         TEST_RUNNER_ENTRY_POINT_GROUP: [
             ('pytest', 'lucidshark.plugins.test_runners.pytest', 'PytestRunner'),
@@ -104,6 +106,7 @@ def _get_frozen_plugins(group: str) -> Dict[str, Type]:
             ('sbt', 'lucidshark.plugins.test_runners.sbt', 'SbtTestRunner'),
             ('swift_test', 'lucidshark.plugins.test_runners.swift_test', 'SwiftTestRunner'),
             ('rspec', 'lucidshark.plugins.test_runners.rspec', 'RspecRunner'),
+            ('phpunit', 'lucidshark.plugins.test_runners.phpunit', 'PhpunitRunner'),
         ],
         COVERAGE_ENTRY_POINT_GROUP: [
             ('coverage_py', 'lucidshark.plugins.coverage.coverage_py', 'CoveragePyPlugin'),
@@ -118,6 +121,7 @@ def _get_frozen_plugins(group: str) -> Dict[str, Type]:
             ('scoverage', 'lucidshark.plugins.coverage.scoverage', 'ScoveragePlugin'),
             ('swift_coverage', 'lucidshark.plugins.coverage.swift_coverage', 'SwiftCoveragePlugin'),
             ('simplecov', 'lucidshark.plugins.coverage.simplecov', 'SimpleCovPlugin'),
+            ('phpunit_coverage', 'lucidshark.plugins.coverage.phpunit_coverage', 'PhpunitCoveragePlugin'),
         ],
         DUPLICATION_ENTRY_POINT_GROUP: [
             ('duplo', 'lucidshark.plugins.duplication.duplo', 'DuploPlugin'),
@@ -133,6 +137,7 @@ def _get_frozen_plugins(group: str) -> Dict[str, Type]:
             ('scalafmt', 'lucidshark.plugins.formatters.scalafmt', 'ScalafmtFormatter'),
             ('swiftformat', 'lucidshark.plugins.formatters.swiftformat', 'SwiftFormatFormatter'),
             ('rubocop_format', 'lucidshark.plugins.formatters.rubocop_format', 'RubocopFormatter'),
+            ('php_cs_fixer', 'lucidshark.plugins.formatters.php_cs_fixer', 'PhpCsFixerFormatter'),
         ],
     }
 
