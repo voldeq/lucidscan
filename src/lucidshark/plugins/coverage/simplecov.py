@@ -9,10 +9,10 @@ from __future__ import annotations
 import json
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from lucidshark.core.logging import get_logger
-from lucidshark.core.models import ScanContext, SkipReason, ToolDomain
+from lucidshark.core.models import ScanContext
 from lucidshark.plugins.coverage.base import (
     CoveragePlugin,
     CoverageResult,
@@ -172,7 +172,7 @@ class SimpleCovPlugin(CoveragePlugin):
                 else:
                     # Merge: take max of each line (across test suites)
                     existing = merged_coverage[file_path]
-                    merged = []
+                    merged: List[Optional[int]] = []
                     for i in range(max(len(existing), len(lines))):
                         a = existing[i] if i < len(existing) else None
                         b = lines[i] if i < len(lines) else None
@@ -192,13 +192,13 @@ class SimpleCovPlugin(CoveragePlugin):
         files: Dict[str, FileCoverage] = {}
 
         for file_path, lines in merged_coverage.items():
-            relevant_lines = [l for l in lines if l is not None]
+            relevant_lines = [count for count in lines if count is not None]
             file_total = len(relevant_lines)
-            file_covered = sum(1 for l in relevant_lines if l > 0)
+            file_covered = sum(1 for count in relevant_lines if count > 0)
             missing = [
                 i + 1
-                for i, l in enumerate(lines)
-                if l is not None and l == 0
+                for i, count in enumerate(lines)
+                if count is not None and count == 0
             ]
 
             total_lines += file_total

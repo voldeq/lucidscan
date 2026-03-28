@@ -7,11 +7,10 @@ https://sorbet.org/
 from __future__ import annotations
 
 import hashlib
-import json
 import re
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
@@ -78,9 +77,7 @@ class SorbetChecker(TypeCheckerPlugin):
 
             return get_cli_version(
                 binary,
-                parser=lambda s: s.strip().split()[-1]
-                if s.strip()
-                else "unknown",
+                parser=lambda s: s.strip().split()[-1] if s.strip() else "unknown",
             )
         except FileNotFoundError:
             return "unknown"

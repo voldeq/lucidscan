@@ -46,9 +46,7 @@ class RspecRunner(TestRunnerPlugin):
 
             return get_cli_version(
                 binary,
-                parser=lambda s: s.strip().split()[-1]
-                if s.strip()
-                else "unknown",
+                parser=lambda s: s.strip().split()[-1] if s.strip() else "unknown",
             )
         except FileNotFoundError:
             return "unknown"

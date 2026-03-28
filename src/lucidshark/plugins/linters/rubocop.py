@@ -104,9 +104,7 @@ class RubocopLinter(LinterPlugin):
 
             return get_cli_version(
                 binary,
-                parser=lambda s: s.strip().split()[-1]
-                if s.strip()
-                else "unknown",
+                parser=lambda s: s.strip().split()[-1] if s.strip() else "unknown",
             )
         except FileNotFoundError:
             return "unknown"
@@ -266,7 +264,7 @@ class RubocopLinter(LinterPlugin):
                 column_start=col_start,
                 column_end=col_end,
                 fixable=correctable and not corrected,
-                suggested_fix=f"Run rubocop -a to auto-correct" if correctable else None,
+                suggested_fix="Run rubocop -a to auto-correct" if correctable else None,
                 metadata={
                     "cop_name": cop_name,
                     "corrected": corrected,
