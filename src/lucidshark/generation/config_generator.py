@@ -326,6 +326,17 @@ class ConfigGenerator:
                 ]
             )
 
+        if context.has_csharp:
+            patterns.extend(
+                [
+                    "**/bin/**",
+                    "**/obj/**",
+                    "**/packages/**",
+                    "**/.vs/**",
+                    "**/TestResults/**",
+                ]
+            )
+
         if context.has_scala:
             # Add Scala-specific patterns (avoid duplicates with Java)
             scala_patterns = [

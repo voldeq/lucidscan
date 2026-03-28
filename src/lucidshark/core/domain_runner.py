@@ -30,6 +30,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "golangci_lint": ["go"],
     "checkstyle": ["java"],
     "pmd": ["java"],
+    "dotnet_format": ["csharp"],
     "clang_tidy": ["c", "c++"],
     # Type checkers
     "mypy": ["python"],
@@ -38,6 +39,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "spotbugs": ["java"],
     "cargo_check": ["rust"],
     "go_vet": ["go"],
+    "dotnet_build": ["csharp"],
     "cppcheck": ["c", "c++"],
     # Test runners
     "pytest": ["python"],
@@ -48,6 +50,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "maven": ["java", "kotlin"],
     "cargo": ["rust"],
     "go_test": ["go"],
+    "dotnet_test": ["csharp"],
     "ctest": ["c", "c++"],
     # Coverage
     "coverage_py": ["python"],
@@ -56,6 +59,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "jacoco": ["java", "kotlin"],
     "tarpaulin": ["rust"],
     "go_cover": ["go"],
+    "dotnet_coverage": ["csharp"],
     "gcov": ["c"],
     "lcov": ["c++"],
     # Duplication detection
@@ -77,6 +81,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "rustfmt": ["rust"],
     "google_java_format": ["java"],
     "gofmt": ["go"],
+    "dotnet_format_whitespace": ["csharp"],
     "clang_format": ["c", "c++"],
 }
 
@@ -99,6 +104,7 @@ EXTENSION_LANGUAGE: Dict[str, str] = {
     ".hpp": "c++",
     ".hxx": "c++",
     ".rb": "ruby",
+    ".cs": "csharp",
     ".tf": "terraform",
     ".yaml": "yaml",
     ".yml": "yaml",
