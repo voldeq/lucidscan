@@ -98,14 +98,16 @@ class TestPhpCsFixerFormatter:
                 enabled_domains=[],
             )
 
-            fixer_output = json.dumps({
-                "files": [
-                    {
-                        "name": "src/Foo.php",
-                        "appliedFixers": ["braces", "line_ending"],
-                    }
-                ]
-            })
+            fixer_output = json.dumps(
+                {
+                    "files": [
+                        {
+                            "name": "src/Foo.php",
+                            "appliedFixers": ["braces", "line_ending"],
+                        }
+                    ]
+                }
+            )
 
             mock_result = make_completed_process(returncode=8, stdout=fixer_output)
 
@@ -188,12 +190,14 @@ class TestPhpCsFixerOutputParsing:
 
     def test_parse_multiple_files(self) -> None:
         formatter = PhpCsFixerFormatter()
-        output = json.dumps({
-            "files": [
-                {"name": "src/Foo.php", "appliedFixers": ["braces"]},
-                {"name": "src/Bar.php", "appliedFixers": ["line_ending", "spaces"]},
-            ]
-        })
+        output = json.dumps(
+            {
+                "files": [
+                    {"name": "src/Foo.php", "appliedFixers": ["braces"]},
+                    {"name": "src/Bar.php", "appliedFixers": ["line_ending", "spaces"]},
+                ]
+            }
+        )
 
         issues = formatter._parse_output(output, Path("/project"))
         assert len(issues) == 2
@@ -203,11 +207,13 @@ class TestPhpCsFixerOutputParsing:
 
     def test_parse_includes_fixers_in_description(self) -> None:
         formatter = PhpCsFixerFormatter()
-        output = json.dumps({
-            "files": [
-                {"name": "src/Foo.php", "appliedFixers": ["braces", "line_ending"]},
-            ]
-        })
+        output = json.dumps(
+            {
+                "files": [
+                    {"name": "src/Foo.php", "appliedFixers": ["braces", "line_ending"]},
+                ]
+            }
+        )
 
         issues = formatter._parse_output(output, Path("/project"))
         assert "braces" in issues[0].description
@@ -215,11 +221,13 @@ class TestPhpCsFixerOutputParsing:
 
     def test_parse_relative_path_resolution(self) -> None:
         formatter = PhpCsFixerFormatter()
-        output = json.dumps({
-            "files": [
-                {"name": "src/Foo.php", "appliedFixers": ["braces"]},
-            ]
-        })
+        output = json.dumps(
+            {
+                "files": [
+                    {"name": "src/Foo.php", "appliedFixers": ["braces"]},
+                ]
+            }
+        )
 
         issues = formatter._parse_output(output, Path("/project"))
         assert issues[0].file_path == Path("/project/src/Foo.php")
@@ -252,12 +260,14 @@ class TestPhpCsFixerFix:
                 enabled_domains=[],
             )
 
-            fix_output = json.dumps({
-                "files": [
-                    {"name": "src/Foo.php"},
-                    {"name": "src/Bar.php"},
-                ]
-            })
+            fix_output = json.dumps(
+                {
+                    "files": [
+                        {"name": "src/Foo.php"},
+                        {"name": "src/Bar.php"},
+                    ]
+                }
+            )
 
             mock_result = make_completed_process(returncode=0, stdout=fix_output)
 

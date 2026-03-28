@@ -70,8 +70,7 @@ def _find_phpstan(project_root: Optional[Path] = None) -> Path:
         return Path(system)
 
     raise FileNotFoundError(
-        "PHPStan is not installed. "
-        "Install via: composer require --dev phpstan/phpstan"
+        "PHPStan is not installed. Install via: composer require --dev phpstan/phpstan"
     )
 
 
@@ -207,7 +206,9 @@ class PhpstanChecker(TypeCheckerPlugin):
         general_errors = data.get("errors", [])
         for error in general_errors:
             if isinstance(error, str):
-                issue_id = f"phpstan-general-{hashlib.sha256(error.encode()).hexdigest()[:12]}"
+                issue_id = (
+                    f"phpstan-general-{hashlib.sha256(error.encode()).hexdigest()[:12]}"
+                )
                 if issue_id not in seen_ids:
                     issues.append(
                         UnifiedIssue(
@@ -240,7 +241,9 @@ class PhpstanChecker(TypeCheckerPlugin):
             rule_id = identifier if identifier else "phpstan"
             title = f"[{rule_id}] {message_text}" if identifier else message_text
 
-            issue_id = self._generate_issue_id(rule_id, file_path_str, line, message_text)
+            issue_id = self._generate_issue_id(
+                rule_id, file_path_str, line, message_text
+            )
 
             return UnifiedIssue(
                 id=issue_id,

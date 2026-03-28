@@ -97,23 +97,25 @@ class TestPhpstanChecker:
                 enabled_domains=[],
             )
 
-            phpstan_output = json.dumps({
-                "totals": {"errors": 0, "file_errors": 1},
-                "files": {
-                    "/test/src/Foo.php": {
-                        "errors": 1,
-                        "messages": [
-                            {
-                                "message": "Parameter $bar of method Foo::baz() has no type specified.",
-                                "line": 15,
-                                "ignorable": True,
-                                "identifier": "missingType.parameter",
-                            }
-                        ],
-                    }
-                },
-                "errors": [],
-            })
+            phpstan_output = json.dumps(
+                {
+                    "totals": {"errors": 0, "file_errors": 1},
+                    "files": {
+                        "/test/src/Foo.php": {
+                            "errors": 1,
+                            "messages": [
+                                {
+                                    "message": "Parameter $bar of method Foo::baz() has no type specified.",
+                                    "line": 15,
+                                    "ignorable": True,
+                                    "identifier": "missingType.parameter",
+                                }
+                            ],
+                        }
+                    },
+                    "errors": [],
+                }
+            )
 
             mock_result = make_completed_process(returncode=1, stdout=phpstan_output)
 
@@ -161,11 +163,13 @@ class TestPhpstanChecker:
                 enabled_domains=[],
             )
 
-            phpstan_output = json.dumps({
-                "totals": {"errors": 1, "file_errors": 0},
-                "files": {},
-                "errors": ["Autoloader error: class not found"],
-            })
+            phpstan_output = json.dumps(
+                {
+                    "totals": {"errors": 1, "file_errors": 0},
+                    "files": {},
+                    "errors": ["Autoloader error: class not found"],
+                }
+            )
 
             mock_result = make_completed_process(returncode=1, stdout=phpstan_output)
 
@@ -196,48 +200,54 @@ class TestPhpstanOutputParsing:
 
     def test_parse_no_errors(self) -> None:
         checker = PhpstanChecker()
-        output = json.dumps({
-            "totals": {"errors": 0, "file_errors": 0},
-            "files": {},
-            "errors": [],
-        })
+        output = json.dumps(
+            {
+                "totals": {"errors": 0, "file_errors": 0},
+                "files": {},
+                "errors": [],
+            }
+        )
         issues = checker._parse_output(output, Path("/project"))
         assert issues == []
 
     def test_parse_multiple_files(self) -> None:
         checker = PhpstanChecker()
-        output = json.dumps({
-            "files": {
-                "/a.php": {
-                    "messages": [
-                        {"message": "Error 1", "line": 1, "identifier": "id1"}
-                    ]
+        output = json.dumps(
+            {
+                "files": {
+                    "/a.php": {
+                        "messages": [
+                            {"message": "Error 1", "line": 1, "identifier": "id1"}
+                        ]
+                    },
+                    "/b.php": {
+                        "messages": [
+                            {"message": "Error 2", "line": 5, "identifier": "id2"}
+                        ]
+                    },
                 },
-                "/b.php": {
-                    "messages": [
-                        {"message": "Error 2", "line": 5, "identifier": "id2"}
-                    ]
-                },
-            },
-            "errors": [],
-        })
+                "errors": [],
+            }
+        )
 
         issues = checker._parse_output(output, Path("/project"))
         assert len(issues) == 2
 
     def test_parse_deduplicates(self) -> None:
         checker = PhpstanChecker()
-        output = json.dumps({
-            "files": {
-                "/a.php": {
-                    "messages": [
-                        {"message": "Same error", "line": 1, "identifier": "id1"},
-                        {"message": "Same error", "line": 1, "identifier": "id1"},
-                    ]
-                }
-            },
-            "errors": [],
-        })
+        output = json.dumps(
+            {
+                "files": {
+                    "/a.php": {
+                        "messages": [
+                            {"message": "Same error", "line": 1, "identifier": "id1"},
+                            {"message": "Same error", "line": 1, "identifier": "id1"},
+                        ]
+                    }
+                },
+                "errors": [],
+            }
+        )
 
         issues = checker._parse_output(output, Path("/project"))
         assert len(issues) == 1

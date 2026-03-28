@@ -232,7 +232,9 @@ class PhpcsLinter(LinterPlugin):
 
             title = f"[{source}] {message_text}" if source else message_text
 
-            issue_id = self._generate_issue_id(source, file_path_str, line, column, message_text)
+            issue_id = self._generate_issue_id(
+                source, file_path_str, line, column, message_text
+            )
 
             return UnifiedIssue(
                 id=issue_id,
@@ -257,8 +259,12 @@ class PhpcsLinter(LinterPlugin):
             return None
 
     def _generate_issue_id(
-        self, rule_id: str, file_path: str, line: Optional[int],
-        column: Optional[int], message: str,
+        self,
+        rule_id: str,
+        file_path: str,
+        line: Optional[int],
+        column: Optional[int],
+        message: str,
     ) -> str:
         content = f"phpcs:{rule_id}:{file_path}:{line}:{column}:{message}"
         hash_val = hashlib.sha256(content.encode()).hexdigest()[:12]

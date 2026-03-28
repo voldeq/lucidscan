@@ -117,26 +117,28 @@ class TestPhpcsLinter:
                 enabled_domains=[],
             )
 
-            phpcs_output = json.dumps({
-                "totals": {"errors": 1, "warnings": 0, "fixable": 1},
-                "files": {
-                    "/test/src/File.php": {
-                        "errors": 1,
-                        "warnings": 0,
-                        "messages": [
-                            {
-                                "message": "Line exceeds 120 characters",
-                                "source": "Generic.Files.LineLength.TooLong",
-                                "severity": 5,
-                                "fixable": False,
-                                "type": "WARNING",
-                                "line": 42,
-                                "column": 121,
-                            }
-                        ],
-                    }
-                },
-            })
+            phpcs_output = json.dumps(
+                {
+                    "totals": {"errors": 1, "warnings": 0, "fixable": 1},
+                    "files": {
+                        "/test/src/File.php": {
+                            "errors": 1,
+                            "warnings": 0,
+                            "messages": [
+                                {
+                                    "message": "Line exceeds 120 characters",
+                                    "source": "Generic.Files.LineLength.TooLong",
+                                    "severity": 5,
+                                    "fixable": False,
+                                    "type": "WARNING",
+                                    "line": 42,
+                                    "column": 121,
+                                }
+                            ],
+                        }
+                    },
+                }
+            )
 
             mock_result = make_completed_process(returncode=1, stdout=phpcs_output)
 
@@ -183,23 +185,25 @@ class TestPhpcsLinter:
                 enabled_domains=[],
             )
 
-            phpcs_output = json.dumps({
-                "totals": {"errors": 1, "warnings": 0},
-                "files": {
-                    "/test/File.php": {
-                        "messages": [
-                            {
-                                "message": "Missing doc comment",
-                                "source": "PSR12.Methods.Missing",
-                                "type": "ERROR",
-                                "line": 5,
-                                "column": 1,
-                                "fixable": True,
-                            }
-                        ]
-                    }
-                },
-            })
+            phpcs_output = json.dumps(
+                {
+                    "totals": {"errors": 1, "warnings": 0},
+                    "files": {
+                        "/test/File.php": {
+                            "messages": [
+                                {
+                                    "message": "Missing doc comment",
+                                    "source": "PSR12.Methods.Missing",
+                                    "type": "ERROR",
+                                    "line": 5,
+                                    "column": 1,
+                                    "fixable": True,
+                                }
+                            ]
+                        }
+                    },
+                }
+            )
 
             mock_result = make_completed_process(returncode=1, stdout=phpcs_output)
 
@@ -237,60 +241,64 @@ class TestPhpcsOutputParsing:
 
     def test_parse_multiple_files(self) -> None:
         linter = PhpcsLinter()
-        output = json.dumps({
-            "files": {
-                "/a.php": {
-                    "messages": [
-                        {
-                            "message": "Error 1",
-                            "source": "rule1",
-                            "type": "ERROR",
-                            "line": 1,
-                            "column": 1,
-                        }
-                    ]
-                },
-                "/b.php": {
-                    "messages": [
-                        {
-                            "message": "Warning 1",
-                            "source": "rule2",
-                            "type": "WARNING",
-                            "line": 5,
-                            "column": 1,
-                        }
-                    ]
-                },
+        output = json.dumps(
+            {
+                "files": {
+                    "/a.php": {
+                        "messages": [
+                            {
+                                "message": "Error 1",
+                                "source": "rule1",
+                                "type": "ERROR",
+                                "line": 1,
+                                "column": 1,
+                            }
+                        ]
+                    },
+                    "/b.php": {
+                        "messages": [
+                            {
+                                "message": "Warning 1",
+                                "source": "rule2",
+                                "type": "WARNING",
+                                "line": 5,
+                                "column": 1,
+                            }
+                        ]
+                    },
+                }
             }
-        })
+        )
 
         issues = linter._parse_output(output, Path("/project"))
         assert len(issues) == 2
 
     def test_parse_deduplicates_issues(self) -> None:
         linter = PhpcsLinter()
-        output = json.dumps({
-            "files": {
-                "/a.php": {
-                    "messages": [
-                        {
-                            "message": "Same error",
-                            "source": "rule1",
-                            "type": "ERROR",
-                            "line": 1,
-                            "column": 1,
-                        },
-                        {
-                            "message": "Same error",
-                            "source": "rule1",
-                            "type": "ERROR",
-                            "line": 1,
-                            "column": 1,
-                        },
-                    ]
+        output = json.dumps(
+            {
+                "files": {
+                    "/a.php": {
+                        "messages": [
+                            {
+                                "message": "Same error",
+                                "source": "rule1",
+                                "type": "ERROR",
+                                "line": 1,
+                                "column": 1,
+                            },
+                            {
+                                "message": "Same error",
+                                "source": "rule1",
+                                "type": "ERROR",
+                                "line": 1,
+                                "column": 1,
+                            },
+                        ]
+                    }
                 }
             }
-        })
+        )
 
         issues = linter._parse_output(output, Path("/project"))
         assert len(issues) == 1

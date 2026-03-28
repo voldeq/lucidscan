@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import defusedxml.ElementTree as ET  # type: ignore[import-untyped]
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from lucidshark.core.logging import get_logger
 from lucidshark.core.models import ScanContext
@@ -127,7 +127,7 @@ class PhpunitCoveragePlugin(CoveragePlugin):
             result.issues.append(self._create_no_data_issue())
             return result
 
-        root = tree.getroot()
+        root: Any = tree.getroot()
         project = root.find("project")
         if project is None:
             LOGGER.warning("No <project> element in Clover XML")
@@ -157,7 +157,10 @@ class PhpunitCoveragePlugin(CoveragePlugin):
             # Collect missing line numbers
             missing_lines: List[int] = []
             for line_elem in file_elem.findall("line"):
-                if line_elem.get("type") == "stmt" and int(line_elem.get("count", "0")) == 0:
+                if (
+                    line_elem.get("type") == "stmt"
+                    and int(line_elem.get("count", "0")) == 0
+                ):
                     missing_lines.append(int(line_elem.get("num", "0")))
 
             try:

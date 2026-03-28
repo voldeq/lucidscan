@@ -11,7 +11,7 @@ import shutil
 import tempfile
 import defusedxml.ElementTree as ET  # type: ignore[import-untyped]
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
@@ -51,8 +51,7 @@ def _find_phpunit(project_root: Optional[Path] = None) -> Path:
         return Path(system)
 
     raise FileNotFoundError(
-        "PHPUnit is not installed. "
-        "Install via: composer require --dev phpunit/phpunit"
+        "PHPUnit is not installed. Install via: composer require --dev phpunit/phpunit"
     )
 
 
@@ -155,7 +154,7 @@ class PhpunitRunner(TestRunnerPlugin):
             LOGGER.warning(f"Failed to parse PHPUnit JUnit XML: {e}")
             return result
 
-        root = tree.getroot()
+        root: Any = tree.getroot()
 
         # Parse <testsuite> elements
         for testsuite in root.iter("testsuite"):
@@ -166,7 +165,11 @@ class PhpunitRunner(TestRunnerPlugin):
             time_val = float(testsuite.get("time", "0"))
 
             # Only count top-level testsuites to avoid double counting
-            if testsuite.getparent() is not None if hasattr(testsuite, "getparent") else False:
+            if (
+                testsuite.getparent() is not None
+                if hasattr(testsuite, "getparent")
+                else False
+            ):
                 continue
 
             result.passed += tests - failures - errors - skipped_count
@@ -195,7 +198,7 @@ class PhpunitRunner(TestRunnerPlugin):
         )
         return result
 
-    def _count_testcases(self, root: ET.Element, project_root: Path) -> TestResult:
+    def _count_testcases(self, root: Any, project_root: Path) -> TestResult:
         """Count test results from individual testcase elements."""
         result = TestResult(tool="phpunit")
 
@@ -215,7 +218,7 @@ class PhpunitRunner(TestRunnerPlugin):
         return result
 
     def _testcase_to_issue(
-        self, testcase: ET.Element, project_root: Path
+        self, testcase: Any, project_root: Path
     ) -> Optional[UnifiedIssue]:
         """Convert a failed testcase to UnifiedIssue."""
         try:
