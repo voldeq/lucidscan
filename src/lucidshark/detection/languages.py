@@ -58,6 +58,7 @@ EXTENSION_MAP = {
     ".kt": "kotlin",
     ".kts": "kotlin",
     ".scala": "scala",
+    ".sc": "scala",
     ".rb": "ruby",
     ".php": "php",
     ".cs": "csharp",
@@ -84,8 +85,12 @@ MARKER_FILES = {
     "go": ["go.mod"],
     "rust": ["Cargo.toml"],
     "java": ["pom.xml", "build.gradle", "build.gradle.kts"],
+    "scala": ["build.sbt"],
     "ruby": ["Gemfile"],
     "php": ["composer.json"],
+    "c": ["CMakeLists.txt", "Makefile", "makefile", "GNUmakefile", "meson.build"],
+    "cpp": ["CMakeLists.txt"],
+    "swift": ["Package.swift"],
 }
 
 # Glob-based marker files for languages that use variable filenames
@@ -212,6 +217,10 @@ def _detect_version(language: str, project_root: Path) -> Optional[str]:
         return _detect_java_version(project_root)
     elif language == "csharp":
         return _detect_csharp_version(project_root)
+    elif language == "scala":
+        return _detect_scala_version(project_root)
+    elif language == "swift":
+        return _detect_swift_version(project_root)
     return None
 
 
@@ -394,6 +403,74 @@ def _detect_csharp_version(project_root: Path) -> Optional[str]:
             match = re.search(
                 r"<TargetFramework>netcoreapp(\d+\.\d+)</TargetFramework>", content
             )
+            if match:
+                return match.group(1)
+        except Exception:
+            pass
+
+    return None
+
+
+def _detect_scala_version(project_root: Path) -> Optional[str]:
+    """Detect Scala version from build.sbt or other config files.
+
+    Args:
+        project_root: Project root directory.
+
+    Returns:
+        Version string or None.
+    """
+    # Check build.sbt
+    build_sbt = project_root / "build.sbt"
+    if build_sbt.exists():
+        try:
+            content = build_sbt.read_text()
+            # Match patterns like: scalaVersion := "3.3.1"
+            # or: ThisBuild / scalaVersion := "2.13.12"
+            match = re.search(
+                r'scalaVersion\s*:=\s*["\'](\d+\.\d+(?:\.\d+)?)["\']', content
+            )
+            if match:
+                return match.group(1)
+        except Exception:
+            pass
+
+    # Check .scala-version file
+    scala_version_file = project_root / ".scala-version"
+    if scala_version_file.exists():
+        try:
+            version = scala_version_file.read_text().strip()
+            match = re.match(r"(\d+\.\d+(?:\.\d+)?)", version)
+            if match:
+                return match.group(1)
+        except Exception:
+            pass
+
+    return None
+
+
+def _detect_swift_version(project_root: Path) -> Optional[str]:
+    """Detect Swift tools version from Package.swift.
+
+    Package.swift starts with a comment like:
+        // swift-tools-version: 5.9
+    """
+    package_swift = project_root / "Package.swift"
+    if package_swift.exists():
+        try:
+            content = package_swift.read_text()
+            match = re.search(r"swift-tools-version:\s*(\d+\.\d+)", content)
+            if match:
+                return match.group(1)
+        except Exception:
+            pass
+
+    # Check .swift-version file
+    swift_version_file = project_root / ".swift-version"
+    if swift_version_file.exists():
+        try:
+            version = swift_version_file.read_text().strip()
+            match = re.match(r"(\d+\.\d+)", version)
             if match:
                 return match.group(1)
         except Exception:

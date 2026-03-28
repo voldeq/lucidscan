@@ -304,6 +304,17 @@ class ConfigGenerator:
                 ]
             )
 
+        if context.has_c:
+            patterns.extend(
+                [
+                    "**/build/**",
+                    "**/cmake-build-*/**",
+                    "**/*.o",
+                    "**/*.gcda",
+                    "**/*.gcno",
+                ]
+            )
+
         if context.has_java or context.has_kotlin:
             patterns.extend(
                 [
@@ -325,6 +336,21 @@ class ConfigGenerator:
                     "**/TestResults/**",
                 ]
             )
+
+        if context.has_scala:
+            # Add Scala-specific patterns (avoid duplicates with Java)
+            scala_patterns = [
+                "**/target/**",
+                "**/build/**",
+                "**/.bsp/**",
+                "**/.metals/**",
+                "**/.bloop/**",
+                "**/project/target/**",
+                "**/*.class",
+            ]
+            for p in scala_patterns:
+                if p not in patterns:
+                    patterns.append(p)
 
         return patterns
 

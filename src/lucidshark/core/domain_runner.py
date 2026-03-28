@@ -31,6 +31,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "checkstyle": ["java"],
     "pmd": ["java"],
     "dotnet_format": ["csharp"],
+    "clang_tidy": ["c", "c++"],
     # Type checkers
     "mypy": ["python"],
     "pyright": ["python"],
@@ -39,6 +40,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "cargo_check": ["rust"],
     "go_vet": ["go"],
     "dotnet_build": ["csharp"],
+    "cppcheck": ["c", "c++"],
     # Test runners
     "pytest": ["python"],
     "jest": ["javascript", "typescript"],
@@ -49,6 +51,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "cargo": ["rust"],
     "go_test": ["go"],
     "dotnet_test": ["csharp"],
+    "ctest": ["c", "c++"],
     # Coverage
     "coverage_py": ["python"],
     "istanbul": ["javascript", "typescript"],
@@ -57,6 +60,8 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "tarpaulin": ["rust"],
     "go_cover": ["go"],
     "dotnet_coverage": ["csharp"],
+    "gcov": ["c"],
+    "lcov": ["c++"],
     # Duplication detection
     "duplo": [
         "python",
@@ -77,6 +82,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "google_java_format": ["java"],
     "gofmt": ["go"],
     "dotnet_format_whitespace": ["csharp"],
+    "clang_format": ["c", "c++"],
 }
 
 # File extension to language mapping
@@ -90,6 +96,13 @@ EXTENSION_LANGUAGE: Dict[str, str] = {
     ".java": "java",
     ".go": "go",
     ".rs": "rust",
+    ".c": "c",
+    ".h": "c",
+    ".cpp": "c++",
+    ".cc": "c++",
+    ".cxx": "c++",
+    ".hpp": "c++",
+    ".hxx": "c++",
     ".rb": "ruby",
     ".cs": "csharp",
     ".tf": "terraform",
@@ -227,6 +240,8 @@ def get_domains_for_language(language: str) -> List[str]:
     elif language == "rust":
         domains.extend(["type_checking", "testing", "coverage", "formatting"])
     elif language == "go":
+        domains.extend(["type_checking", "testing", "coverage", "formatting"])
+    elif language in ("c", "c++"):
         domains.extend(["type_checking", "testing", "coverage", "formatting"])
     elif language == "terraform":
         domains = ["iac"]
