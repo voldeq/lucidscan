@@ -192,6 +192,7 @@ class DotnetCoveragePlugin(CoveragePlugin):
         try:
             tree = ET.parse(report_path)
             root = tree.getroot()
+            assert root is not None
         except Exception as e:
             LOGGER.error(f"Failed to parse Cobertura report: {e}")
             return CoverageResult(threshold=threshold, tool="dotnet_coverage")

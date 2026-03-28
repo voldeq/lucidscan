@@ -14,6 +14,7 @@ import subprocess
 from pathlib import Path
 
 import defusedxml.ElementTree as ET  # type: ignore[import-untyped]
+from xml.etree.ElementTree import Element
 from typing import List, Optional
 
 from lucidshark.core.logging import get_logger
@@ -253,12 +254,15 @@ class DotnetTestRunner(TestRunnerPlugin):
         """
         tree = ET.parse(trx_file)
         root = tree.getroot()
+        assert root is not None
 
         # Parse counters from ResultSummary
         counters_elem = root.find(".//trx:Counters", TRX_NS)
         if counters_elem is None:
             # Try without namespace
-            counters_elem = root.find(".//{http://microsoft.com/schemas/VisualStudio/TeamTest/2010}Counters")
+            counters_elem = root.find(
+                ".//{http://microsoft.com/schemas/VisualStudio/TeamTest/2010}Counters"
+            )
 
         passed = 0
         failed = 0
@@ -273,11 +277,11 @@ class DotnetTestRunner(TestRunnerPlugin):
 
         # Parse individual test failures
         issues: List[UnifiedIssue] = []
-        results = root.findall(".//trx:UnitTestResult", TRX_NS)
+        results = list(root.findall(".//trx:UnitTestResult", TRX_NS))
         if not results:
-            results = root.findall(
+            results = list(root.findall(
                 ".//{http://microsoft.com/schemas/VisualStudio/TeamTest/2010}UnitTestResult"
-            )
+            ))
 
         for test_result in results:
             outcome = test_result.get("outcome", "")
@@ -302,7 +306,7 @@ class DotnetTestRunner(TestRunnerPlugin):
 
     def _trx_result_to_issue(
         self,
-        test_result: ET.Element,
+        test_result: Element,
         project_root: Path,
     ) -> Optional[UnifiedIssue]:
         """Convert a TRX test result to UnifiedIssue.
