@@ -1,23 +1,23 @@
 # Repository Quality Overview
 
-> **Branch:** main | **Updated:** 2026-03-28 | **Commit:** `5e34858`
+> **Branch:** main | **Updated:** 2026-03-28 | **Commit:** `bc70c3b`
 
-## Health Score: 7.3 / 10  ███████░░░ ↓ -0.9
+## Health Score: 7.3 / 10  ███████░░░
 
 | Domain | Status | Issues | Trend |
 |--------|--------|--------|-------|
-| Linting | ⚠ Warn | 6 | ↓ +3.0 |
+| Linting | ⚠ Warn | 6 | → |
 | Type Checking | ✓ Pass | 0 | → |
-| Formatting | ⚠ Warn | 13 | ↓ +5.0 |
+| Formatting | ⚠ Warn | 11 | ↑ -2.0 |
 | Testing | ✓ Pass | 0 | → |
 | SCA | ✓ Pass | 0 | → |
 | SAST | ✓ Pass | 0 | → |
-| Linting | ⚠ Warn | 6 | ↓ +3.0 |
+| Linting | ⚠ Warn | 6 | → |
 | Type Checking | ✓ Pass | 0 | → |
-| Formatting | ⚠ Warn | 13 | ↓ +5.0 |
+| Formatting | ⚠ Warn | 11 | ↑ -2.0 |
 | Testing | ✓ Pass | 0 | → |
 | Coverage | ✓ Pass | 0 | → |
-| Duplication | ✓ Pass | 55 | → |
+| Duplication | ✓ Pass | 57 | ↓ +2.0 |
 
 ## Issues by Severity
 
@@ -45,12 +45,12 @@
 
 ## Test Coverage
 
-**83.2%** ████████░░ ↓ -0.2%
+**83.5%** ████████░░ ↑ +0.3%
 
 ## Score Trend
 
 ```
-Score: 9.1 → 9.1 → 9.1 → 9.1 → 8.2
+Score: 9.1 → 9.1 → 9.1 → 8.2 → 7.3
        03-28   03-28   03-28   03-28   03-28
 ```
 
