@@ -9,7 +9,6 @@ https://cmake.org/cmake/help/latest/manual/ctest.1.html
 from __future__ import annotations
 
 import hashlib
-import json
 import re
 import subprocess
 from pathlib import Path
@@ -261,7 +260,9 @@ class CTestRunner(TestRunnerPlugin):
 
         return result
 
-    def _parse_ctest_xml(self, build_dir: Path, project_root: Path) -> Optional[TestResult]:
+    def _parse_ctest_xml(
+        self, build_dir: Path, project_root: Path
+    ) -> Optional[TestResult]:
         """Parse CTest XML results from Testing/ directory.
 
         CTest with -T Test generates XML results in Testing/TAG and
@@ -312,7 +313,9 @@ class CTestRunner(TestRunnerPlugin):
         for test in testing.findall(".//Test"):
             status = test.get("Status", "")
             name_elem = test.find("Name")
-            test_name = name_elem.text if name_elem is not None else "unknown"
+            test_name = (
+                (name_elem.text or "unknown") if name_elem is not None else "unknown"
+            )
 
             # Get execution time
             results_elem = test.find("Results")
@@ -342,9 +345,7 @@ class CTestRunner(TestRunnerPlugin):
                 if output_elem is not None and output_elem.text:
                     failure_output = output_elem.text
 
-                issue = self._failure_to_issue(
-                    test_name, failure_output, project_root
-                )
+                issue = self._failure_to_issue(test_name, failure_output, project_root)
                 if issue:
                     result.issues.append(issue)
             elif status == "notrun":

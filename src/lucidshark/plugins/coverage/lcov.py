@@ -18,7 +18,7 @@ from lucidshark.plugins.coverage.base import (
     CoverageResult,
     FileCoverage,
 )
-from lucidshark.plugins.cpp_utils import find_lcov, get_tool_version, has_cmake_project
+from lucidshark.plugins.cpp_utils import find_lcov, get_tool_version
 
 LOGGER = get_logger(__name__)
 

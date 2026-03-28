@@ -5,9 +5,8 @@ from __future__ import annotations
 import subprocess
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 
 from lucidshark.core.models import ScanContext, Severity, ToolDomain
 from lucidshark.plugins.type_checkers.cppcheck import CppcheckChecker
@@ -216,7 +215,7 @@ class TestCheck:
         context = ScanContext(
             project_root=Path("/tmp"),
             paths=[Path("/tmp")],
-        enabled_domains=[],
+            enabled_domains=[],
         )
         issues = checker.check(context)
         assert issues == []
@@ -230,7 +229,7 @@ class TestCheck:
         context = ScanContext(
             project_root=Path("/tmp"),
             paths=[Path("/tmp")],
-        enabled_domains=[],
+            enabled_domains=[],
         )
         issues = checker.check(context)
         assert issues == []
@@ -252,7 +251,7 @@ class TestCheck:
             context = ScanContext(
                 project_root=tmpdir_path,
                 paths=[tmpdir_path],
-            enabled_domains=[],
+                enabled_domains=[],
             )
             issues = checker.check(context)
             assert len(issues) == 4
@@ -264,7 +263,7 @@ class TestCheck:
             context = ScanContext(
                 project_root=tmpdir_path,
                 paths=[tmpdir_path],
-            enabled_domains=[],
+                enabled_domains=[],
             )
             targets = checker._get_targets(context)
             assert str(tmpdir_path) in targets
@@ -278,7 +277,7 @@ class TestCheck:
             context = ScanContext(
                 project_root=tmpdir_path,
                 paths=[cpp_file],
-            enabled_domains=[],
+                enabled_domains=[],
             )
             targets = checker._get_targets(context)
             assert str(cpp_file) in targets
@@ -292,7 +291,7 @@ class TestCheck:
             context = ScanContext(
                 project_root=tmpdir_path,
                 paths=[py_file],
-            enabled_domains=[],
+                enabled_domains=[],
             )
             targets = checker._get_targets(context)
             assert targets == []

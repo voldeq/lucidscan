@@ -4,11 +4,9 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
-import pytest
 
-from lucidshark.core.models import ScanContext, Severity, ToolDomain
+from lucidshark.core.models import ScanContext, ToolDomain
 from lucidshark.plugins.coverage.lcov import LcovPlugin
 
 
@@ -225,7 +223,7 @@ class TestMeasureCoverage:
             context = ScanContext(
                 project_root=tmpdir_path,
                 paths=[tmpdir_path],
-            enabled_domains=[],
+                enabled_domains=[],
             )
             result = plugin.measure_coverage(context, threshold=80.0)
             assert len(result.issues) == 1
@@ -239,7 +237,7 @@ class TestMeasureCoverage:
             context = ScanContext(
                 project_root=tmpdir_path,
                 paths=[tmpdir_path],
-            enabled_domains=[],
+                enabled_domains=[],
             )
             result = plugin.measure_coverage(context, threshold=80.0)
             assert result.total_lines == 3

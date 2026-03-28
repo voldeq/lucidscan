@@ -29,7 +29,6 @@ from lucidshark.plugins.cpp_utils import (
     find_clang_tidy,
     generate_issue_id,
     get_tool_version,
-    has_cmake_project,
 )
 from lucidshark.plugins.linters.base import FixResult, LinterPlugin
 

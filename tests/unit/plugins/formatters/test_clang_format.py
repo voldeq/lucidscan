@@ -5,9 +5,8 @@ from __future__ import annotations
 import subprocess
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 
 from lucidshark.core.models import ScanContext, Severity, ToolDomain
 from lucidshark.plugins.formatters.clang_format import ClangFormatFormatter
@@ -92,7 +91,7 @@ class TestCheck:
         context = ScanContext(
             project_root=Path("/tmp"),
             paths=[Path("/tmp")],
-        enabled_domains=[],
+            enabled_domains=[],
         )
         issues = formatter.check(context)
         assert issues == []
@@ -105,10 +104,11 @@ class TestCheck:
             context = ScanContext(
                 project_root=tmpdir_path,
                 paths=[tmpdir_path],
-            enabled_domains=[],
+                enabled_domains=[],
             )
             with patch.object(
-                ClangFormatFormatter, "ensure_binary",
+                ClangFormatFormatter,
+                "ensure_binary",
                 return_value=Path("/usr/bin/clang-format"),
             ):
                 issues = formatter.check(context)
@@ -118,7 +118,9 @@ class TestCheck:
     @patch.object(ClangFormatFormatter, "ensure_binary")
     def test_check_timeout(self, mock_binary, mock_run) -> None:
         mock_binary.return_value = Path("/usr/bin/clang-format")
-        mock_run.side_effect = subprocess.TimeoutExpired(cmd="clang-format", timeout=120)
+        mock_run.side_effect = subprocess.TimeoutExpired(
+            cmd="clang-format", timeout=120
+        )
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir_path = Path(tmpdir)
             (tmpdir_path / "main.cpp").write_text("int main() {}")
@@ -126,7 +128,7 @@ class TestCheck:
             context = ScanContext(
                 project_root=tmpdir_path,
                 paths=[tmpdir_path],
-            enabled_domains=[],
+                enabled_domains=[],
             )
             issues = formatter.check(context)
             assert issues == []
@@ -148,7 +150,7 @@ class TestCheck:
             context = ScanContext(
                 project_root=tmpdir_path,
                 paths=[tmpdir_path],
-            enabled_domains=[],
+                enabled_domains=[],
             )
             issues = formatter.check(context)
             assert issues == []
@@ -164,7 +166,7 @@ class TestFix:
         context = ScanContext(
             project_root=Path("/tmp"),
             paths=[Path("/tmp")],
-        enabled_domains=[],
+            enabled_domains=[],
         )
         result = formatter.fix(context)
         assert result.files_modified == 0
@@ -186,9 +188,9 @@ class TestFix:
             context = ScanContext(
                 project_root=tmpdir_path,
                 paths=[tmpdir_path],
-            enabled_domains=[],
+                enabled_domains=[],
             )
-            result = formatter.fix(context)
+            formatter.fix(context)
 
             # Verify -i flag was used
             call_args = mock_run.call_args
@@ -206,10 +208,11 @@ class TestFix:
             context = ScanContext(
                 project_root=tmpdir_path,
                 paths=[tmpdir_path],
-            enabled_domains=[],
+                enabled_domains=[],
             )
             with patch.object(
-                ClangFormatFormatter, "ensure_binary",
+                ClangFormatFormatter,
+                "ensure_binary",
                 return_value=Path("/usr/bin/clang-format"),
             ):
                 result = formatter.fix(context)
@@ -229,12 +232,15 @@ class TestResolvePaths:
             (tmpdir_path / "readme.md").write_text("# readme")
 
             from lucidshark.plugins.cpp_utils import CPP_EXTENSIONS
+
             context = ScanContext(
                 project_root=tmpdir_path,
                 paths=[tmpdir_path],
-            enabled_domains=[],
+                enabled_domains=[],
             )
-            paths = formatter._resolve_paths(context, CPP_EXTENSIONS, fallback_to_cwd=False)
+            paths = formatter._resolve_paths(
+                context, CPP_EXTENSIONS, fallback_to_cwd=False
+            )
             assert any("main.cpp" in p for p in paths)
             assert any("utils.hpp" in p for p in paths)
             assert not any("script.py" in p for p in paths)
@@ -248,11 +254,14 @@ class TestResolvePaths:
             cpp_file.write_text("int main() {}")
 
             from lucidshark.plugins.cpp_utils import CPP_EXTENSIONS
+
             context = ScanContext(
                 project_root=tmpdir_path,
                 paths=[cpp_file],
-            enabled_domains=[],
+                enabled_domains=[],
             )
-            paths = formatter._resolve_paths(context, CPP_EXTENSIONS, fallback_to_cwd=False)
+            paths = formatter._resolve_paths(
+                context, CPP_EXTENSIONS, fallback_to_cwd=False
+            )
             assert len(paths) == 1
             assert paths[0] == str(cpp_file)

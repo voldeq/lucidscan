@@ -179,7 +179,9 @@ class ClangFormatFormatter(FormatterPlugin):
         import re
 
         # Pattern matches clang-format warning lines
-        warning_re = re.compile(r"^(.+\.(?:cpp|cc|cxx|hpp|h|hh|hxx)):(\d+):\d+:\s+warning:")
+        warning_re = re.compile(
+            r"^(.+\.(?:cpp|cc|cxx|hpp|h|hh|hxx)):(\d+):\d+:\s+warning:"
+        )
 
         for line in output.splitlines():
             line = line.strip()

@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import subprocess
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 
 from lucidshark.core.models import ScanContext, Severity, ToolDomain
 from lucidshark.plugins.test_runners.ctest import CTestRunner
@@ -136,7 +134,9 @@ class TestFailureToIssue:
 
     def test_creates_issue(self) -> None:
         runner = CTestRunner()
-        issue = runner._failure_to_issue("test_basic", "assertion failed at line 42", Path("/tmp"))
+        issue = runner._failure_to_issue(
+            "test_basic", "assertion failed at line 42", Path("/tmp")
+        )
         assert issue is not None
         assert issue.domain == ToolDomain.TESTING
         assert issue.source_tool == "ctest"
@@ -215,7 +215,7 @@ class TestRunTests:
         context = ScanContext(
             project_root=Path("/tmp"),
             paths=[Path("/tmp")],
-        enabled_domains=[],
+            enabled_domains=[],
         )
         result = runner.run_tests(context)
         assert result.tool == "ctest"
@@ -227,9 +227,11 @@ class TestRunTests:
             context = ScanContext(
                 project_root=Path(tmpdir),
                 paths=[Path(tmpdir)],
-            enabled_domains=[],
+                enabled_domains=[],
             )
-            with patch.object(CTestRunner, "ensure_binary", return_value=Path("/usr/bin/ctest")):
+            with patch.object(
+                CTestRunner, "ensure_binary", return_value=Path("/usr/bin/ctest")
+            ):
                 result = runner.run_tests(context)
                 assert result.tool == "ctest"
                 assert result.passed == 0
@@ -242,12 +244,16 @@ class TestRunTests:
             context = ScanContext(
                 project_root=tmpdir_path,
                 paths=[tmpdir_path],
-            enabled_domains=[],
+                enabled_domains=[],
             )
-            with patch.object(CTestRunner, "ensure_binary", return_value=Path("/usr/bin/ctest")):
+            with patch.object(
+                CTestRunner, "ensure_binary", return_value=Path("/usr/bin/ctest")
+            ):
                 result = runner.run_tests(context)
                 assert result.errors == 1
-                assert any("build directory" in str(i.title).lower() for i in result.issues)
+                assert any(
+                    "build directory" in str(i.title).lower() for i in result.issues
+                )
 
 
 class TestGenerateIssueId:

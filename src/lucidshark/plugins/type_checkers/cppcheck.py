@@ -47,9 +47,7 @@ CPPCHECK_SEVERITY = {
 
 # Regex for parsing cppcheck text output:
 #   [file.cpp:42]: (error) Null pointer dereference
-_TEXT_RE = re.compile(
-    r"^\[(.+?):(\d+)\]:\s+\((\w+)\)\s+(.+)$"
-)
+_TEXT_RE = re.compile(r"^\[(.+?):(\d+)\]:\s+\((\w+)\)\s+(.+)$")
 
 
 class CppcheckChecker(TypeCheckerPlugin):
@@ -287,7 +285,7 @@ class CppcheckChecker(TypeCheckerPlugin):
                 msg,
             )
 
-            doc_url = f"https://cppcheck.sourceforge.io/devinfo/doxyoutput/errormessage_8h.html"
+            doc_url = "https://cppcheck.sourceforge.io/devinfo/doxyoutput/errormessage_8h.html"
 
             metadata = {
                 "cppcheck_id": error_id,

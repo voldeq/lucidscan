@@ -5,9 +5,8 @@ from __future__ import annotations
 import subprocess
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 
 from lucidshark.core.models import ScanContext, Severity, ToolDomain
 from lucidshark.plugins.linters.clang_tidy import (
@@ -117,12 +116,16 @@ class TestParseOutput:
 
     def test_severity_mapping_readability(self) -> None:
         linter = ClangTidyLinter()
-        severity = linter._get_severity("readability-braces-around-statements", "warning")
+        severity = linter._get_severity(
+            "readability-braces-around-statements", "warning"
+        )
         assert severity == Severity.LOW
 
     def test_severity_mapping_performance(self) -> None:
         linter = ClangTidyLinter()
-        severity = linter._get_severity("performance-unnecessary-copy-initialization", "warning")
+        severity = linter._get_severity(
+            "performance-unnecessary-copy-initialization", "warning"
+        )
         assert severity == Severity.MEDIUM
 
     def test_severity_mapping_fallback_to_diag_level(self) -> None:
