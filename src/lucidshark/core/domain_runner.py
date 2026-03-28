@@ -30,6 +30,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "golangci_lint": ["go"],
     "checkstyle": ["java"],
     "pmd": ["java"],
+    "clang_tidy": ["c"],
     # Type checkers
     "mypy": ["python"],
     "pyright": ["python"],
@@ -37,6 +38,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "spotbugs": ["java"],
     "cargo_check": ["rust"],
     "go_vet": ["go"],
+    "cppcheck": ["c"],
     # Test runners
     "pytest": ["python"],
     "jest": ["javascript", "typescript"],
@@ -46,6 +48,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "maven": ["java", "kotlin"],
     "cargo": ["rust"],
     "go_test": ["go"],
+    "ctest": ["c"],
     # Coverage
     "coverage_py": ["python"],
     "istanbul": ["javascript", "typescript"],
@@ -53,6 +56,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "jacoco": ["java", "kotlin"],
     "tarpaulin": ["rust"],
     "go_cover": ["go"],
+    "gcov": ["c"],
     # Duplication detection
     "duplo": [
         "python",
@@ -72,6 +76,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "rustfmt": ["rust"],
     "google_java_format": ["java"],
     "gofmt": ["go"],
+    "clang_format": ["c"],
 }
 
 # File extension to language mapping
@@ -85,6 +90,8 @@ EXTENSION_LANGUAGE: Dict[str, str] = {
     ".java": "java",
     ".go": "go",
     ".rs": "rust",
+    ".c": "c",
+    ".h": "c",
     ".rb": "ruby",
     ".tf": "terraform",
     ".yaml": "yaml",
@@ -221,6 +228,8 @@ def get_domains_for_language(language: str) -> List[str]:
     elif language == "rust":
         domains.extend(["type_checking", "testing", "coverage", "formatting"])
     elif language == "go":
+        domains.extend(["type_checking", "testing", "coverage", "formatting"])
+    elif language == "c":
         domains.extend(["type_checking", "testing", "coverage", "formatting"])
     elif language == "terraform":
         domains = ["iac"]

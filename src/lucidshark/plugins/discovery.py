@@ -55,6 +55,7 @@ def _get_frozen_plugins(group: str) -> Dict[str, Type]:
             ('golangci_lint', 'lucidshark.plugins.linters.golangci_lint', 'GoLangCILintLinter'),
             ('checkstyle', 'lucidshark.plugins.linters.checkstyle', 'CheckstyleLinter'),
             ('pmd', 'lucidshark.plugins.linters.pmd', 'PmdLinter'),
+            ('clang_tidy', 'lucidshark.plugins.linters.clang_tidy', 'ClangTidyLinter'),
         ],
         SCANNER_ENTRY_POINT_GROUP: [
             ('trivy', 'lucidshark.plugins.scanners.trivy', 'TrivyScanner'),
@@ -76,6 +77,7 @@ def _get_frozen_plugins(group: str) -> Dict[str, Type]:
             ('spotbugs', 'lucidshark.plugins.type_checkers.spotbugs', 'SpotBugsChecker'),
             ('cargo_check', 'lucidshark.plugins.type_checkers.cargo_check', 'CargoCheckChecker'),
             ('go_vet', 'lucidshark.plugins.type_checkers.go_vet', 'GoVetChecker'),
+            ('cppcheck', 'lucidshark.plugins.type_checkers.cppcheck', 'CppcheckChecker'),
         ],
         TEST_RUNNER_ENTRY_POINT_GROUP: [
             ('pytest', 'lucidshark.plugins.test_runners.pytest', 'PytestRunner'),
@@ -87,6 +89,7 @@ def _get_frozen_plugins(group: str) -> Dict[str, Type]:
             ('go_test', 'lucidshark.plugins.test_runners.go_test', 'GoTestRunner'),
             ('vitest', 'lucidshark.plugins.test_runners.vitest', 'VitestRunner'),
             ('mocha', 'lucidshark.plugins.test_runners.mocha', 'MochaRunner'),
+            ('ctest', 'lucidshark.plugins.test_runners.ctest', 'CTestRunner'),
         ],
         COVERAGE_ENTRY_POINT_GROUP: [
             ('coverage_py', 'lucidshark.plugins.coverage.coverage_py', 'CoveragePyPlugin'),
@@ -95,6 +98,7 @@ def _get_frozen_plugins(group: str) -> Dict[str, Type]:
             ('tarpaulin', 'lucidshark.plugins.coverage.tarpaulin', 'TarpaulinPlugin'),
             ('go_cover', 'lucidshark.plugins.coverage.go_cover', 'GoCoverPlugin'),
             ('vitest_coverage', 'lucidshark.plugins.coverage.vitest', 'VitestCoveragePlugin'),
+            ('gcov', 'lucidshark.plugins.coverage.gcov', 'GcovPlugin'),
         ],
         DUPLICATION_ENTRY_POINT_GROUP: [
             ('duplo', 'lucidshark.plugins.duplication.duplo', 'DuploPlugin'),
@@ -104,6 +108,7 @@ def _get_frozen_plugins(group: str) -> Dict[str, Type]:
             ('prettier', 'lucidshark.plugins.formatters.prettier', 'PrettierFormatter'),
             ('rustfmt', 'lucidshark.plugins.formatters.rustfmt', 'RustfmtFormatter'),
             ('gofmt', 'lucidshark.plugins.formatters.gofmt', 'GofmtFormatter'),
+            ('clang_format', 'lucidshark.plugins.formatters.clang_format', 'ClangFormatFormatter'),
         ],
     }
 

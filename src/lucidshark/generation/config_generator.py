@@ -304,6 +304,17 @@ class ConfigGenerator:
                 ]
             )
 
+        if context.has_c:
+            patterns.extend(
+                [
+                    "**/build/**",
+                    "**/cmake-build-*/**",
+                    "**/*.o",
+                    "**/*.gcda",
+                    "**/*.gcno",
+                ]
+            )
+
         if context.has_java or context.has_kotlin:
             patterns.extend(
                 [
