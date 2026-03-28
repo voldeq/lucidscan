@@ -1,6 +1,6 @@
 # Repository Quality Overview
 
-> **Branch:** main | **Updated:** 2026-03-28 | **Commit:** `8fc346a`
+> **Branch:** main | **Updated:** 2026-03-28 | **Commit:** `e6f3da8`
 
 ## Health Score: 9.1 / 10  █████████░
 
@@ -17,24 +17,24 @@
 | Formatting | ⚠ Warn | 4 | → |
 | Testing | ✓ Pass | 0 | → |
 | Coverage | ✓ Pass | 0 | → |
-| Duplication | ✓ Pass | 100 | ↓ +16.0 |
+| Duplication | ✓ Pass | 35 | ↑ -65.0 |
 
 ## Issues by Severity
 
 - 🔴 **Critical:** 0
 - 🟠 **High:** 0
 - 🟡 **Medium:** 0
-- 🔵 **Low:** 104
+- 🔵 **Low:** 39
 
 ## Top Files by Issues
 
 | File | Issues |
 |------|--------|
-| `src/lucidshark/plugins/test_runners/maven.py` | 15 |
-| `src/lucidshark/plugins/formatters/scalafmt.py` | 4 |
-| `src/lucidshark/plugins/linters/checkstyle.py` | 4 |
-| `src/lucidshark/plugins/linters/clang_tidy.py` | 4 |
-| `src/lucidshark/plugins/linters/clippy.py` | 4 |
+| `src/lucidshark/plugins/test_runners/maven.py` | 8 |
+| `src/lucidshark/plugins/linters/clippy.py` | 3 |
+| `src/lucidshark/plugins/duplication/duplo.py` | 2 |
+| `src/lucidshark/plugins/linters/checkstyle.py` | 2 |
+| `src/lucidshark/plugins/linters/pmd.py` | 2 |
 
 ## Security Summary
 
@@ -45,13 +45,13 @@
 
 ## Test Coverage
 
-**82.9%** ████████░░ ↓ -0.4%
+**83.2%** ████████░░ ↑ +0.3%
 
 ## Score Trend
 
 ```
 Score: 9.1 → 9.1 → 9.1 → 9.1 → 9.1
-       03-24   03-27   03-27   03-27   03-28
+       03-27   03-27   03-27   03-28   03-28
 ```
 
 ---
