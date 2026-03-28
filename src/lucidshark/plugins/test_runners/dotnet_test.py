@@ -11,8 +11,9 @@ import hashlib
 import re
 import shutil
 import subprocess
-import xml.etree.ElementTree as ET
 from pathlib import Path
+
+import defusedxml.ElementTree as ET  # type: ignore[import-untyped]
 from typing import List, Optional
 
 from lucidshark.core.logging import get_logger

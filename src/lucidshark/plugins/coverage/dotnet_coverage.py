@@ -8,8 +8,9 @@ https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-code-coverage
 from __future__ import annotations
 
 import shutil
-import xml.etree.ElementTree as ET
 from pathlib import Path
+
+import defusedxml.ElementTree as ET  # type: ignore[import-untyped]
 from typing import List, Optional
 
 from lucidshark.core.logging import get_logger
@@ -191,7 +192,7 @@ class DotnetCoveragePlugin(CoveragePlugin):
         try:
             tree = ET.parse(report_path)
             root = tree.getroot()
-        except (ET.ParseError, OSError) as e:
+        except Exception as e:
             LOGGER.error(f"Failed to parse Cobertura report: {e}")
             return CoverageResult(threshold=threshold, tool="dotnet_coverage")
 
