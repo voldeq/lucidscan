@@ -297,7 +297,7 @@ class TestMavenRunTests:
             ):
                 result = runner._run_gradle_tests(gradlew, context)
                 assert result.passed == 0
-                assert result.tool == "maven"
+                assert result.tool == "gradle"
 
     def test_run_maven_tests_always_includes_jacoco(self) -> None:
         """Test Maven tests always include jacoco:report goal."""
@@ -850,12 +850,22 @@ class TestMavenResultMerging:
         issue1 = MagicMock(spec=UnifiedIssue)
         issue2 = MagicMock(spec=UnifiedIssue)
 
-        result1 = TestResult(passed=1, issues=[issue1])
-        result2 = TestResult(passed=1, issues=[issue2])
+        result1 = TestResult(passed=1, issues=[issue1], tool="maven")
+        result2 = TestResult(passed=1, issues=[issue2], tool="maven")
 
         merged = runner._merge_results(result1, result2)
         assert len(merged.issues) == 2
         assert merged.tool == "maven"
+
+    def test_merge_results_preserves_tool_name(self) -> None:
+        """Test merging results preserves tool name from first result."""
+        runner = MavenTestRunner()
+
+        result1 = TestResult(passed=1, tool="gradle")
+        result2 = TestResult(passed=1, tool="gradle")
+
+        merged = runner._merge_results(result1, result2)
+        assert merged.tool == "gradle"
 
 
 class TestMavenJunitXmlDirParsing:

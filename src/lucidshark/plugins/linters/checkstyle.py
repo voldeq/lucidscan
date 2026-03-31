@@ -182,7 +182,8 @@ class CheckstyleLinter(LinterPlugin):
             LOGGER.info("No Java files found to check")
             return []
 
-        # Write file list to temp file for precise targeting
+        # Write file list to temp file to avoid exceeding ARG_MAX
+        # with many file paths on the command line.
         file_list_file = tempfile.NamedTemporaryFile(
             mode="w", suffix=".txt", delete=False
         )
@@ -193,6 +194,7 @@ class CheckstyleLinter(LinterPlugin):
             file_list_file.close()
 
             # Build command for java -jar execution
+            # Use @file_list to pass files via Checkstyle's @ syntax
             cmd = [
                 "java",
                 "-jar",
@@ -201,8 +203,8 @@ class CheckstyleLinter(LinterPlugin):
                 config_file,
                 "-f",
                 "xml",
+                f"@{file_list_path}",
             ]
-            cmd.extend(java_files)
 
             LOGGER.debug(f"Running: {' '.join(cmd[:10])}...")
 
@@ -303,9 +305,16 @@ class CheckstyleLinter(LinterPlugin):
         if context.paths:
             search_dirs = list(context.paths)
         else:
-            # Common Java source directories
-            for src_dir in ["src", "src/main/java", "src/test/java"]:
-                src_path = context.project_root / src_dir
+            # Prefer specific Java source directories to avoid duplicates.
+            # Only fall back to top-level src/ if neither exists.
+            main_java = context.project_root / "src" / "main" / "java"
+            test_java = context.project_root / "src" / "test" / "java"
+            if main_java.exists():
+                search_dirs.append(main_java)
+            if test_java.exists():
+                search_dirs.append(test_java)
+            if not search_dirs:
+                src_path = context.project_root / "src"
                 if src_path.exists():
                     search_dirs.append(src_path)
 

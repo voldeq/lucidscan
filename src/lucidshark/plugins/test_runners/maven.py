@@ -128,7 +128,7 @@ class MavenTestRunner(TestRunnerPlugin):
             binary, build_system = self._detect_build_system()
         except FileNotFoundError as e:
             LOGGER.warning(str(e))
-            return TestResult(tool="maven")
+            return TestResult(tool=self.name)
 
         if build_system == "maven":
             return self._run_maven_tests(binary, context)
@@ -222,7 +222,7 @@ class MavenTestRunner(TestRunnerPlugin):
                 reason=SkipReason.EXECUTION_FAILED,
                 message="Gradle test timed out after 600 seconds",
             )
-            return TestResult(tool="maven")
+            return TestResult(tool="gradle")
         except Exception as e:
             # Gradle returns non-zero exit code on test failures
             LOGGER.debug(f"Gradle test completed with: {e}")
@@ -264,7 +264,7 @@ class MavenTestRunner(TestRunnerPlugin):
         Returns:
             TestResult with parsed data.
         """
-        result = TestResult(tool="maven")
+        result = TestResult(tool="gradle")
 
         # Standard Gradle test report locations
         report_dirs = [
@@ -275,7 +275,9 @@ class MavenTestRunner(TestRunnerPlugin):
 
         for reports_dir in report_dirs:
             if reports_dir.exists():
-                dir_result = self._parse_junit_xml_dir(reports_dir, project_root)
+                dir_result = self._parse_junit_xml_dir(
+                    reports_dir, project_root, "gradle"
+                )
                 result = self._merge_results(result, dir_result)
 
         # Check for multi-module projects
@@ -288,34 +290,39 @@ class MavenTestRunner(TestRunnerPlugin):
                     child_reports = child / subdir
                     if child_reports.exists():
                         child_result = self._parse_junit_xml_dir(
-                            child_reports, project_root
+                            child_reports, project_root, "gradle"
                         )
                         result = self._merge_results(result, child_result)
 
         return result
 
-    def _parse_junit_xml_dir(self, reports_dir: Path, project_root: Path) -> TestResult:
+    def _parse_junit_xml_dir(
+        self, reports_dir: Path, project_root: Path, tool_name: str = "maven"
+    ) -> TestResult:
         """Parse JUnit XML files from a directory.
 
         Args:
             reports_dir: Directory containing JUnit XML files.
             project_root: Project root directory.
+            tool_name: Name of the build tool (maven or gradle).
 
         Returns:
             TestResult with parsed data.
         """
-        result = TestResult(tool="maven")
+        result = TestResult(tool=tool_name)
 
         for xml_file in reports_dir.glob("TEST-*.xml"):
             try:
-                file_result = self._parse_junit_xml(xml_file, project_root)
+                file_result = self._parse_junit_xml(xml_file, project_root, tool_name)
                 result = self._merge_results(result, file_result)
             except Exception as e:
                 LOGGER.warning(f"Failed to parse {xml_file}: {e}")
 
         return result
 
-    def _parse_junit_xml(self, xml_file: Path, project_root: Path) -> TestResult:
+    def _parse_junit_xml(
+        self, xml_file: Path, project_root: Path, tool_name: str = "maven"
+    ) -> TestResult:
         """Parse a single JUnit XML file.
 
         Args:
@@ -331,7 +338,7 @@ class MavenTestRunner(TestRunnerPlugin):
             assert root is not None
         except Exception as e:
             LOGGER.warning(f"Failed to parse JUnit XML {xml_file}: {e}")
-            return TestResult(tool="maven")
+            return TestResult(tool=tool_name)
 
         # Get testsuite element
         if root.tag == "testsuite":
@@ -339,7 +346,7 @@ class MavenTestRunner(TestRunnerPlugin):
         else:
             found = root.find("testsuite")
             if found is None:
-                return TestResult(tool="maven")
+                return TestResult(tool=tool_name)
             testsuite = found
 
         # Parse summary from attributes
@@ -356,7 +363,7 @@ class MavenTestRunner(TestRunnerPlugin):
             skipped=skipped,
             errors=errors,
             duration_ms=duration_ms,
-            tool="maven",
+            tool=tool_name,
         )
 
         # Parse individual test cases for failures
@@ -508,7 +515,7 @@ class MavenTestRunner(TestRunnerPlugin):
             errors=result1.errors + result2.errors,
             duration_ms=result1.duration_ms + result2.duration_ms,
             issues=result1.issues + result2.issues,
-            tool="maven",
+            tool=result1.tool,
         )
 
     def _generate_issue_id(self, test_id: str, message: str) -> str:

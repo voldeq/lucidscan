@@ -319,8 +319,9 @@ def _detect_java_version(project_root: Path) -> Optional[str]:
         try:
             content = pom_xml.read_text()
             # Look for maven.compiler.source or java.version property
+            # Supports both modern (17) and legacy (1.8) version formats
             match = re.search(
-                r"<(?:maven\.compiler\.source|java\.version)>(\d+)</",
+                r"<(?:maven\.compiler\.source|java\.version)>(\d+(?:\.\d+)?)</",
                 content,
             )
             if match:

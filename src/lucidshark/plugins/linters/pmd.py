@@ -318,9 +318,16 @@ class PmdLinter(LinterPlugin):
         if context.paths:
             search_dirs = list(context.paths)
         else:
-            # Common Java source directories
-            for src_dir in ["src", "src/main/java", "src/test/java"]:
-                src_path = context.project_root / src_dir
+            # Prefer specific Java source directories to avoid duplicates.
+            # Only fall back to top-level src/ if neither exists.
+            main_java = context.project_root / "src" / "main" / "java"
+            test_java = context.project_root / "src" / "test" / "java"
+            if main_java.exists():
+                search_dirs.append(main_java)
+            if test_java.exists():
+                search_dirs.append(test_java)
+            if not search_dirs:
+                src_path = context.project_root / "src"
                 if src_path.exists():
                     search_dirs.append(src_path)
 
@@ -331,15 +338,26 @@ class PmdLinter(LinterPlugin):
             if not search_dir.exists():
                 continue
 
-            for java_file in search_dir.rglob("*.java"):
-                # Check if file should be excluded using proper gitignore matching
-                if (
-                    context.ignore_patterns is None
-                    or not context.ignore_patterns.matches(
-                        java_file, context.project_root
-                    )
-                ):
-                    java_files.append(str(java_file))
+            # Handle both files and directories
+            if search_dir.is_file():
+                if search_dir.suffix == ".java":
+                    if (
+                        context.ignore_patterns is None
+                        or not context.ignore_patterns.matches(
+                            search_dir, context.project_root
+                        )
+                    ):
+                        java_files.append(str(search_dir))
+            else:
+                for java_file in search_dir.rglob("*.java"):
+                    # Check if file should be excluded using proper gitignore matching
+                    if (
+                        context.ignore_patterns is None
+                        or not context.ignore_patterns.matches(
+                            java_file, context.project_root
+                        )
+                    ):
+                        java_files.append(str(java_file))
 
         return java_files
 

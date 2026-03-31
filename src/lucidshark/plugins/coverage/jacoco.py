@@ -128,6 +128,9 @@ class JaCoCoPlugin(CoveragePlugin):
     def _jacoco_report_exists(self, project_root: Path, build_system: str) -> bool:
         """Check if JaCoCo report exists.
 
+        Checks root-level report paths and multi-module child directories,
+        matching the same locations that _parse_jacoco_report searches.
+
         Args:
             project_root: Project root directory.
             build_system: Build system (maven or gradle).
@@ -140,6 +143,8 @@ class JaCoCoPlugin(CoveragePlugin):
                 project_root / "target" / "site" / "jacoco" / "jacoco.xml",
                 project_root / "target" / "jacoco.xml",
                 project_root / "jacoco" / "jacoco.xml",
+                project_root / "target" / "jacoco-report" / "jacoco.xml",
+                project_root / "target" / "coverage-reports" / "jacoco.xml",
             ]
         else:
             paths = [
@@ -152,7 +157,27 @@ class JaCoCoPlugin(CoveragePlugin):
                 project_root / "build" / "jacoco" / "test.xml",
             ]
 
-        return any(p.exists() for p in paths)
+        if any(p.exists() for p in paths):
+            return True
+
+        # Check multi-module child directories
+        for child in project_root.iterdir():
+            if child.is_dir() and not child.name.startswith("."):
+                if build_system == "maven":
+                    if (child / "target" / "site" / "jacoco" / "jacoco.xml").exists():
+                        return True
+                else:
+                    if (
+                        child
+                        / "build"
+                        / "reports"
+                        / "jacoco"
+                        / "test"
+                        / "jacocoTestReport.xml"
+                    ).exists():
+                        return True
+
+        return False
 
     def _parse_jacoco_report(
         self,
