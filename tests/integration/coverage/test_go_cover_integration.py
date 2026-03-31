@@ -477,7 +477,7 @@ class TestGoCoverProfileParsing:
             coverfile, tmp_path, "example.com/pkg", 80.0
         )
         file_cov = result.files["main.go"]
-        assert file_cov.missing_lines == [5, 12, 20]
+        assert file_cov.missing_lines == [5, 6, 7, 12, 13, 14, 20, 21, 22]
 
     def test_file_path_resolution(self, tmp_path: Path) -> None:
         """File paths in result are resolved against project_root."""

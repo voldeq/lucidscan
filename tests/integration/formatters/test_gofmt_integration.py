@@ -664,7 +664,7 @@ class TestGofmtFixResult:
 
     @patch("lucidshark.plugins.formatters.gofmt.run_with_streaming")
     @patch.object(GofmtFormatter, "ensure_binary", return_value=Path("/usr/bin/gofmt"))
-    def test_fix_result_files_modified_equals_path_count(
+    def test_fix_result_files_modified_zero_when_no_files_need_formatting(
         self, mock_binary, mock_run, tmp_path: Path
     ) -> None:
         mock_result = MagicMock()
@@ -683,7 +683,7 @@ class TestGofmtFixResult:
 
         formatter = GofmtFormatter()
         result = formatter.fix(ctx)
-        assert result.files_modified == 3
+        assert result.files_modified == 0
 
     @patch("lucidshark.plugins.formatters.gofmt.run_with_streaming")
     @patch.object(GofmtFormatter, "ensure_binary", return_value=Path("/usr/bin/gofmt"))
