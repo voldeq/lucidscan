@@ -31,8 +31,8 @@ from lucidshark.core.models import (
     SkipReason,
     UnifiedIssue,
 )
-from lucidshark.core.subprocess_runner import run_with_streaming
-from lucidshark.plugins.go_utils import find_go, has_go_mod
+from lucidshark.core.subprocess_runner import run_with_streaming, temporary_env
+from lucidshark.plugins.go_utils import ensure_go_in_path, find_go, has_go_mod
 from lucidshark.plugins.scanners.base import ScannerPlugin
 
 LOGGER = get_logger(__name__)
@@ -304,14 +304,17 @@ class GosecScanner(ScannerPlugin):
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
+        env_vars = ensure_go_in_path()
+
         try:
-            result = run_with_streaming(
-                cmd=cmd,
-                cwd=context.project_root,
-                tool_name="gosec",
-                stream_handler=context.stream_handler,
-                timeout=300,
-            )
+            with temporary_env(env_vars):
+                result = run_with_streaming(
+                    cmd=cmd,
+                    cwd=context.project_root,
+                    tool_name="gosec",
+                    stream_handler=context.stream_handler,
+                    timeout=300,
+                )
 
             # Log stderr for debugging (even on success)
             if result.stderr:

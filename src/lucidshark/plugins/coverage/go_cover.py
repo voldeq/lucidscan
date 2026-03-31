@@ -200,7 +200,7 @@ class GoCoverPlugin(CoveragePlugin):
                 if count > 0:
                     file_covered += num_stmts
                 else:
-                    missing_lines.append(start_line)
+                    missing_lines.extend(range(start_line, end_line + 1))
 
             total_statements += file_total
             total_covered += file_covered

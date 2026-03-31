@@ -374,7 +374,7 @@ class GoTestRunner(TestRunnerPlugin):
             if not stripped or stripped.startswith("---") or stripped.startswith("==="):
                 continue
             # Look for assertion-like lines (indented lines from t.Errorf etc.)
-            if stripped.startswith("    ") or ":" in stripped:
+            if line.startswith("    ") or line.startswith("\t") or ":" in stripped:
                 cleaned = stripped.replace("\n", " ").strip()
                 if len(cleaned) > 5:
                     return cleaned[:100]
