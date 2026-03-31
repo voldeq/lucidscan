@@ -20,8 +20,9 @@ from lucidshark.core.models import (
     ToolDomain,
     UnifiedIssue,
 )
-from lucidshark.core.subprocess_runner import run_with_streaming
+from lucidshark.core.subprocess_runner import run_with_streaming, temporary_env
 from lucidshark.plugins.go_utils import (
+    ensure_go_in_path,
     find_golangci_lint,
     generate_issue_id,
     get_golangci_lint_version,
@@ -156,9 +157,6 @@ class GoLangCILintLinter(LinterPlugin):
 
         # Ensure 'go' command is in PATH for golangci-lint to work
         # golangci-lint requires 'go' to analyze Go code
-        from lucidshark.core.subprocess_runner import temporary_env
-        from lucidshark.plugins.go_utils import ensure_go_in_path
-
         env_vars = ensure_go_in_path()
 
         try:
@@ -225,14 +223,17 @@ class GoLangCILintLinter(LinterPlugin):
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
+        env_vars = ensure_go_in_path()
+
         try:
-            run_with_streaming(
-                cmd=cmd,
-                cwd=context.project_root,
-                tool_name="golangci-lint-fix",
-                stream_handler=context.stream_handler,
-                timeout=300,
-            )
+            with temporary_env(env_vars):
+                run_with_streaming(
+                    cmd=cmd,
+                    cwd=context.project_root,
+                    tool_name="golangci-lint-fix",
+                    stream_handler=context.stream_handler,
+                    timeout=300,
+                )
         except subprocess.TimeoutExpired:
             LOGGER.warning("golangci-lint fix timed out after 300 seconds")
             return FixResult()
@@ -242,19 +243,7 @@ class GoLangCILintLinter(LinterPlugin):
         # Count remaining issues
         post_issues = self.lint(context)
 
-        files_modified = len(
-            set(
-                str(issue.file_path)
-                for issue in pre_issues
-                if str(issue.file_path) not in {str(i.file_path) for i in post_issues}
-            )
-        )
-
-        return FixResult(
-            files_modified=files_modified,
-            issues_fixed=len(pre_issues) - len(post_issues),
-            issues_remaining=len(post_issues),
-        )
+        return self._calculate_fix_stats(pre_issues, post_issues)
 
     def _parse_output(self, output: str, project_root: Path) -> List[UnifiedIssue]:
         """Parse golangci-lint JSON output.

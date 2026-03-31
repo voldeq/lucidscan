@@ -142,6 +142,9 @@ class GofmtFormatter(FormatterPlugin):
         if not paths:
             return FixResult()
 
+        # Count files needing formatting before fix
+        pre_issues = self.check(context)
+
         cmd = [str(binary), "-w"] + paths
 
         # Ensure 'go' command is in PATH
@@ -160,9 +163,11 @@ class GofmtFormatter(FormatterPlugin):
             LOGGER.error(f"Failed to run gofmt: {e}")
             return FixResult()
 
-        # Domain runner calls check() after fix to get remaining issues
+        # Count remaining issues after fix
+        post_issues = self.check(context)
+
         return FixResult(
-            files_modified=len(paths),
-            issues_fixed=0,
-            issues_remaining=0,
+            files_modified=len(pre_issues) - len(post_issues),
+            issues_fixed=len(pre_issues) - len(post_issues),
+            issues_remaining=len(post_issues),
         )
