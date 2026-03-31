@@ -217,8 +217,12 @@ class TestSbtTestcaseToIssue:
 
             import defusedxml.ElementTree as ET
 
-            testcase_xml = '<testcase classname="com.example.MySpec" name="test" time="0.1"/>'
-            failure_xml = '<failure type="TestFailed" message="oops">stacktrace</failure>'
+            testcase_xml = (
+                '<testcase classname="com.example.MySpec" name="test" time="0.1"/>'
+            )
+            failure_xml = (
+                '<failure type="TestFailed" message="oops">stacktrace</failure>'
+            )
             testcase = ET.fromstring(testcase_xml)
             failure = ET.fromstring(failure_xml)
 
@@ -254,8 +258,12 @@ class TestSbtMergeResults:
         from lucidshark.plugins.test_runners.base import TestResult
 
         plugin = SbtTestRunner()
-        r1 = TestResult(passed=5, failed=1, skipped=2, errors=0, duration_ms=100, tool="sbt")
-        r2 = TestResult(passed=3, failed=2, skipped=0, errors=1, duration_ms=200, tool="sbt")
+        r1 = TestResult(
+            passed=5, failed=1, skipped=2, errors=0, duration_ms=100, tool="sbt"
+        )
+        r2 = TestResult(
+            passed=3, failed=2, skipped=0, errors=1, duration_ms=200, tool="sbt"
+        )
 
         merged = plugin._merge_results(r1, r2)
         assert merged.passed == 8

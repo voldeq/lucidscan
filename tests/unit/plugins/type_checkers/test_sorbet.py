@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import subprocess
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -129,10 +128,7 @@ class TestSorbetParseOutput:
 
     def test_skips_summary_lines(self) -> None:
         checker = SorbetChecker()
-        output = (
-            "lib/a.rb:5: Type error https://srb.help/7002\n"
-            "Errors: 1\n"
-        )
+        output = "lib/a.rb:5: Type error https://srb.help/7002\nErrors: 1\n"
         issues = checker._parse_output(output, Path("/project"))
         assert len(issues) == 1
 

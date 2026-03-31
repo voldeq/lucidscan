@@ -66,36 +66,38 @@ class TestRspecJsonParsing:
 
     def test_parse_all_passing(self) -> None:
         runner = RspecRunner()
-        output = json.dumps({
-            "version": "3.12.0",
-            "examples": [
-                {
-                    "id": "./spec/user_spec.rb[1:1]",
-                    "description": "is valid",
-                    "full_description": "User is valid",
-                    "status": "passed",
-                    "file_path": "./spec/user_spec.rb",
-                    "line_number": 5,
-                    "run_time": 0.012,
+        output = json.dumps(
+            {
+                "version": "3.12.0",
+                "examples": [
+                    {
+                        "id": "./spec/user_spec.rb[1:1]",
+                        "description": "is valid",
+                        "full_description": "User is valid",
+                        "status": "passed",
+                        "file_path": "./spec/user_spec.rb",
+                        "line_number": 5,
+                        "run_time": 0.012,
+                    },
+                    {
+                        "id": "./spec/user_spec.rb[1:2]",
+                        "description": "has a name",
+                        "full_description": "User has a name",
+                        "status": "passed",
+                        "file_path": "./spec/user_spec.rb",
+                        "line_number": 10,
+                        "run_time": 0.003,
+                    },
+                ],
+                "summary": {
+                    "duration": 0.015,
+                    "example_count": 2,
+                    "failure_count": 0,
+                    "pending_count": 0,
+                    "errors_outside_of_examples_count": 0,
                 },
-                {
-                    "id": "./spec/user_spec.rb[1:2]",
-                    "description": "has a name",
-                    "full_description": "User has a name",
-                    "status": "passed",
-                    "file_path": "./spec/user_spec.rb",
-                    "line_number": 10,
-                    "run_time": 0.003,
-                },
-            ],
-            "summary": {
-                "duration": 0.015,
-                "example_count": 2,
-                "failure_count": 0,
-                "pending_count": 0,
-                "errors_outside_of_examples_count": 0,
-            },
-        })
+            }
+        )
         result = runner._parse_json_output(output, Path("/project"))
         assert result.passed == 2
         assert result.failed == 0
@@ -104,43 +106,45 @@ class TestRspecJsonParsing:
 
     def test_parse_with_failures(self) -> None:
         runner = RspecRunner()
-        output = json.dumps({
-            "version": "3.12.0",
-            "examples": [
-                {
-                    "id": "./spec/user_spec.rb[1:1]",
-                    "description": "is valid",
-                    "full_description": "User is valid",
-                    "status": "passed",
-                    "file_path": "./spec/user_spec.rb",
-                    "line_number": 5,
-                    "run_time": 0.012,
-                },
-                {
-                    "id": "./spec/user_spec.rb[1:2]",
-                    "description": "validates name",
-                    "full_description": "User validates name",
-                    "status": "failed",
-                    "file_path": "./spec/user_spec.rb",
-                    "line_number": 10,
-                    "run_time": 0.005,
-                    "exception": {
-                        "class": "RSpec::Expectations::ExpectationNotMetError",
-                        "message": "expected true\n     got false",
-                        "backtrace": [
-                            "./spec/user_spec.rb:10:in `block (2 levels) in <top>'"
-                        ],
+        output = json.dumps(
+            {
+                "version": "3.12.0",
+                "examples": [
+                    {
+                        "id": "./spec/user_spec.rb[1:1]",
+                        "description": "is valid",
+                        "full_description": "User is valid",
+                        "status": "passed",
+                        "file_path": "./spec/user_spec.rb",
+                        "line_number": 5,
+                        "run_time": 0.012,
                     },
+                    {
+                        "id": "./spec/user_spec.rb[1:2]",
+                        "description": "validates name",
+                        "full_description": "User validates name",
+                        "status": "failed",
+                        "file_path": "./spec/user_spec.rb",
+                        "line_number": 10,
+                        "run_time": 0.005,
+                        "exception": {
+                            "class": "RSpec::Expectations::ExpectationNotMetError",
+                            "message": "expected true\n     got false",
+                            "backtrace": [
+                                "./spec/user_spec.rb:10:in `block (2 levels) in <top>'"
+                            ],
+                        },
+                    },
+                ],
+                "summary": {
+                    "duration": 0.017,
+                    "example_count": 2,
+                    "failure_count": 1,
+                    "pending_count": 0,
+                    "errors_outside_of_examples_count": 0,
                 },
-            ],
-            "summary": {
-                "duration": 0.017,
-                "example_count": 2,
-                "failure_count": 1,
-                "pending_count": 0,
-                "errors_outside_of_examples_count": 0,
-            },
-        })
+            }
+        )
         result = runner._parse_json_output(output, Path("/project"))
         assert result.passed == 1
         assert result.failed == 1
@@ -153,27 +157,29 @@ class TestRspecJsonParsing:
 
     def test_parse_with_pending(self) -> None:
         runner = RspecRunner()
-        output = json.dumps({
-            "examples": [
-                {
-                    "id": "./spec/a_spec.rb[1:1]",
-                    "description": "pending test",
-                    "full_description": "A pending test",
-                    "status": "pending",
-                    "file_path": "./spec/a_spec.rb",
-                    "line_number": 3,
-                    "run_time": 0.001,
-                    "pending_message": "Not yet implemented",
+        output = json.dumps(
+            {
+                "examples": [
+                    {
+                        "id": "./spec/a_spec.rb[1:1]",
+                        "description": "pending test",
+                        "full_description": "A pending test",
+                        "status": "pending",
+                        "file_path": "./spec/a_spec.rb",
+                        "line_number": 3,
+                        "run_time": 0.001,
+                        "pending_message": "Not yet implemented",
+                    },
+                ],
+                "summary": {
+                    "duration": 0.001,
+                    "example_count": 1,
+                    "failure_count": 0,
+                    "pending_count": 1,
+                    "errors_outside_of_examples_count": 0,
                 },
-            ],
-            "summary": {
-                "duration": 0.001,
-                "example_count": 1,
-                "failure_count": 0,
-                "pending_count": 1,
-                "errors_outside_of_examples_count": 0,
-            },
-        })
+            }
+        )
         result = runner._parse_json_output(output, Path("/project"))
         assert result.passed == 0
         assert result.skipped == 1

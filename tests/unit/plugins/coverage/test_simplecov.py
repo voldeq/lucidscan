@@ -9,8 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from lucidshark.core.models import Severity, ToolDomain
-from lucidshark.plugins.coverage.base import CoverageResult
+from lucidshark.core.models import ToolDomain
 from lucidshark.plugins.coverage.simplecov import SimpleCovPlugin
 
 
@@ -145,9 +144,7 @@ class TestSimpleCovParseResultset:
             resultset = Path(tmpdir) / "resultset.json"
             data = {
                 "RSpec": {
-                    "coverage": {
-                        f"{tmpdir}/lib/example.rb": [None, 1, 1, 0, None, 1]
-                    }
+                    "coverage": {f"{tmpdir}/lib/example.rb": [None, 1, 1, 0, None, 1]}
                 }
             }
             resultset.write_text(json.dumps(data))
@@ -165,16 +162,8 @@ class TestSimpleCovParseResultset:
             project_root = Path(tmpdir)
             resultset = Path(tmpdir) / "resultset.json"
             data = {
-                "RSpec": {
-                    "coverage": {
-                        f"{tmpdir}/lib/example.rb": [None, 1, 0, 0]
-                    }
-                },
-                "Minitest": {
-                    "coverage": {
-                        f"{tmpdir}/lib/example.rb": [None, 0, 1, 0]
-                    }
-                },
+                "RSpec": {"coverage": {f"{tmpdir}/lib/example.rb": [None, 1, 0, 0]}},
+                "Minitest": {"coverage": {f"{tmpdir}/lib/example.rb": [None, 0, 1, 0]}},
             }
             resultset.write_text(json.dumps(data))
 
@@ -192,9 +181,7 @@ class TestSimpleCovParseResultset:
             resultset.write_text("{}")
 
             plugin = SimpleCovPlugin()
-            result = plugin._parse_resultset(
-                resultset, Path(tmpdir), threshold=80.0
-            )
+            result = plugin._parse_resultset(resultset, Path(tmpdir), threshold=80.0)
             assert result.total_lines == 0
             assert result.covered_lines == 0
 
@@ -204,9 +191,7 @@ class TestSimpleCovParseResultset:
             resultset.write_text("not json")
 
             plugin = SimpleCovPlugin()
-            result = plugin._parse_resultset(
-                resultset, Path(tmpdir), threshold=80.0
-            )
+            result = plugin._parse_resultset(resultset, Path(tmpdir), threshold=80.0)
             assert result.total_lines == 0
 
 
@@ -219,11 +204,7 @@ class TestSimpleCovCoverageThreshold:
             resultset = Path(tmpdir) / "resultset.json"
             # 50% coverage (2 of 4 lines covered)
             data = {
-                "RSpec": {
-                    "coverage": {
-                        f"{tmpdir}/lib/example.rb": [None, 1, 1, 0, 0]
-                    }
-                }
+                "RSpec": {"coverage": {f"{tmpdir}/lib/example.rb": [None, 1, 1, 0, 0]}}
             }
             resultset.write_text(json.dumps(data))
 
@@ -240,11 +221,7 @@ class TestSimpleCovCoverageThreshold:
             resultset = Path(tmpdir) / "resultset.json"
             # 100% coverage
             data = {
-                "RSpec": {
-                    "coverage": {
-                        f"{tmpdir}/lib/example.rb": [None, 1, 1, 1, 1]
-                    }
-                }
+                "RSpec": {"coverage": {f"{tmpdir}/lib/example.rb": [None, 1, 1, 1, 1]}}
             }
             resultset.write_text(json.dumps(data))
 
@@ -264,9 +241,7 @@ class TestSimpleCovMissingLines:
             resultset = Path(tmpdir) / "resultset.json"
             data = {
                 "RSpec": {
-                    "coverage": {
-                        f"{tmpdir}/lib/example.rb": [None, 1, 0, 1, 0, None]
-                    }
+                    "coverage": {f"{tmpdir}/lib/example.rb": [None, 1, 0, 1, 0, None]}
                 }
             }
             resultset.write_text(json.dumps(data))

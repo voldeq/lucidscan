@@ -164,12 +164,7 @@ class TestGcovMeasureCoverage:
             project_root = Path(tmpdir)
 
             lcov_content = (
-                "SF:/project/src/lib.c\n"
-                "DA:1,1\n"
-                "DA:2,1\n"
-                "LF:2\n"
-                "LH:2\n"
-                "end_of_record\n"
+                "SF:/project/src/lib.c\nDA:1,1\nDA:2,1\nLF:2\nLH:2\nend_of_record\n"
             )
             (project_root / "lcov.info").write_text(lcov_content)
 
@@ -192,13 +187,7 @@ class TestGcovMeasureCoverage:
             build_dir.mkdir()
             (build_dir / "CMakeCache.txt").touch()
 
-            lcov_content = (
-                "SF:/project/src/main.c\n"
-                "DA:1,1\n"
-                "LF:1\n"
-                "LH:1\n"
-                "end_of_record\n"
-            )
+            lcov_content = "SF:/project/src/main.c\nDA:1,1\nLF:1\nLH:1\nend_of_record\n"
             (build_dir / "coverage.info").write_text(lcov_content)
 
             context = MagicMock()
@@ -217,12 +206,7 @@ class TestGcovMeasureCoverage:
 
             # Create coverage.info in both root and build dir
             root_content = (
-                "SF:/project/src/main.c\n"
-                "DA:1,1\n"
-                "DA:2,1\n"
-                "LF:2\n"
-                "LH:2\n"
-                "end_of_record\n"
+                "SF:/project/src/main.c\nDA:1,1\nDA:2,1\nLF:2\nLH:2\nend_of_record\n"
             )
             (project_root / "coverage.info").write_text(root_content)
 
@@ -230,11 +214,7 @@ class TestGcovMeasureCoverage:
             build_dir.mkdir()
             (build_dir / "CMakeCache.txt").touch()
             build_content = (
-                "SF:/project/src/main.c\n"
-                "DA:1,1\n"
-                "LF:1\n"
-                "LH:1\n"
-                "end_of_record\n"
+                "SF:/project/src/main.c\nDA:1,1\nLF:1\nLH:1\nend_of_record\n"
             )
             (build_dir / "coverage.info").write_text(build_content)
 
@@ -453,11 +433,7 @@ class TestParseLcovInfo:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             info_file = project_root / "coverage.info"
-            content = (
-                f"SF:{project_root}/src/main.c\n"
-                "DA:1,1\n"
-                "end_of_record\n"
-            )
+            content = f"SF:{project_root}/src/main.c\nDA:1,1\nend_of_record\n"
             info_file.write_text(content)
 
             result = plugin._parse_lcov_info(info_file, project_root, 80.0)
@@ -470,11 +446,7 @@ class TestParseLcovInfo:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             info_file = project_root / "coverage.info"
-            content = (
-                "SF:/external/path/lib.c\n"
-                "DA:1,1\n"
-                "end_of_record\n"
-            )
+            content = "SF:/external/path/lib.c\nDA:1,1\nend_of_record\n"
             info_file.write_text(content)
 
             result = plugin._parse_lcov_info(info_file, project_root, 80.0)

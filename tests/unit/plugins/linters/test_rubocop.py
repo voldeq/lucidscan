@@ -156,42 +156,44 @@ class TestRubocopParseOutput:
 
     def test_parse_no_offenses(self) -> None:
         linter = RubocopLinter()
-        output = json.dumps({
-            "files": [
-                {"path": "lib/example.rb", "offenses": []}
-            ],
-            "summary": {"offense_count": 0}
-        })
+        output = json.dumps(
+            {
+                "files": [{"path": "lib/example.rb", "offenses": []}],
+                "summary": {"offense_count": 0},
+            }
+        )
         issues = linter._parse_output(output, Path("/project"))
         assert issues == []
 
     def test_parse_with_offenses(self) -> None:
         linter = RubocopLinter()
-        output = json.dumps({
-            "files": [
-                {
-                    "path": "lib/example.rb",
-                    "offenses": [
-                        {
-                            "severity": "convention",
-                            "message": "Line is too long. [120/80]",
-                            "cop_name": "Layout/LineLength",
-                            "corrected": False,
-                            "correctable": True,
-                            "location": {
-                                "start_line": 10,
-                                "start_column": 1,
-                                "last_line": 10,
-                                "last_column": 120,
-                                "line": 10,
-                                "column": 1,
-                            },
-                        }
-                    ],
-                }
-            ],
-            "summary": {"offense_count": 1}
-        })
+        output = json.dumps(
+            {
+                "files": [
+                    {
+                        "path": "lib/example.rb",
+                        "offenses": [
+                            {
+                                "severity": "convention",
+                                "message": "Line is too long. [120/80]",
+                                "cop_name": "Layout/LineLength",
+                                "corrected": False,
+                                "correctable": True,
+                                "location": {
+                                    "start_line": 10,
+                                    "start_column": 1,
+                                    "last_line": 10,
+                                    "last_column": 120,
+                                    "line": 10,
+                                    "column": 1,
+                                },
+                            }
+                        ],
+                    }
+                ],
+                "summary": {"offense_count": 1},
+            }
+        )
         issues = linter._parse_output(output, Path("/project"))
         assert len(issues) == 1
         issue = issues[0]
@@ -204,37 +206,39 @@ class TestRubocopParseOutput:
 
     def test_parse_multiple_files_and_offenses(self) -> None:
         linter = RubocopLinter()
-        output = json.dumps({
-            "files": [
-                {
-                    "path": "lib/a.rb",
-                    "offenses": [
-                        {
-                            "severity": "warning",
-                            "message": "Unused variable",
-                            "cop_name": "Lint/UselessAssignment",
-                            "corrected": False,
-                            "correctable": False,
-                            "location": {"line": 5, "column": 1},
-                        }
-                    ],
-                },
-                {
-                    "path": "lib/b.rb",
-                    "offenses": [
-                        {
-                            "severity": "error",
-                            "message": "Syntax error",
-                            "cop_name": "Lint/Syntax",
-                            "corrected": False,
-                            "correctable": False,
-                            "location": {"line": 1, "column": 1},
-                        }
-                    ],
-                },
-            ],
-            "summary": {"offense_count": 2}
-        })
+        output = json.dumps(
+            {
+                "files": [
+                    {
+                        "path": "lib/a.rb",
+                        "offenses": [
+                            {
+                                "severity": "warning",
+                                "message": "Unused variable",
+                                "cop_name": "Lint/UselessAssignment",
+                                "corrected": False,
+                                "correctable": False,
+                                "location": {"line": 5, "column": 1},
+                            }
+                        ],
+                    },
+                    {
+                        "path": "lib/b.rb",
+                        "offenses": [
+                            {
+                                "severity": "error",
+                                "message": "Syntax error",
+                                "cop_name": "Lint/Syntax",
+                                "corrected": False,
+                                "correctable": False,
+                                "location": {"line": 1, "column": 1},
+                            }
+                        ],
+                    },
+                ],
+                "summary": {"offense_count": 2},
+            }
+        )
         issues = linter._parse_output(output, Path("/project"))
         assert len(issues) == 2
 
@@ -304,24 +308,26 @@ class TestRubocopLint:
             assert issues == []
 
     def test_lint_runs_rubocop(self) -> None:
-        output = json.dumps({
-            "files": [
-                {
-                    "path": "test.rb",
-                    "offenses": [
-                        {
-                            "severity": "convention",
-                            "message": "test offense",
-                            "cop_name": "Style/Test",
-                            "corrected": False,
-                            "correctable": True,
-                            "location": {"line": 1, "column": 1},
-                        }
-                    ],
-                }
-            ],
-            "summary": {"offense_count": 1}
-        })
+        output = json.dumps(
+            {
+                "files": [
+                    {
+                        "path": "test.rb",
+                        "offenses": [
+                            {
+                                "severity": "convention",
+                                "message": "test offense",
+                                "cop_name": "Style/Test",
+                                "corrected": False,
+                                "correctable": True,
+                                "location": {"line": 1, "column": 1},
+                            }
+                        ],
+                    }
+                ],
+                "summary": {"offense_count": 1},
+            }
+        )
         linter = RubocopLinter()
         context = ScanContext(
             project_root=Path("/project"),
@@ -351,7 +357,12 @@ class TestRubocopPathFiltering:
             (root / "readme.md").touch()
             (root / "lib").mkdir()
 
-            paths = [root / "app.rb", root / "task.rake", root / "readme.md", root / "lib"]
+            paths = [
+                root / "app.rb",
+                root / "task.rake",
+                root / "readme.md",
+                root / "lib",
+            ]
             filtered = linter._filter_paths(paths)
             assert str(root / "app.rb") in filtered
             assert str(root / "task.rake") in filtered

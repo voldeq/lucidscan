@@ -58,6 +58,7 @@ SUPPORTED_EXTENSIONS = {
     ".cxx": "c++",
     ".cc": "c++",
     ".h": "c",
+    ".hh": "c++",
     ".hpp": "c++",
     ".hxx": "c++",
     ".kt": "kotlin",

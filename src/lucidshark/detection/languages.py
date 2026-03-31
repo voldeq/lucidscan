@@ -65,10 +65,12 @@ EXTENSION_MAP = {
     ".swift": "swift",
     ".c": "c",
     ".h": "c",
-    ".cpp": "cpp",
-    ".cc": "cpp",
-    ".cxx": "cpp",
-    ".hpp": "cpp",
+    ".cpp": "c++",
+    ".cc": "c++",
+    ".cxx": "c++",
+    ".hpp": "c++",
+    ".hh": "c++",
+    ".hxx": "c++",
 }
 
 # Marker files that indicate a language
@@ -89,7 +91,7 @@ MARKER_FILES = {
     "ruby": ["Gemfile", "Rakefile"],
     "php": ["composer.json"],
     "c": ["CMakeLists.txt", "Makefile", "makefile", "GNUmakefile", "meson.build"],
-    "cpp": ["CMakeLists.txt"],
+    "c++": ["CMakeLists.txt"],
     "swift": ["Package.swift"],
 }
 

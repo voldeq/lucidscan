@@ -362,9 +362,12 @@ class ClangTidyLinter(LinterPlugin):
         """
         if check_name:
             # Extract the category prefix (e.g., "bugprone" from "bugprone-use-after-move")
-            category = check_name.split("-")[0]
-            if category in CATEGORY_SEVERITY:
-                return CATEGORY_SEVERITY[category]
+            # Handle multi-segment prefixes like "clang-analyzer" and "clang-diagnostic"
+            parts = check_name.split("-")
+            if len(parts) >= 2 and f"{parts[0]}-{parts[1]}" in CATEGORY_SEVERITY:
+                return CATEGORY_SEVERITY[f"{parts[0]}-{parts[1]}"]
+            if parts[0] in CATEGORY_SEVERITY:
+                return CATEGORY_SEVERITY[parts[0]]
 
         if diag_level in DIAG_SEVERITY:
             return DIAG_SEVERITY[diag_level]

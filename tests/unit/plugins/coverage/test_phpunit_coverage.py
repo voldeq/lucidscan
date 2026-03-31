@@ -10,7 +10,7 @@ import tempfile
 import textwrap
 from pathlib import Path
 
-from lucidshark.core.models import ScanContext, Severity, ToolDomain
+from lucidshark.core.models import ScanContext, ToolDomain
 from lucidshark.plugins.coverage.phpunit_coverage import (
     PhpunitCoveragePlugin,
     CLOVER_PATHS,

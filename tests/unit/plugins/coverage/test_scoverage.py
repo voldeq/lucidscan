@@ -373,7 +373,15 @@ class TestScoverageSourcePathResolution:
                 project_root, "com/example/Missing.scala"
             )
             # Should return best guess
-            expected = project_root / "src" / "main" / "scala" / "com" / "example" / "Missing.scala"
+            expected = (
+                project_root
+                / "src"
+                / "main"
+                / "scala"
+                / "com"
+                / "example"
+                / "Missing.scala"
+            )
             assert resolved == expected
 
 

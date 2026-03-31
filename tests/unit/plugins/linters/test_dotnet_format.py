@@ -164,7 +164,9 @@ class TestDotnetFormatLinterLint:
             linter = DotnetFormatLinter()
             context = _make_context(project_root)
 
-            stdout = "src/Broken.cs(5,10): error IDE0001: Simplify name [MyApp.csproj]\n"
+            stdout = (
+                "src/Broken.cs(5,10): error IDE0001: Simplify name [MyApp.csproj]\n"
+            )
             result = subprocess.CompletedProcess(
                 args=[], returncode=1, stdout=stdout, stderr=""
             )

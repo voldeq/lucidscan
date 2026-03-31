@@ -573,12 +573,12 @@ class TestDetectPhpVersion:
         """Test detecting PHP by composer.json marker file."""
         (tmp_path / "composer.json").write_text("{}")
         languages = detect_languages(tmp_path)
-        lang_names = [l.name for l in languages]
+        lang_names = [lang.name for lang in languages]
         assert "php" in lang_names
 
     def test_detect_php_by_extension(self, tmp_path: Path) -> None:
         """Test detecting PHP by .php file extension."""
         (tmp_path / "index.php").write_text("<?php echo 'hello'; ?>")
         languages = detect_languages(tmp_path)
-        lang_names = [l.name for l in languages]
+        lang_names = [lang.name for lang in languages]
         assert "php" in lang_names

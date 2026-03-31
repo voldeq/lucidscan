@@ -466,8 +466,8 @@ class CTestRunner(TestRunnerPlugin):
 
         # Match C/C++ file patterns like "test_main.cpp:42:" or "test_main.cpp(42):"
         patterns = [
-            re.compile(r"(\S+\.(?:cpp|cc|cxx|hpp|h|c)):(\d+):"),
-            re.compile(r"(\S+\.(?:cpp|cc|cxx|hpp|h|c))\((\d+)\)"),
+            re.compile(r"(\S+\.(?:cpp|cc|cxx|hpp|hh|hxx|h|c)):(\d+):"),
+            re.compile(r"(\S+\.(?:cpp|cc|cxx|hpp|hh|hxx|h|c))\((\d+)\)"),
         ]
 
         for line in output.splitlines():

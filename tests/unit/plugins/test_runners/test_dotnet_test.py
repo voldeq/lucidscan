@@ -221,16 +221,15 @@ class TestRunTests:
 
     @patch("lucidshark.plugins.test_runners.dotnet_test.run_with_streaming")
     @patch.object(DotnetTestRunner, "ensure_binary")
-    def test_uses_trx_logger(
-        self, mock_binary: MagicMock, mock_run: MagicMock
-    ) -> None:
+    def test_uses_trx_logger(self, mock_binary: MagicMock, mock_run: MagicMock) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             (project_root / "MyApp.csproj").touch()
             mock_binary.return_value = FAKE_BINARY
 
             mock_run.return_value = subprocess.CompletedProcess(
-                args=[], returncode=0,
+                args=[],
+                returncode=0,
                 stdout="Passed! - Failed: 0, Passed: 3, Skipped: 0, Total: 3\n",
                 stderr="",
             )
@@ -260,7 +259,8 @@ class TestRunTests:
             mock_binary.return_value = FAKE_BINARY
 
             mock_run.return_value = subprocess.CompletedProcess(
-                args=[], returncode=0,
+                args=[],
+                returncode=0,
                 stdout="Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1\n",
                 stderr="",
             )

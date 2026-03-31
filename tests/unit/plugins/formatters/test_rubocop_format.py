@@ -63,10 +63,12 @@ class TestRubocopFormatterCheck:
                 enabled_domains=[ToolDomain.FORMATTING],
             )
 
-            output = json.dumps({
-                "files": [{"path": "test.rb", "offenses": []}],
-                "summary": {"offense_count": 0},
-            })
+            output = json.dumps(
+                {
+                    "files": [{"path": "test.rb", "offenses": []}],
+                    "summary": {"offense_count": 0},
+                }
+            )
             result = make_completed_process(0, output)
             with (
                 patch.object(
@@ -92,31 +94,33 @@ class TestRubocopFormatterCheck:
                 enabled_domains=[ToolDomain.FORMATTING],
             )
 
-            output = json.dumps({
-                "files": [
-                    {
-                        "path": "test.rb",
-                        "offenses": [
-                            {
-                                "severity": "convention",
-                                "message": "Surrounding space missing for operator `=`.",
-                                "cop_name": "Layout/SpaceAroundOperators",
-                                "corrected": False,
-                                "correctable": True,
-                                "location": {
-                                    "start_line": 1,
-                                    "start_column": 2,
-                                    "last_line": 1,
-                                    "last_column": 2,
-                                    "line": 1,
-                                    "column": 2,
-                                },
-                            }
-                        ],
-                    }
-                ],
-                "summary": {"offense_count": 1},
-            })
+            output = json.dumps(
+                {
+                    "files": [
+                        {
+                            "path": "test.rb",
+                            "offenses": [
+                                {
+                                    "severity": "convention",
+                                    "message": "Surrounding space missing for operator `=`.",
+                                    "cop_name": "Layout/SpaceAroundOperators",
+                                    "corrected": False,
+                                    "correctable": True,
+                                    "location": {
+                                        "start_line": 1,
+                                        "start_column": 2,
+                                        "last_line": 1,
+                                        "last_column": 2,
+                                        "line": 1,
+                                        "column": 2,
+                                    },
+                                }
+                            ],
+                        }
+                    ],
+                    "summary": {"offense_count": 1},
+                }
+            )
             result = make_completed_process(1, output)
             with (
                 patch.object(
@@ -150,32 +154,36 @@ class TestRubocopFormatterParseOutput:
 
     def test_parse_no_offenses(self) -> None:
         formatter = RubocopFormatter()
-        output = json.dumps({
-            "files": [{"path": "test.rb", "offenses": []}],
-            "summary": {"offense_count": 0},
-        })
+        output = json.dumps(
+            {
+                "files": [{"path": "test.rb", "offenses": []}],
+                "summary": {"offense_count": 0},
+            }
+        )
         issues = formatter._parse_output(output, Path("/project"))
         assert issues == []
 
     def test_parse_with_offenses(self) -> None:
         formatter = RubocopFormatter()
-        output = json.dumps({
-            "files": [
-                {
-                    "path": "test.rb",
-                    "offenses": [
-                        {
-                            "severity": "convention",
-                            "message": "Bad indentation",
-                            "cop_name": "Layout/IndentationWidth",
-                            "corrected": False,
-                            "correctable": True,
-                            "location": {"line": 5, "column": 1},
-                        }
-                    ],
-                }
-            ]
-        })
+        output = json.dumps(
+            {
+                "files": [
+                    {
+                        "path": "test.rb",
+                        "offenses": [
+                            {
+                                "severity": "convention",
+                                "message": "Bad indentation",
+                                "cop_name": "Layout/IndentationWidth",
+                                "corrected": False,
+                                "correctable": True,
+                                "location": {"line": 5, "column": 1},
+                            }
+                        ],
+                    }
+                ]
+            }
+        )
         issues = formatter._parse_output(output, Path("/project"))
         assert len(issues) == 1
         assert issues[0].source_tool == "rubocop_format"
@@ -183,32 +191,34 @@ class TestRubocopFormatterParseOutput:
 
     def test_parse_multiple_files(self) -> None:
         formatter = RubocopFormatter()
-        output = json.dumps({
-            "files": [
-                {
-                    "path": "a.rb",
-                    "offenses": [
-                        {
-                            "cop_name": "Layout/A",
-                            "message": "a",
-                            "correctable": True,
-                            "location": {"line": 1},
-                        }
-                    ],
-                },
-                {
-                    "path": "b.rb",
-                    "offenses": [
-                        {
-                            "cop_name": "Layout/B",
-                            "message": "b",
-                            "correctable": False,
-                            "location": {"line": 2},
-                        }
-                    ],
-                },
-            ]
-        })
+        output = json.dumps(
+            {
+                "files": [
+                    {
+                        "path": "a.rb",
+                        "offenses": [
+                            {
+                                "cop_name": "Layout/A",
+                                "message": "a",
+                                "correctable": True,
+                                "location": {"line": 1},
+                            }
+                        ],
+                    },
+                    {
+                        "path": "b.rb",
+                        "offenses": [
+                            {
+                                "cop_name": "Layout/B",
+                                "message": "b",
+                                "correctable": False,
+                                "location": {"line": 2},
+                            }
+                        ],
+                    },
+                ]
+            }
+        )
         issues = formatter._parse_output(output, Path("/project"))
         assert len(issues) == 2
 
@@ -228,22 +238,24 @@ class TestRubocopFormatterFix:
                 enabled_domains=[ToolDomain.FORMATTING],
             )
 
-            output = json.dumps({
-                "files": [
-                    {
-                        "path": "test.rb",
-                        "offenses": [
-                            {
-                                "cop_name": "Layout/SpaceAroundOperators",
-                                "message": "fixed",
-                                "corrected": True,
-                                "correctable": True,
-                                "location": {"line": 1, "column": 2},
-                            }
-                        ],
-                    }
-                ]
-            })
+            output = json.dumps(
+                {
+                    "files": [
+                        {
+                            "path": "test.rb",
+                            "offenses": [
+                                {
+                                    "cop_name": "Layout/SpaceAroundOperators",
+                                    "message": "fixed",
+                                    "corrected": True,
+                                    "correctable": True,
+                                    "location": {"line": 1, "column": 2},
+                                }
+                            ],
+                        }
+                    ]
+                }
+            )
             result = make_completed_process(0, output)
             with (
                 patch.object(

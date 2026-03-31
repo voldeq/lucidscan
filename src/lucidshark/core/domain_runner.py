@@ -119,6 +119,7 @@ EXTENSION_LANGUAGE: Dict[str, str] = {
     ".cc": "c++",
     ".cxx": "c++",
     ".hpp": "c++",
+    ".hh": "c++",
     ".hxx": "c++",
     ".rb": "ruby",
     ".cs": "csharp",
