@@ -345,6 +345,28 @@ class TestDetektFindSourceDirectories:
 
             assert project_root / "src" in source_dirs
 
+    def test_no_duplicate_dirs_with_overlapping_sources(self) -> None:
+        """Test src/ is not added when specific subdirs already exist."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir)
+
+            (project_root / "src" / "main" / "kotlin").mkdir(parents=True)
+            (project_root / "src" / "test" / "kotlin").mkdir(parents=True)
+
+            context = ScanContext(
+                project_root=project_root,
+                paths=[],
+                enabled_domains=[],
+            )
+
+            checker = DetektChecker()
+            source_dirs = checker._find_source_directories(context)
+
+            assert project_root / "src" / "main" / "kotlin" in source_dirs
+            assert project_root / "src" / "test" / "kotlin" in source_dirs
+            # src/ should NOT be included since specific subdirs exist
+            assert project_root / "src" not in source_dirs
+
 
 class TestDetektFindConfigFile:
     """Tests for _find_config_file."""

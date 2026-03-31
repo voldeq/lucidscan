@@ -61,7 +61,7 @@ class KtlintFormatter(FormatterPlugin):
         """
         try:
             jar_path = self.ensure_binary()
-        except FileNotFoundError as e:
+        except (FileNotFoundError, RuntimeError) as e:
             LOGGER.warning(str(e))
             return []
 
@@ -150,7 +150,7 @@ class KtlintFormatter(FormatterPlugin):
         """Apply formatting fixes using ktlint --format."""
         try:
             jar_path = self.ensure_binary()
-        except FileNotFoundError as e:
+        except (FileNotFoundError, RuntimeError) as e:
             LOGGER.warning(str(e))
             return FixResult()
 

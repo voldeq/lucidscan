@@ -207,6 +207,18 @@ class TestKtlintFormatterCheck:
             issues = formatter.check(context)
             assert issues == []
 
+    def test_check_runtime_error_from_ensure_binary(self) -> None:
+        """RuntimeError from ensure_binary is caught and returns empty list."""
+        formatter = KtlintFormatter()
+        context = _make_context(Path("/tmp"))
+        with patch.object(
+            formatter,
+            "ensure_binary",
+            side_effect=RuntimeError("Failed to download ktlint JAR"),
+        ):
+            issues = formatter.check(context)
+            assert issues == []
+
     def test_check_timeout(self) -> None:
         """Timeout returns empty list and records skip."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -424,6 +436,20 @@ class TestKtlintFormatterFix:
         context = _make_context(Path("/tmp"))
         with patch.object(
             formatter, "ensure_binary", side_effect=FileNotFoundError("not found")
+        ):
+            result = formatter.fix(context)
+            assert isinstance(result, FixResult)
+            assert result.files_modified == 0
+            assert result.issues_fixed == 0
+
+    def test_fix_runtime_error_from_ensure_binary(self) -> None:
+        """RuntimeError from ensure_binary is caught and returns empty FixResult."""
+        formatter = KtlintFormatter()
+        context = _make_context(Path("/tmp"))
+        with patch.object(
+            formatter,
+            "ensure_binary",
+            side_effect=RuntimeError("Failed to download ktlint JAR"),
         ):
             result = formatter.fix(context)
             assert isinstance(result, FixResult)
