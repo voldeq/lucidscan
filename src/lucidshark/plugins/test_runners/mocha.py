@@ -404,11 +404,11 @@ class MochaRunner(TestRunnerPlugin):
         # Patterns for extracting location from stack traces
         patterns = [
             # Parenthesized: at Context.<anonymous> (path:line:col)
-            r"\(([^)]+\.(?:spec|test)\.(?:js|ts|mjs|cjs|jsx|tsx)):(\d+):\d+\)",
-            r"\(([^)]+\.(?:js|ts|mjs|cjs|jsx|tsx)):(\d+):\d+\)",
+            r"\(([^)]+\.(?:spec|test)\.(?:js|ts|mjs|cjs|mts|cts|jsx|tsx)):(\d+):\d+\)",
+            r"\(([^)]+\.(?:js|ts|mjs|cjs|mts|cts|jsx|tsx)):(\d+):\d+\)",
             # Non-parenthesized: at path:line:col
-            r"at\s+([^\s]+\.(?:spec|test)\.(?:js|ts|mjs|cjs|jsx|tsx)):(\d+):\d+",
-            r"at\s+([^\s]+\.(?:js|ts|mjs|cjs|jsx|tsx)):(\d+):\d+",
+            r"at\s+([^\s]+\.(?:spec|test)\.(?:js|ts|mjs|cjs|mts|cts|jsx|tsx)):(\d+):\d+",
+            r"at\s+([^\s]+\.(?:js|ts|mjs|cjs|mts|cts|jsx|tsx)):(\d+):\d+",
         ]
 
         for pattern in patterns:
