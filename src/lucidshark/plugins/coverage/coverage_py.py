@@ -97,6 +97,13 @@ class CoveragePyPlugin(CoveragePlugin):
             binary = self.ensure_binary()
         except FileNotFoundError as e:
             LOGGER.warning(str(e))
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.COVERAGE,
+                reason=SkipReason.TOOL_NOT_INSTALLED,
+                message=str(e),
+                suggestion="pip install coverage",
+            )
             return CoverageResult(threshold=threshold, tool="coverage_py")
 
         # Check if .coverage data file exists

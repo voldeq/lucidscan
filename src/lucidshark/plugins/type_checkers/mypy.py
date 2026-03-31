@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import shutil
 import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -23,7 +22,7 @@ from lucidshark.core.models import (
 )
 from lucidshark.core.subprocess_runner import run_with_streaming
 from lucidshark.plugins.type_checkers.base import TypeCheckerPlugin
-from lucidshark.plugins.utils import get_cli_version
+from lucidshark.plugins.utils import ensure_python_binary, get_cli_version
 
 LOGGER = get_logger(__name__)
 
@@ -137,7 +136,7 @@ class MypyChecker(TypeCheckerPlugin):
         """Ensure mypy is available.
 
         Checks for mypy in:
-        1. Project's .venv/bin/mypy
+        1. Project's .venv/bin/mypy (with shebang validation)
         2. System PATH
 
         Returns:
@@ -146,19 +145,10 @@ class MypyChecker(TypeCheckerPlugin):
         Raises:
             FileNotFoundError: If mypy is not installed.
         """
-        # Check project venv first
-        if self._project_root:
-            venv_mypy = self._project_root / ".venv" / "bin" / "mypy"
-            if venv_mypy.exists():
-                return venv_mypy
-
-        # Check system PATH
-        mypy_path = shutil.which("mypy")
-        if mypy_path:
-            return Path(mypy_path)
-
-        raise FileNotFoundError(
-            "mypy is not installed. Install it with: pip install mypy"
+        return ensure_python_binary(
+            self._project_root,
+            "mypy",
+            "mypy is not installed. Install it with: pip install mypy",
         )
 
     def check(self, context: ScanContext) -> List[UnifiedIssue]:
@@ -214,7 +204,7 @@ class MypyChecker(TypeCheckerPlugin):
         # Add paths to check (filter to Python files or directories)
         # When only path is project_root (a directory), pass "." so mypy runs from cwd reliably
         if context.paths:
-            python_extensions = {".py", ".pyi", ".pyx"}
+            python_extensions = {".py", ".pyi", ".pyw"}
             filtered = [
                 p
                 for p in context.paths

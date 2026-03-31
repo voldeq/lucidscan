@@ -24,7 +24,9 @@ from lucidshark.core.models import (
     ToolDomain,
     UnifiedIssue,
 )
+from lucidshark.core.subprocess_runner import run_with_streaming
 from lucidshark.plugins.type_checkers.base import TypeCheckerPlugin
+from lucidshark.plugins.utils import _is_binary_executable
 
 LOGGER = get_logger(__name__)
 
@@ -82,7 +84,7 @@ class PyrightChecker(TypeCheckerPlugin):
         # Check project venv first (pip install pyright)
         if self._project_root:
             venv_pyright = self._project_root / ".venv" / "bin" / "pyright"
-            if venv_pyright.exists():
+            if venv_pyright.exists() and _is_binary_executable(venv_pyright):
                 return venv_pyright
 
         # Check project node_modules
@@ -116,6 +118,13 @@ class PyrightChecker(TypeCheckerPlugin):
             binary = self.ensure_binary()
         except FileNotFoundError as e:
             LOGGER.warning(str(e))
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TYPE_CHECKING,
+                reason=SkipReason.TOOL_NOT_INSTALLED,
+                message=str(e),
+                suggestion="pip install pyright",
+            )
             return []
 
         # Build command
@@ -124,21 +133,53 @@ class PyrightChecker(TypeCheckerPlugin):
             "--outputjson",
         ]
 
-        # Add paths to check
-        paths = [str(p) for p in context.paths] if context.paths else ["."]
+        # Check for strict mode in config
+        if context.config and context.config.pipeline.type_checking:
+            type_config = context.config.pipeline.type_checking
+            for tool in type_config.tools:
+                if tool.strict:
+                    cmd.extend(["--level", "strict"])
+                    break
+
+        # Add paths to check (filter to Python files or directories)
+        python_extensions = {".py", ".pyi", ".pyw"}
+        if context.paths:
+            filtered = [
+                p
+                for p in context.paths
+                if p.is_dir() or p.suffix.lower() in python_extensions
+            ]
+            if not filtered:
+                LOGGER.debug(
+                    "No Python files or directories in scan paths, skipping pyright"
+                )
+                context.record_skip(
+                    tool_name=self.name,
+                    domain=ToolDomain.TYPE_CHECKING,
+                    reason=SkipReason.NO_APPLICABLE_FILES,
+                    message="No Python files or directories in scan paths",
+                )
+                return []
+            if (
+                len(filtered) == 1
+                and filtered[0].resolve() == context.project_root.resolve()
+            ):
+                paths = ["."]
+            else:
+                paths = [p.as_posix() for p in filtered]
+        else:
+            paths = ["."]
         cmd.extend(paths)
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
         try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                cwd=str(context.project_root),
-                timeout=180,  # 3 minute timeout
+            result = run_with_streaming(
+                cmd=cmd,
+                cwd=context.project_root,
+                tool_name="pyright",
+                stream_handler=context.stream_handler,
+                timeout=180,
             )
         except subprocess.TimeoutExpired:
             LOGGER.warning("pyright timed out after 180 seconds")
