@@ -314,8 +314,48 @@ class TestKtlintFindKotlinFiles:
 
             linter = KtlintLinter()
             files = linter._find_kotlin_files(context)
-            assert len(files) >= 1
-            assert any("App.kt" in f for f in files)
+            assert len(files) == 1
+            assert files[0].endswith("App.kt")
+
+    def test_no_duplicate_files_with_overlapping_dirs(self) -> None:
+        """Test that files are not duplicated when src and src/main/kotlin both exist."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            kotlin_dir = Path(tmpdir) / "src" / "main" / "kotlin"
+            kotlin_dir.mkdir(parents=True)
+            (kotlin_dir / "App.kt").touch()
+
+            test_dir = Path(tmpdir) / "src" / "test" / "kotlin"
+            test_dir.mkdir(parents=True)
+            (test_dir / "AppTest.kt").touch()
+
+            context = ScanContext(
+                project_root=Path(tmpdir),
+                paths=[],
+                enabled_domains=[],
+            )
+
+            linter = KtlintLinter()
+            files = linter._find_kotlin_files(context)
+            assert len(files) == 2
+            assert len(set(files)) == 2  # no duplicates
+
+    def test_src_fallback_when_no_specific_dirs(self) -> None:
+        """Test src/ is used as fallback only when specific subdirs don't exist."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src_dir = Path(tmpdir) / "src"
+            src_dir.mkdir()
+            (src_dir / "Main.kt").touch()
+
+            context = ScanContext(
+                project_root=Path(tmpdir),
+                paths=[],
+                enabled_domains=[],
+            )
+
+            linter = KtlintLinter()
+            files = linter._find_kotlin_files(context)
+            assert len(files) == 1
+            assert files[0].endswith("Main.kt")
 
     def test_no_kotlin_files(self) -> None:
         """Test returns empty when no Kotlin files found."""

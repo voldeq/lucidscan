@@ -27,7 +27,7 @@ from lucidshark.plugins.utils import get_cli_version
 
 LOGGER = get_logger(__name__)
 
-PRETTIER_EXTENSIONS = {".js", ".jsx", ".ts", ".tsx", ".css", ".json", ".md"}
+PRETTIER_EXTENSIONS = {".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts", ".css", ".json", ".md"}
 
 
 class PrettierFormatter(FormatterPlugin):

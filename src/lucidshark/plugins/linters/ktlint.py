@@ -238,9 +238,14 @@ class KtlintLinter(LinterPlugin):
         if context.paths:
             search_dirs = list(context.paths)
         else:
-            for src_dir in ["src", "src/main/kotlin", "src/test/kotlin",
+            for src_dir in ["src/main/kotlin", "src/test/kotlin",
                             "src/main/java", "src/test/java"]:
                 src_path = context.project_root / src_dir
+                if src_path.exists():
+                    search_dirs.append(src_path)
+
+            if not search_dirs:
+                src_path = context.project_root / "src"
                 if src_path.exists():
                     search_dirs.append(src_path)
 

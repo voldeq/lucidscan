@@ -251,18 +251,22 @@ class DetektChecker(TypeCheckerPlugin):
         if context.paths:
             return [p for p in context.paths if p.exists()]
 
-        standard_sources = [
+        specific_sources = [
             "src/main/kotlin",
             "src/test/kotlin",
             "src/main/java",
             "src/test/java",
-            "src",
         ]
 
-        for source in standard_sources:
+        for source in specific_sources:
             source_path = context.project_root / source
             if source_path.exists():
                 source_dirs.append(source_path)
+
+        if not source_dirs:
+            src_path = context.project_root / "src"
+            if src_path.exists():
+                source_dirs.append(src_path)
 
         return source_dirs
 

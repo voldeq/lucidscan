@@ -1,40 +1,40 @@
 # Repository Quality Overview
 
-> **Branch:** main | **Updated:** 2026-03-31 | **Commit:** `82beff6`
+> **Branch:** main | **Updated:** 2026-03-31 | **Commit:** `3d77c72`
 
-## Health Score: 9.1 / 10  █████████░ ↑ +2.0
+## Health Score: 9.1 / 10  █████████░
 
 | Domain | Status | Issues | Trend |
 |--------|--------|--------|-------|
-| Linting | ✓ Pass | 0 | ↑ -10.0 |
+| Linting | ✓ Pass | 0 | → |
 | Type Checking | ✓ Pass | 0 | → |
-| Formatting | ✓ Pass | 0 | ↑ -11.0 |
+| Formatting | ✓ Pass | 0 | → |
 | Testing | ✓ Pass | 0 | → |
 | SCA | ✓ Pass | 0 | → |
 | SAST | ✓ Pass | 0 | → |
-| Linting | ✓ Pass | 0 | ↑ -10.0 |
+| Linting | ✓ Pass | 0 | → |
 | Type Checking | ✓ Pass | 0 | → |
-| Formatting | ✓ Pass | 0 | ↑ -11.0 |
+| Formatting | ✓ Pass | 0 | → |
 | Testing | ✓ Pass | 0 | → |
 | Coverage | ✓ Pass | 0 | → |
-| Duplication | ✓ Pass | 57 | ↑ -1.0 |
+| Duplication | ✓ Pass | 47 | ↑ -10.0 |
 
 ## Issues by Severity
 
 - 🔴 **Critical:** 0
 - 🟠 **High:** 0
 - 🟡 **Medium:** 0
-- 🔵 **Low:** 57
+- 🔵 **Low:** 47
 
 ## Top Files by Issues
 
 | File | Issues |
 |------|--------|
 | `src/lucidshark/plugins/test_runners/maven.py` | 8 |
-| `src/lucidshark/plugins/formatters/dotnet_format.py` | 6 |
-| `src/lucidshark/plugins/coverage/dotnet_coverage.py` | 5 |
-| `src/lucidshark/plugins/linters/dotnet_format.py` | 5 |
+| `src/lucidshark/plugins/formatters/dotnet_format.py` | 3 |
 | `src/lucidshark/plugins/linters/checkstyle.py` | 3 |
+| `src/lucidshark/plugins/linters/dotnet_format.py` | 3 |
+| `src/lucidshark/plugins/c_utils.py` | 2 |
 
 ## Security Summary
 
@@ -45,13 +45,13 @@
 
 ## Test Coverage
 
-**83.6%** ████████░░ ↑ +0.0%
+**83.6%** ████████░░ ↓ -0.0%
 
 ## Score Trend
 
 ```
-Score: 7.3 → 7.1 → 7.1 → 7.1 → 7.1
-       03-28   03-28   03-29   03-29   03-29
+Score: 7.1 → 7.1 → 7.1 → 7.1 → 9.1
+       03-28   03-29   03-29   03-29   03-31
 ```
 
 ---
