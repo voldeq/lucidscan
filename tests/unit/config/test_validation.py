@@ -1245,6 +1245,59 @@ class TestValidateConfigAliasKeys:
         unknown_warnings = [w for w in warnings if "Unknown top-level key" in w.message]
         assert not any("settings" in w.message for w in unknown_warnings)
 
+    def test_settings_auto_update_true_no_warning(self) -> None:
+        """settings.auto_update: true should produce no warnings."""
+        data = {"version": 1, "settings": {"auto_update": True}}
+        warnings = validate_config(data, source="test.yml")
+        settings_warnings = [w for w in warnings if "auto_update" in (w.key or "")]
+        assert len(settings_warnings) == 0
+
+    def test_settings_auto_update_false_no_warning(self) -> None:
+        """settings.auto_update: false should produce no warnings."""
+        data = {"version": 1, "settings": {"auto_update": False}}
+        warnings = validate_config(data, source="test.yml")
+        settings_warnings = [w for w in warnings if "auto_update" in (w.key or "")]
+        assert len(settings_warnings) == 0
+
+    def test_settings_auto_update_non_bool_warns(self) -> None:
+        """settings.auto_update with non-boolean value should warn."""
+        data = {"version": 1, "settings": {"auto_update": "yes"}}
+        warnings = validate_config(data, source="test.yml")
+        auto_warnings = [w for w in warnings if "auto_update" in (w.key or "")]
+        assert len(auto_warnings) == 1
+        assert "must be a boolean" in auto_warnings[0].message
+
+    def test_settings_strict_mode_non_bool_warns(self) -> None:
+        """settings.strict_mode with non-boolean value should warn."""
+        data = {"version": 1, "settings": {"strict_mode": "always"}}
+        warnings = validate_config(data, source="test.yml")
+        strict_warnings = [w for w in warnings if "strict_mode" in (w.key or "")]
+        assert len(strict_warnings) == 1
+        assert "must be a boolean" in strict_warnings[0].message
+
+    def test_settings_unknown_key_warns(self) -> None:
+        """Unknown key under settings should produce a warning."""
+        data = {"version": 1, "settings": {"unknown_setting": True}}
+        warnings = validate_config(data, source="test.yml")
+        unknown_warnings = [w for w in warnings if "unknown_setting" in w.message]
+        assert len(unknown_warnings) == 1
+
+    def test_settings_not_dict_warns(self) -> None:
+        """settings as a non-dict should produce a warning."""
+        data = {"version": 1, "settings": "invalid"}
+        warnings = validate_config(data, source="test.yml")
+        settings_warnings = [w for w in warnings if "settings" in (w.key or "")]
+        assert len(settings_warnings) == 1
+        assert "must be a mapping" in settings_warnings[0].message
+
+    def test_settings_typo_suggests_correction(self) -> None:
+        """Typo in settings key should suggest the correct key."""
+        data = {"version": 1, "settings": {"auto_updaet": True}}
+        warnings = validate_config(data, source="test.yml")
+        typo_warnings = [w for w in warnings if "auto_updaet" in w.message]
+        assert len(typo_warnings) == 1
+        assert typo_warnings[0].suggestion == "auto_update"
+
     def test_top_level_overview_is_valid(self) -> None:
         """Top-level 'overview' should be accepted as a valid key."""
         data = {"version": 1, "overview": {"enabled": True}}

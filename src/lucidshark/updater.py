@@ -264,7 +264,7 @@ def download_pending_update(
             return False
 
         # Make executable and move into place
-        os.chmod(tmp, 0o755)
+        os.chmod(tmp, 0o755)  # nosemgrep: insecure-file-permissions
         os.rename(tmp, pending_binary)
 
         # Write version metadata
