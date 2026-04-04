@@ -316,14 +316,6 @@ class LucidSharkMCPServer:
                 except Exception as e:
                     LOGGER.debug(f"Failed to send progress notification: {e}")
 
-            # Track anonymous MCP tool usage telemetry
-            try:
-                from lucidshark.telemetry import track_command
-
-                track_command(f"mcp_{name}", source="mcp")
-            except Exception:
-                pass
-
             try:
                 if name == "scan":
                     result = await self.executor.scan(
@@ -346,7 +338,6 @@ class LucidSharkMCPServer:
                         ),
                         on_progress=send_progress,
                     )
-                    _track_mcp_scan_telemetry(result)
                 elif name == "check_file":
                     result = await self.executor.check_file(
                         file_path=arguments["file_path"],
@@ -399,33 +390,3 @@ class LucidSharkMCPServer:
             )
 
 
-def _track_mcp_scan_telemetry(result: Dict[str, Any]) -> None:
-    """Send anonymous telemetry for a completed MCP scan.
-
-    Reads the complete telemetry payload built by MCPToolExecutor.scan()
-    and forwards it to track_scan_completed(). Never raises or blocks.
-    """
-    try:
-        from lucidshark.telemetry import track_scan_completed
-
-        meta = result.pop("_telemetry", None)
-        if meta is None:
-            return
-
-        track_scan_completed(
-            domains=meta.get("domains", []),
-            languages=meta.get("languages", []),
-            tools_used=meta.get("tools_used", []),
-            total_issues=meta.get("total_issues", 0),
-            issues_by_severity=meta.get("issues_by_severity", {}),
-            issues_by_domain=meta.get("issues_by_domain", {}),
-            duration_ms=meta.get("duration_ms", 0),
-            scan_mode=meta.get("scan_mode", "incremental"),
-            output_format="mcp",
-            fix_enabled=meta.get("fix_enabled", False),
-            coverage_percent=meta.get("coverage_percent"),
-            duplication_percent=meta.get("duplication_percent"),
-            source="mcp",
-        )
-    except Exception:
-        pass

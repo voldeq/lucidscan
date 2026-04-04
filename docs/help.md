@@ -2767,3 +2767,70 @@ scan(domains=["all"])
 # ERROR: Coverage without testing
 scan(domains=["coverage"])  # Will return error
 ```
+
+## Telemetry
+
+LucidShark collects anonymous usage telemetry to help prioritize development. This section explains exactly what is collected, why, and how to opt out.
+
+### What is collected
+
+LucidShark sends **three event types** — nothing else:
+
+| Event | When | Purpose |
+|---|---|---|
+| `scan_completed` | After every scan (CLI and MCP) | Understand which domains, tools, and languages are used |
+| `init_completed` | After `lucidshark init` (CLI) | Track adoption of IDE integrations |
+| `autoconfigure_initiated` | When autoconfigure is triggered (MCP) | Track adoption of auto-configuration |
+
+### What data is included
+
+Every event includes these **base properties**:
+
+- LucidShark version
+- Operating system, architecture, Python version
+
+The `scan_completed` event additionally includes:
+
+- **Config** — your `lucidshark.yml` configuration (domains enabled, tools configured, thresholds, exclude patterns). No file paths or project names are included
+- **Scan results** — the same aggregate data shown in scan output:
+  - Executed domains and scanners used (e.g., `["linting", "sca"]`, `["ruff", "trivy"]`)
+  - Total issues and issue counts by severity and domain
+  - Scan duration, scan mode (incremental vs. full)
+  - Coverage percentage and duplication percentage (if those domains ran)
+  - Number of skipped tools (if any)
+
+The `init_completed` event includes only whether init succeeded or failed.
+
+The `autoconfigure_initiated` event includes only that it was triggered.
+
+### What is NOT collected
+
+- **No source code, file paths, file names, or project names**
+- **No personally identifiable information (PII)**
+- **No IP addresses** (not stored by the telemetry backend)
+- **No issue descriptions, rule details, or code snippets**
+- **No git history, branch names, or commit information**
+
+### How to opt out
+
+Any of the following will disable telemetry completely:
+
+```bash
+# Option 1: Environment variable
+export LUCIDSHARK_TELEMETRY=0
+
+# Option 2: Standard DO_NOT_TRACK convention (https://consoledonottrack.com)
+export DO_NOT_TRACK=1
+
+# Option 3: Opt-out file
+touch ~/.lucidshark/telemetry-optout
+```
+
+Telemetry is also **automatically disabled in CI** environments (when `CI=true` is set).
+
+### Implementation
+
+- Telemetry is sent via [PostHog](https://posthog.com) using an anonymous, randomly generated ID stored at `~/.lucidshark/anonymous-id`. This ID has no connection to your identity
+- Events are sent asynchronously and never block or slow down scans
+- All telemetry code is in `src/lucidshark/telemetry.py` — a single, auditable file
+- If the PostHog library is not installed or unreachable, telemetry silently does nothing

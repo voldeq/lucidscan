@@ -313,6 +313,13 @@ class InitCommand(Command):
         if success and not dry_run:
             print("\nRestart your AI tool to apply changes.")
 
+        try:
+            from lucidshark.telemetry import track_init_completed
+
+            track_init_completed(success=success)
+        except Exception:
+            pass
+
         return EXIT_SUCCESS if success else EXIT_INVALID_USAGE
 
     def _setup_claude_code(

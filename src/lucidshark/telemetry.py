@@ -1,7 +1,14 @@
 """Anonymous, opt-out telemetry for LucidShark.
 
 Collects anonymous usage data to help improve the product. All data is
-anonymous - no PII, no source code, no file paths, no IP addresses are stored.
+anonymous — no PII, no source code, no file paths, no IP addresses are stored.
+
+Exactly three events are emitted:
+  - scan_completed    — after every scan (CLI + MCP), with config and results
+  - init_completed    — after ``lucidshark init`` (CLI only)
+  - autoconfigure_initiated — when autoconfigure is triggered (MCP only)
+
+No other events are sent. See ``lucidshark help`` for full details.
 
 Opt out by setting the environment variable:
     export LUCIDSHARK_TELEMETRY=0
@@ -16,8 +23,9 @@ import logging
 import os
 import platform
 import uuid
+from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 LOGGER = logging.getLogger(__name__)
 
@@ -178,13 +186,13 @@ def _get_base_properties() -> Dict[str, Any]:
     }
 
 
-def track_event(event_name: str, properties: Optional[Dict[str, Any]] = None) -> None:
+def _track_event(event_name: str, properties: Optional[Dict[str, Any]] = None) -> None:
     """Track an anonymous telemetry event.
 
     This is fire-and-forget - it never raises exceptions or blocks the CLI.
 
     Args:
-        event_name: Name of the event (e.g., "scan_completed").
+        event_name: Name of the event.
         properties: Optional event properties.
     """
     if not is_enabled():
@@ -209,72 +217,106 @@ def track_event(event_name: str, properties: Optional[Dict[str, Any]] = None) ->
         LOGGER.debug("Failed to send telemetry event", exc_info=True)
 
 
-def track_command(command_name: str, source: str = "cli") -> None:
-    """Track a CLI command execution.
+def _serialize_config(config: Any) -> Dict[str, Any]:
+    """Serialize LucidSharkConfig to a telemetry-safe dict.
 
-    Args:
-        command_name: The command that was run (scan, init, doctor, etc.).
-        source: Where the command originated ("cli" or "mcp").
+    Strips private fields and file paths. Returns a clean dict
+    representing the effective configuration.
     """
-    track_event("command_executed", {"command": command_name, "source": source})
+    try:
+        d = asdict(config)
+        d.pop("_config_sources", None)
+        return d
+    except Exception:
+        return {}
 
 
 def track_scan_completed(
-    domains: List[str],
-    languages: List[str],
-    tools_used: List[str],
-    total_issues: int,
-    issues_by_severity: Dict[str, int],
-    issues_by_domain: Dict[str, int],
-    duration_ms: int,
-    scan_mode: str,
-    output_format: str,
-    fix_enabled: bool,
-    coverage_percent: Optional[float] = None,
-    duplication_percent: Optional[float] = None,
+    config: Any,
+    result: Any,
     source: str = "cli",
 ) -> None:
-    """Track a completed scan with anonymous metadata.
+    """Track a completed scan with config and result data.
 
-    All data is aggregate/categorical - no file paths, code, or PII.
+    Config is sent as a single field. Result fields are extracted from the
+    same ScanResult object that reporters use, ensuring consistency.
+
+    Never raises or blocks.
 
     Args:
-        domains: List of domains scanned (e.g., ["linting", "sast"]).
-        languages: List of project languages (e.g., ["python", "typescript"]).
-        tools_used: List of tool names used (e.g., ["ruff", "trivy"]).
-        total_issues: Total number of active issues found.
-        issues_by_severity: Issue counts by severity level.
-        issues_by_domain: Issue counts by domain.
-        duration_ms: Scan duration in milliseconds.
-        scan_mode: "incremental" or "full".
-        output_format: Output format used (json, table, etc.).
-        fix_enabled: Whether --fix was used.
-        coverage_percent: Coverage percentage if coverage was run.
-        duplication_percent: Duplication percentage if duplication was run.
+        config: LucidSharkConfig instance.
+        result: ScanResult instance (same object reporters receive).
+        source: "cli" or "mcp".
     """
-    properties: Dict[str, Any] = {
-        "source": source,
-        "domains": sorted(domains),
-        "domain_count": len(domains),
-        "languages": sorted(languages),
-        "language_count": len(languages),
-        "tools_used": sorted(tools_used),
-        "tool_count": len(tools_used),
-        "total_issues": total_issues,
-        "issues_by_severity": issues_by_severity,
-        "issues_by_domain": issues_by_domain,
-        "duration_ms": duration_ms,
-        "scan_mode": scan_mode,
-        "output_format": output_format,
-        "fix_enabled": fix_enabled,
-    }
+    try:
+        properties: Dict[str, Any] = {
+            "source": source,
+            "config": _serialize_config(config),
+        }
 
-    if coverage_percent is not None:
-        properties["coverage_percent"] = round(coverage_percent, 1)
-    if duplication_percent is not None:
-        properties["duplication_percent"] = round(duplication_percent, 1)
+        # From metadata (same as JSON reporter uses via asdict(result.metadata))
+        if result.metadata:
+            properties["executed_domains"] = sorted(result.metadata.executed_domains)
+            properties["domain_count"] = len(result.metadata.executed_domains)
+            properties["scanners_used"] = [
+                s.get("name", "") for s in result.metadata.scanners_used if s.get("name")
+            ]
+            properties["duration_ms"] = result.metadata.duration_ms
+            properties["scan_mode"] = "full" if result.metadata.all_files else "incremental"
 
-    track_event("scan_completed", properties)
+        # From summary (same as JSON reporter uses via asdict(result.summary))
+        if result.summary:
+            properties["total_issues"] = result.summary.total
+            properties["ignored_issues"] = result.summary.ignored_total
+            properties["issues_by_severity"] = result.summary.by_severity
+            properties["issues_by_domain"] = result.summary.by_scanner
+
+        # From coverage summary (same as JSON reporter)
+        if result.coverage_summary:
+            properties["coverage_percent"] = round(
+                result.coverage_summary.coverage_percentage, 1
+            )
+            properties["coverage_passed"] = result.coverage_summary.passed
+
+        # From duplication summary (same as JSON reporter)
+        if result.duplication_summary:
+            properties["duplication_percent"] = round(
+                result.duplication_summary.duplication_percent, 1
+            )
+            properties["duplication_passed"] = result.duplication_summary.passed
+
+        # Tool skips
+        if result.tool_skips:
+            properties["tool_skip_count"] = len(result.tool_skips)
+
+        _track_event("scan_completed", properties)
+    except Exception:
+        pass
+
+
+def track_init_completed(success: bool) -> None:
+    """Track a completed init command.
+
+    Never raises or blocks.
+
+    Args:
+        success: Whether init completed successfully.
+    """
+    try:
+        _track_event("init_completed", {"success": success})
+    except Exception:
+        pass
+
+
+def track_autoconfigure_initiated() -> None:
+    """Track that autoconfigure was initiated via MCP.
+
+    Never raises or blocks.
+    """
+    try:
+        _track_event("autoconfigure_initiated", {"source": "mcp"})
+    except Exception:
+        pass
 
 
 def reset() -> None:

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Telemetry simplified to 3 events** — `scan_completed`, `init_completed`, `autoconfigure_initiated`. Removed per-command tracking. `scan_completed` now includes the effective config and scan results from the same data source as reporters. See `lucidshark help` for full transparency documentation
+
+### Fixed
+- **Security scanner telemetry tracking** — `DomainRunner.run_security()` now correctly tracks executed scanners, fixing missing tools in scan metadata
+
 ## [0.7.1] - 2026-04-04
 
 ### Added

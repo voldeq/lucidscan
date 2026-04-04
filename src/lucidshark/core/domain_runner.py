@@ -1659,6 +1659,15 @@ class DomainRunner:
                     result = scanner.scan(context)
                     issues.extend(result)
 
+                    context.tools_executed.append(
+                        {
+                            "name": name,
+                            "domains": [domain_str],
+                            "success": True,
+                            "error": None,
+                        }
+                    )
+
             except Exception as e:
                 LOGGER.error(f"Scanner {name} failed: {e}")
 

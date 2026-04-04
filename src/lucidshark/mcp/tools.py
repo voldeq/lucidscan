@@ -518,38 +518,38 @@ class MCPToolExecutor:
                     context.duplication_result.to_dict()
                 )
 
-        # Build complete telemetry payload for server-level tracking
-        tools_used = []
-        for tool_info in context.tools_executed:
-            tool_name = tool_info.get("name", "")
-            if tool_name and tool_name not in tools_used:
-                tools_used.append(tool_name)
+        # Track telemetry using ScanResult — same data source as reporters
+        try:
+            from lucidshark.core.models import ScanMetadata, ScanResult
+            from lucidshark.telemetry import track_scan_completed
 
-        domain_status = formatted_result.get("domain_status", {})
-        domains = [
-            d for d, info in domain_status.items()
-            if info.get("status") != "skipped"
-        ]
-        issues_by_domain = {
-            domain: len(issues)
-            for domain, issues in formatted_result.get("issues_by_domain", {}).items()
-        }
-        coverage = formatted_result.get("coverage_summary", {})
-        duplication = formatted_result.get("duplication_summary", {})
+            import time as _time
 
-        formatted_result["_telemetry"] = {
-            "domains": domains,
-            "languages": self.config.project.languages or [],
-            "tools_used": tools_used,
-            "total_issues": formatted_result.get("total_issues", 0),
-            "issues_by_severity": formatted_result.get("severity_counts", {}),
-            "issues_by_domain": issues_by_domain,
-            "duration_ms": int((time.monotonic() - scan_start) * 1000),
-            "scan_mode": "full" if all_files else "incremental",
-            "fix_enabled": fix,
-            "coverage_percent": coverage.get("coverage_percentage"),
-            "duplication_percent": duplication.get("duplication_percent"),
-        }
+            duration_ms = int((_time.monotonic() - scan_start) * 1000)
+            telemetry_result = ScanResult(issues=all_issues)
+            telemetry_result.summary = telemetry_result.compute_summary()
+            if context.coverage_result is not None:
+                telemetry_result.coverage_summary = context.coverage_result.to_summary()
+            if context.duplication_result is not None:
+                telemetry_result.duplication_summary = (
+                    context.duplication_result.to_summary()
+                )
+            telemetry_result.metadata = ScanMetadata(
+                lucidshark_version="",
+                scan_started_at="",
+                scan_finished_at="",
+                duration_ms=duration_ms,
+                project_root="",
+                executed_domains=[d.value for d in enabled_domains],
+                scanners_used=list(context.tools_executed),
+                all_files=all_files,
+                total_issues=telemetry_result.summary.total,
+            )
+            track_scan_completed(
+                config=self.config, result=telemetry_result, source="mcp"
+            )
+        except Exception:
+            pass
 
         return formatted_result
 
@@ -733,6 +733,13 @@ class MCPToolExecutor:
         Returns:
             Instructions and guidance for configuration generation.
         """
+        try:
+            from lucidshark.telemetry import track_autoconfigure_initiated
+
+            track_autoconfigure_initiated()
+        except Exception:
+            pass
+
         return {
             "instructions": (
                 "Follow these steps: Analyze the codebase, ask 1-2 quick questions if needed, "

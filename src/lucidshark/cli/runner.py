@@ -142,15 +142,6 @@ class CLIRunner:
         if getattr(sys, "frozen", False) and command != "serve":
             self._maybe_start_update_check()
 
-        # Track anonymous command usage telemetry
-        if command:
-            try:
-                from lucidshark.telemetry import track_command
-
-                track_command(command)
-            except Exception:
-                pass
-
         if command == "init":
             return self._handle_init(args)
         elif command == "scan":
