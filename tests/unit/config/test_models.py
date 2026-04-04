@@ -11,6 +11,7 @@ from lucidshark.config.models import (
     LucidSharkConfig,
     OutputConfig,
     ScannerDomainConfig,
+    SettingsConfig,
 )
 
 
@@ -442,3 +443,34 @@ class TestLucidSharkConfigGetAllConfiguredDomains:
         assert "linting" in domains
         assert "type_checking" not in domains
         assert "testing" not in domains
+
+
+class TestSettingsConfig:
+    """Tests for SettingsConfig dataclass."""
+
+    def test_default_strict_mode_is_true(self) -> None:
+        config = SettingsConfig()
+        assert config.strict_mode is True
+
+    def test_default_auto_update_is_true(self) -> None:
+        config = SettingsConfig()
+        assert config.auto_update is True
+
+    def test_custom_auto_update_false(self) -> None:
+        config = SettingsConfig(auto_update=False)
+        assert config.auto_update is False
+
+    def test_custom_strict_mode_false(self) -> None:
+        config = SettingsConfig(strict_mode=False)
+        assert config.strict_mode is False
+
+    def test_lucidshark_config_default_settings(self) -> None:
+        config = LucidSharkConfig()
+        assert config.settings.strict_mode is True
+        assert config.settings.auto_update is True
+
+    def test_lucidshark_config_custom_settings(self) -> None:
+        settings = SettingsConfig(strict_mode=False, auto_update=False)
+        config = LucidSharkConfig(settings=settings)
+        assert config.settings.strict_mode is False
+        assert config.settings.auto_update is False

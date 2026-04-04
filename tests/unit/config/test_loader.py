@@ -651,3 +651,48 @@ class TestParseCoveragePipelineConfigExclude:
         assert result.threshold == 90
         assert result.extra_args == ["-DskipITs"]
         assert result.exclude == ["vendor/**"]
+
+
+class TestDictToConfigSettings:
+    """Tests for dict_to_config settings section parsing."""
+
+    def test_default_settings_when_absent(self) -> None:
+        config = dict_to_config({})
+        assert config.settings.strict_mode is True
+        assert config.settings.auto_update is True
+
+    def test_parses_auto_update_false(self) -> None:
+        config = dict_to_config({"settings": {"auto_update": False}})
+        assert config.settings.auto_update is False
+
+    def test_parses_auto_update_true(self) -> None:
+        config = dict_to_config({"settings": {"auto_update": True}})
+        assert config.settings.auto_update is True
+
+    def test_parses_strict_mode_false(self) -> None:
+        config = dict_to_config({"settings": {"strict_mode": False}})
+        assert config.settings.strict_mode is False
+
+    def test_parses_both_settings(self) -> None:
+        data = {"settings": {"strict_mode": False, "auto_update": False}}
+        config = dict_to_config(data)
+        assert config.settings.strict_mode is False
+        assert config.settings.auto_update is False
+
+    def test_empty_settings_gives_defaults(self) -> None:
+        config = dict_to_config({"settings": {}})
+        assert config.settings.strict_mode is True
+        assert config.settings.auto_update is True
+
+    def test_settings_loaded_from_yaml_file(self, tmp_path: Path) -> None:
+        config_file = tmp_path / ".lucidshark.yml"
+        config_file.write_text("settings:\n  auto_update: false\n")
+        config = load_config(tmp_path)
+        assert config.settings.auto_update is False
+
+    def test_settings_from_yaml_with_strict_mode(self, tmp_path: Path) -> None:
+        config_file = tmp_path / ".lucidshark.yml"
+        config_file.write_text("settings:\n  strict_mode: false\n  auto_update: true\n")
+        config = load_config(tmp_path)
+        assert config.settings.strict_mode is False
+        assert config.settings.auto_update is True
