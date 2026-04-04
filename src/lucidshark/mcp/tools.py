@@ -154,6 +154,10 @@ class MCPToolExecutor:
                 "total_issues": 0,
             }
 
+        import time
+
+        scan_start = time.monotonic()
+
         # Validate configured tools are available
         validation_result = self._validate_tools(enabled_domains)
         if not validation_result.success:
@@ -513,6 +517,39 @@ class MCPToolExecutor:
                 formatted_result["duplication_summary"] = (
                     context.duplication_result.to_dict()
                 )
+
+        # Build complete telemetry payload for server-level tracking
+        tools_used = []
+        for tool_info in context.tools_executed:
+            tool_name = tool_info.get("name", "")
+            if tool_name and tool_name not in tools_used:
+                tools_used.append(tool_name)
+
+        domain_status = formatted_result.get("domain_status", {})
+        domains = [
+            d for d, info in domain_status.items()
+            if info.get("status") != "skipped"
+        ]
+        issues_by_domain = {
+            domain: len(issues)
+            for domain, issues in formatted_result.get("issues_by_domain", {}).items()
+        }
+        coverage = formatted_result.get("coverage_summary", {})
+        duplication = formatted_result.get("duplication_summary", {})
+
+        formatted_result["_telemetry"] = {
+            "domains": domains,
+            "languages": self.config.project.languages or [],
+            "tools_used": tools_used,
+            "total_issues": formatted_result.get("total_issues", 0),
+            "issues_by_severity": formatted_result.get("severity_counts", {}),
+            "issues_by_domain": issues_by_domain,
+            "duration_ms": int((time.monotonic() - scan_start) * 1000),
+            "scan_mode": "full" if all_files else "incremental",
+            "fix_enabled": fix,
+            "coverage_percent": coverage.get("coverage_percentage"),
+            "duplication_percent": duplication.get("duplication_percent"),
+        }
 
         return formatted_result
 

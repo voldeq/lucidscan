@@ -206,6 +206,22 @@ class TestTrackCommand:
         call_kwargs = mock_client.capture.call_args
         assert call_kwargs.kwargs["event"] == "command_executed"
         assert call_kwargs.kwargs["properties"]["command"] == "scan"
+        assert call_kwargs.kwargs["properties"]["source"] == "cli"
+
+    def test_tracks_command_with_mcp_source(self, monkeypatch, tmp_path):
+        monkeypatch.delenv("LUCIDSHARK_TELEMETRY", raising=False)
+        monkeypatch.delenv("DO_NOT_TRACK", raising=False)
+        monkeypatch.delenv("CI", raising=False)
+        monkeypatch.setattr(telemetry, "_get_lucidshark_dir", lambda: tmp_path)
+
+        mock_client = MagicMock()
+        monkeypatch.setattr(telemetry, "_get_client", lambda: mock_client)
+
+        telemetry.track_command("mcp_scan", source="mcp")
+
+        call_kwargs = mock_client.capture.call_args
+        assert call_kwargs.kwargs["properties"]["command"] == "mcp_scan"
+        assert call_kwargs.kwargs["properties"]["source"] == "mcp"
 
 
 class TestTrackScanCompleted:
@@ -238,6 +254,7 @@ class TestTrackScanCompleted:
         mock_client.capture.assert_called_once()
         props = mock_client.capture.call_args.kwargs["properties"]
 
+        assert props["source"] == "cli"
         assert props["domains"] == ["linting", "sast"]
         assert props["domain_count"] == 2
         assert props["languages"] == ["python", "typescript"]
@@ -282,6 +299,33 @@ class TestTrackScanCompleted:
         props = mock_client.capture.call_args.kwargs["properties"]
         assert "coverage_percent" not in props
         assert "duplication_percent" not in props
+
+    def test_tracks_scan_with_mcp_source(self, monkeypatch, tmp_path):
+        monkeypatch.delenv("LUCIDSHARK_TELEMETRY", raising=False)
+        monkeypatch.delenv("DO_NOT_TRACK", raising=False)
+        monkeypatch.delenv("CI", raising=False)
+        monkeypatch.setattr(telemetry, "_get_lucidshark_dir", lambda: tmp_path)
+
+        mock_client = MagicMock()
+        monkeypatch.setattr(telemetry, "_get_client", lambda: mock_client)
+
+        telemetry.track_scan_completed(
+            domains=["linting"],
+            languages=["python"],
+            tools_used=["ruff"],
+            total_issues=5,
+            issues_by_severity={"low": 5},
+            issues_by_domain={"linting": 5},
+            duration_ms=1000,
+            scan_mode="incremental",
+            output_format="mcp",
+            fix_enabled=False,
+            source="mcp",
+        )
+
+        props = mock_client.capture.call_args.kwargs["properties"]
+        assert props["source"] == "mcp"
+        assert props["output_format"] == "mcp"
 
 
 class TestReset:

@@ -209,13 +209,14 @@ def track_event(event_name: str, properties: Optional[Dict[str, Any]] = None) ->
         LOGGER.debug("Failed to send telemetry event", exc_info=True)
 
 
-def track_command(command_name: str) -> None:
+def track_command(command_name: str, source: str = "cli") -> None:
     """Track a CLI command execution.
 
     Args:
         command_name: The command that was run (scan, init, doctor, etc.).
+        source: Where the command originated ("cli" or "mcp").
     """
-    track_event("command_executed", {"command": command_name})
+    track_event("command_executed", {"command": command_name, "source": source})
 
 
 def track_scan_completed(
@@ -231,6 +232,7 @@ def track_scan_completed(
     fix_enabled: bool,
     coverage_percent: Optional[float] = None,
     duplication_percent: Optional[float] = None,
+    source: str = "cli",
 ) -> None:
     """Track a completed scan with anonymous metadata.
 
@@ -251,6 +253,7 @@ def track_scan_completed(
         duplication_percent: Duplication percentage if duplication was run.
     """
     properties: Dict[str, Any] = {
+        "source": source,
         "domains": sorted(domains),
         "domain_count": len(domains),
         "languages": sorted(languages),
