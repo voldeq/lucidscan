@@ -50,9 +50,9 @@ def load_template(language: str) -> Optional[Dict[str, Any]]:
 
     # Try importlib.resources (works for pip install and PyInstaller)
     try:
-        from importlib.resources import (
+        from importlib.resources import (  # nosemgrep: python.lang.compatibility.python37.python37-compatibility-importlib2
             files,
-        )  # nosemgrep: python37-compatibility-importlib2
+        )
 
         data_dir = files("lucidshark").joinpath(f"data/templates/{filename}")
         content = data_dir.read_text(encoding="utf-8")
