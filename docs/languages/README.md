@@ -29,15 +29,16 @@ LucidShark auto-detects languages in your project by scanning for file extension
 
 ## Configuration
 
-Detected languages are listed in `lucidshark.yml` under the `project` section:
+`lucidshark init` auto-detects languages and generates `lucidshark.yml` with all supported tools enabled. Detected languages are listed under the `project` section:
 
 ```yaml
 version: 1
 project:
+  name: my-project
   languages: [python, typescript]
 ```
 
-You can override auto-detection by specifying languages explicitly.
+You can override auto-detection by editing `lucidshark.yml` directly, or use the `autoconfigure` MCP tool for AI-assisted customization.
 
 ## See Also
 

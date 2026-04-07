@@ -147,9 +147,7 @@ class DotnetTestRunner(TestRunnerPlugin):
             return trx_result
 
         # Fall back to parsing console output
-        return self._parse_console_output(
-            stdout + "\n" + stderr, context.project_root
-        )
+        return self._parse_console_output(stdout + "\n" + stderr, context.project_root)
 
     def _parse_trx_reports(
         self, results_dir: Path, project_root: Path
@@ -166,7 +164,9 @@ class DotnetTestRunner(TestRunnerPlugin):
         if not results_dir.exists():
             return None
 
-        trx_files = sorted(results_dir.glob("**/*.trx"), key=lambda p: p.stat().st_mtime)
+        trx_files = sorted(
+            results_dir.glob("**/*.trx"), key=lambda p: p.stat().st_mtime
+        )
         if not trx_files:
             return None
 
@@ -196,9 +196,7 @@ class DotnetTestRunner(TestRunnerPlugin):
             tool="dotnet_test",
         )
 
-    def _parse_single_trx(
-        self, trx_file: Path, project_root: Path
-    ) -> TestResult:
+    def _parse_single_trx(self, trx_file: Path, project_root: Path) -> TestResult:
         """Parse a single TRX report file.
 
         Args:
@@ -235,9 +233,11 @@ class DotnetTestRunner(TestRunnerPlugin):
         issues: List[UnifiedIssue] = []
         results = list(root.findall(".//trx:UnitTestResult", TRX_NS))
         if not results:
-            results = list(root.findall(
-                ".//{http://microsoft.com/schemas/VisualStudio/TeamTest/2010}UnitTestResult"
-            ))
+            results = list(
+                root.findall(
+                    ".//{http://microsoft.com/schemas/VisualStudio/TeamTest/2010}UnitTestResult"
+                )
+            )
 
         for test_result in results:
             outcome = test_result.get("outcome", "")
@@ -312,9 +312,7 @@ class DotnetTestRunner(TestRunnerPlugin):
                         stack_trace = trace_elem.text.strip()
 
             # Extract file path and line number from stack trace
-            file_path, line_number = self._extract_location(
-                stack_trace, project_root
-            )
+            file_path, line_number = self._extract_location(stack_trace, project_root)
 
             short_msg = self._truncate(message, 80)
             title = f"{test_name}: {short_msg}"
@@ -371,9 +369,7 @@ class DotnetTestRunner(TestRunnerPlugin):
 
         return None, None
 
-    def _parse_console_output(
-        self, output: str, project_root: Path
-    ) -> TestResult:
+    def _parse_console_output(self, output: str, project_root: Path) -> TestResult:
         """Parse dotnet test console output as fallback.
 
         Args:
@@ -411,16 +407,10 @@ class DotnetTestRunner(TestRunnerPlugin):
             test_name = match.group(1)
             failure_text = match.group(2).strip()
 
-            file_path, line_number = self._extract_location(
-                failure_text, project_root
-            )
+            file_path, line_number = self._extract_location(failure_text, project_root)
 
             short_msg = self._truncate(failure_text, 80)
-            title = (
-                f"{test_name}: {short_msg}"
-                if short_msg
-                else f"{test_name} FAILED"
-            )
+            title = f"{test_name}: {short_msg}" if short_msg else f"{test_name} FAILED"
 
             issue_id = self._generate_issue_id(test_name, failure_text)
 

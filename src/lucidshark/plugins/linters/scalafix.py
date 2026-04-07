@@ -336,9 +336,7 @@ class ScalafixLinter(LinterPlugin):
             },
         )
 
-    def _generate_issue_id(
-        self, rule: str, file: str, line: int, message: str
-    ) -> str:
+    def _generate_issue_id(self, rule: str, file: str, line: int, message: str) -> str:
         content = f"{rule}:{file}:{line}:{message}"
         hash_val = hashlib.sha256(content.encode()).hexdigest()[:12]
         return f"scalafix-{hash_val}"

@@ -1,0 +1,56 @@
+# Java language template - all supported tools, all domains enabled
+pipeline:
+  linting:
+    enabled: true
+    tools:
+      - name: checkstyle
+      - name: pmd
+
+  type_checking:
+    enabled: true
+    tools:
+      - name: spotbugs
+
+  security:
+    enabled: true
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: opengrep
+        domains: [sast]
+      - name: checkov
+        domains: [iac]
+
+  testing:
+    enabled: true
+    tools:
+      - name: maven
+
+  coverage:
+    enabled: true
+    tools:
+      - name: jacoco
+    threshold: 80
+
+  duplication:
+    enabled: true
+    tools:
+      - name: duplo
+    threshold: 5.0
+    min_lines: 7
+
+fail_on:
+  linting: error
+  type_checking: error
+  security: high
+  testing: any
+  coverage: below_threshold
+  duplication: above_threshold
+
+exclude:
+  - "**/.git/**"
+  - "**/target/**"
+  - "**/build/**"
+  - "**/.gradle/**"
+  - "**/.idea/**"
+  - "**/*.class"

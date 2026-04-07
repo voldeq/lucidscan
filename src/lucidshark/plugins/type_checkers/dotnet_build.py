@@ -147,9 +147,7 @@ class DotnetBuildChecker(TypeCheckerPlugin):
         LOGGER.info(f"dotnet build found {len(issues)} issues")
         return issues
 
-    def _parse_output(
-        self, output: str, project_root: Path
-    ) -> List[UnifiedIssue]:
+    def _parse_output(self, output: str, project_root: Path) -> List[UnifiedIssue]:
         """Parse dotnet build MSBuild diagnostic output.
 
         MSBuild outputs diagnostics in the format:
@@ -195,7 +193,9 @@ class DotnetBuildChecker(TypeCheckerPlugin):
 
             severity = self._get_severity(code, level)
 
-            content = f"dotnet_build:{code}:{file_str}:{line_num}:{col_num}:{message.strip()}"
+            content = (
+                f"dotnet_build:{code}:{file_str}:{line_num}:{col_num}:{message.strip()}"
+            )
             hash_val = hashlib.sha256(content.encode()).hexdigest()[:12]
             issue_id = f"dotnet-build-{hash_val}"
 

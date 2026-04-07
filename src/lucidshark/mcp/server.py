@@ -232,9 +232,9 @@ class LucidSharkMCPServer:
                 Tool(
                     name="autoconfigure",
                     description=(
-                        "Generate lucidshark.yml configuration for this project. "
-                        "⚠️ IMPORTANT: This is NOT `lucidshark init` (which sets up Claude Code integration). "
-                        "This tool generates the lucidshark.yml file that configures which scanners to use. "
+                        "AI-assisted customization of lucidshark.yml configuration. "
+                        "⚠️ NOTE: `lucidshark init` already generates lucidshark.yml with all supported tools "
+                        "for detected languages. Use this tool only for advanced customization. "
                         "⚠️ CRITICAL: ONLY use tools from the 'Complete List of Supported Tools' in get_help(). "
                         "NEVER hallucinate or invent tool names. Unsupported tools cause validation errors. "
                         "Call this MCP tool to get step-by-step instructions, then: "
@@ -388,5 +388,3 @@ class LucidSharkMCPServer:
                 write_stream,
                 self.server.create_initialization_options(),
             )
-
-

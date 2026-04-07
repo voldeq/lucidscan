@@ -138,6 +138,7 @@ def apply_ignore_issues(
         if rule_id not in matched_rule_ids:
             # Check if this looks like an internal LucidShark ID (tool-hash pattern)
             import re
+
             if re.match(r"^[a-z]+-[0-9a-f]{16}$", rule_id):
                 warnings.append(
                     f"ignore_issues entry for '{rule_id}' did not match any issues. "

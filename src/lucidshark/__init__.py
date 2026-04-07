@@ -7,4 +7,4 @@ subpackages such as `core`, `schema`, and `scanners`.
 
 __all__ = ["__version__"]
 
-__version__ = "0.7.5"
+__version__ = "0.7.6"

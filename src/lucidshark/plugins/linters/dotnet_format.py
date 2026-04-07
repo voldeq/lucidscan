@@ -172,9 +172,7 @@ class DotnetFormatLinter(LinterPlugin):
 
         return self._calculate_fix_stats(pre_issues, post_issues)
 
-    def _parse_output(
-        self, output: str, project_root: Path
-    ) -> List[UnifiedIssue]:
+    def _parse_output(self, output: str, project_root: Path) -> List[UnifiedIssue]:
         """Parse dotnet format diagnostic output.
 
         Args:

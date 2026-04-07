@@ -1049,3 +1049,150 @@ class TestMcpArgsCompatibility:
 
         # Verify the args follow the pattern: ["serve", "--mcp", "."]
         assert LUCIDSHARK_MCP_ARGS == ["serve", "--mcp", "."]
+
+
+class TestConfigGeneration:
+    """Tests for lucidshark.yml generation in init command."""
+
+    def _make_args(
+        self,
+        dry_run: bool = False,
+        force: bool = False,
+        remove: bool = False,
+        no_config: bool = False,
+    ) -> Namespace:
+        return Namespace(
+            dry_run=dry_run,
+            force=force,
+            remove=remove,
+            no_config=no_config,
+        )
+
+    def test_init_generates_config_by_default(self, tmp_path: Path, capsys) -> None:
+        """Init generates lucidshark.yml when no config exists."""
+        # Create a Python marker file so detection finds something
+        (tmp_path / "pyproject.toml").write_text("[project]\nname = 'test'\n")
+        (tmp_path / "main.py").write_text("print('hello')\n")
+
+        cmd = InitCommand(version="1.0.0")
+        config_path = tmp_path / ".mcp.json"
+        args = self._make_args()
+
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch.object(
+                cmd, "_get_claude_code_config_path", return_value=config_path
+            ):
+                exit_code = cmd.execute(args)
+
+        assert exit_code == EXIT_SUCCESS
+        assert (tmp_path / "lucidshark.yml").exists()
+
+        captured = capsys.readouterr()
+        assert "Generating lucidshark.yml" in captured.out
+
+    def test_init_skips_config_if_exists(self, tmp_path: Path, capsys) -> None:
+        """Init skips config generation when lucidshark.yml exists."""
+        (tmp_path / "pyproject.toml").write_text("[project]\nname = 'test'\n")
+        (tmp_path / "lucidshark.yml").write_text("version: 1\n")
+
+        cmd = InitCommand(version="1.0.0")
+        config_path = tmp_path / ".mcp.json"
+        args = self._make_args()
+
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch.object(
+                cmd, "_get_claude_code_config_path", return_value=config_path
+            ):
+                cmd.execute(args)
+
+        captured = capsys.readouterr()
+        assert "already exists" in captured.out
+
+        # File should still have original content
+        assert (tmp_path / "lucidshark.yml").read_text() == "version: 1\n"
+
+    def test_init_force_overwrites_config(self, tmp_path: Path, capsys) -> None:
+        """Init with --force regenerates lucidshark.yml."""
+        (tmp_path / "pyproject.toml").write_text("[project]\nname = 'test'\n")
+        (tmp_path / "main.py").write_text("print('hello')\n")
+        (tmp_path / "lucidshark.yml").write_text("version: 1\n")
+
+        cmd = InitCommand(version="1.0.0")
+        config_path = tmp_path / ".mcp.json"
+        args = self._make_args(force=True)
+
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch.object(
+                cmd, "_get_claude_code_config_path", return_value=config_path
+            ):
+                cmd.execute(args)
+
+        # File should have been regenerated with full config
+        content = (tmp_path / "lucidshark.yml").read_text()
+        assert "pipeline" in content
+
+    def test_init_no_config_flag_skips_generation(self, tmp_path: Path, capsys) -> None:
+        """Init with --no-config skips config generation."""
+        (tmp_path / "pyproject.toml").write_text("[project]\nname = 'test'\n")
+
+        cmd = InitCommand(version="1.0.0")
+        config_path = tmp_path / ".mcp.json"
+        args = self._make_args(no_config=True)
+
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch.object(
+                cmd, "_get_claude_code_config_path", return_value=config_path
+            ):
+                cmd.execute(args)
+
+        assert not (tmp_path / "lucidshark.yml").exists()
+
+    def test_init_dry_run_does_not_write_config(self, tmp_path: Path, capsys) -> None:
+        """Init with --dry-run does not write lucidshark.yml."""
+        (tmp_path / "pyproject.toml").write_text("[project]\nname = 'test'\n")
+        (tmp_path / "main.py").write_text("print('hello')\n")
+
+        cmd = InitCommand(version="1.0.0")
+        config_path = tmp_path / ".mcp.json"
+        args = self._make_args(dry_run=True)
+
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch.object(
+                cmd, "_get_claude_code_config_path", return_value=config_path
+            ):
+                cmd.execute(args)
+
+        assert not (tmp_path / "lucidshark.yml").exists()
+
+    def test_init_no_languages_skips_config(self, tmp_path: Path, capsys) -> None:
+        """Init skips config when no languages detected."""
+        # Empty directory — no language markers
+        cmd = InitCommand(version="1.0.0")
+        config_path = tmp_path / ".mcp.json"
+        args = self._make_args()
+
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch.object(
+                cmd, "_get_claude_code_config_path", return_value=config_path
+            ):
+                cmd.execute(args)
+
+        assert not (tmp_path / "lucidshark.yml").exists()
+        captured = capsys.readouterr()
+        assert "No supported languages" in captured.out
+
+    def test_init_remove_does_not_generate_config(self, tmp_path: Path, capsys) -> None:
+        """Init with --remove does not generate config."""
+        (tmp_path / "pyproject.toml").write_text("[project]\nname = 'test'\n")
+
+        cmd = InitCommand(version="1.0.0")
+        config_path = tmp_path / ".mcp.json"
+        args = self._make_args(remove=True)
+
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch.object(
+                cmd, "_get_claude_code_config_path", return_value=config_path
+            ):
+                cmd.execute(args)
+
+        assert not (tmp_path / "lucidshark.yml").exists()

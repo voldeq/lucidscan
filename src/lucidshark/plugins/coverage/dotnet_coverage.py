@@ -174,9 +174,7 @@ class DotnetCoveragePlugin(CoveragePlugin):
 
             lines = class_elem.findall(".//line")
             file_total = len(lines)
-            file_covered = sum(
-                1 for ln in lines if int(ln.get("hits", "0")) > 0
-            )
+            file_covered = sum(1 for ln in lines if int(ln.get("hits", "0")) > 0)
 
             # Collect missing lines
             missing_lines = [

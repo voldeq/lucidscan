@@ -111,9 +111,7 @@ class SbtTestRunner(TestRunnerPlugin):
         """Return the tool label for a given build system."""
         return build_system
 
-    def _run_sbt_tests(
-        self, binary: Path, context: ScanContext
-    ) -> TestResult:
+    def _run_sbt_tests(self, binary: Path, context: ScanContext) -> TestResult:
         """Run tests using sbt."""
         cmd = [str(binary), "--no-colors", "test"]
 
@@ -143,9 +141,7 @@ class SbtTestRunner(TestRunnerPlugin):
         # Parse JUnit XML reports from sbt's test-reports directory
         return self._parse_sbt_reports(context.project_root, tool_name="sbt")
 
-    def _run_maven_tests(
-        self, binary: Path, context: ScanContext
-    ) -> TestResult:
+    def _run_maven_tests(self, binary: Path, context: ScanContext) -> TestResult:
         """Run tests using Maven with JaCoCo/Scoverage coverage."""
         cmd = [str(binary), "test", "-B"]
 
@@ -173,9 +169,7 @@ class SbtTestRunner(TestRunnerPlugin):
 
         return self._parse_surefire_reports(context.project_root, tool_name="maven")
 
-    def _run_gradle_tests(
-        self, binary: Path, context: ScanContext
-    ) -> TestResult:
+    def _run_gradle_tests(self, binary: Path, context: ScanContext) -> TestResult:
         """Run tests using Gradle."""
         cmd = [str(binary), "test", "--no-daemon"]
 

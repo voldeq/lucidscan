@@ -895,9 +895,7 @@ class ScanCommand(Command):
         except (OSError, TypeError) as e:
             LOGGER.debug(f"Could not save scan cache: {e}")
 
-    def _track_telemetry(
-        self, config: LucidSharkConfig, result: ScanResult
-    ) -> None:
+    def _track_telemetry(self, config: LucidSharkConfig, result: ScanResult) -> None:
         """Send anonymous telemetry for the completed scan.
 
         Passes config and ScanResult directly — the same objects that

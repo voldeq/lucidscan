@@ -238,8 +238,12 @@ class KtlintLinter(LinterPlugin):
         if context.paths:
             search_dirs = list(context.paths)
         else:
-            for src_dir in ["src/main/kotlin", "src/test/kotlin",
-                            "src/main/java", "src/test/java"]:
+            for src_dir in [
+                "src/main/kotlin",
+                "src/test/kotlin",
+                "src/main/java",
+                "src/test/java",
+            ]:
                 src_path = context.project_root / src_dir
                 if src_path.exists():
                     search_dirs.append(src_path)
@@ -325,7 +329,9 @@ class KtlintLinter(LinterPlugin):
             if not path.is_absolute():
                 path = project_root / path
 
-            issue_id = self._generate_issue_id(rule, file_path_str, line, column, message)
+            issue_id = self._generate_issue_id(
+                rule, file_path_str, line, column, message
+            )
 
             return UnifiedIssue(
                 id=issue_id,

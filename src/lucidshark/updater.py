@@ -33,9 +33,7 @@ LOGGER = get_logger(__name__)
 
 # GitHub release API endpoint
 GITHUB_REPO = "toniantunovi/lucidshark"
-GITHUB_API_LATEST = (
-    f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-)
+GITHUB_API_LATEST = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
 # Cache settings
 CHECK_INTERVAL_SECONDS = 86400  # 24 hours
@@ -350,9 +348,7 @@ def _fetch_and_stage_update(cache_dir: Path, current_version: str) -> bool:
         except Exception:
             pass
 
-    return download_pending_update(
-        cache_dir, result["download_url"], result["version"]
-    )
+    return download_pending_update(cache_dir, result["download_url"], result["version"])
 
 
 def background_update_check(cache_dir: Path, current_version: str) -> None:

@@ -22,6 +22,7 @@ a = Analysis(
         ('src/lucidshark/data/pmd-ruleset.xml', 'lucidshark/data'),
         ('src/lucidshark/data/checkstyle-google.xml', 'lucidshark/data'),
         ('src/lucidshark/data/spotbugs-exclude.xml', 'lucidshark/data'),
+        ('src/lucidshark/data/templates/*.yml', 'lucidshark/data/templates'),
     ],
     hiddenimports=[
         # Core modules

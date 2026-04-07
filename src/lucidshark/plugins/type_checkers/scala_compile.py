@@ -196,21 +196,13 @@ class ScalaCompileChecker(TypeCheckerPlugin):
         # Also handles: /path/File.scala:10: error: message (scalac direct)
         patterns = [
             # sbt format: [error] file:line:col: message
-            re.compile(
-                r"\[(error|warn(?:ing)?)\]\s+(.+?\.scala):(\d+):(\d+):\s*(.*)"
-            ),
+            re.compile(r"\[(error|warn(?:ing)?)\]\s+(.+?\.scala):(\d+):(\d+):\s*(.*)"),
             # sbt format: [error] file:line: message
-            re.compile(
-                r"\[(error|warn(?:ing)?)\]\s+(.+?\.scala):(\d+):\s*(.*)"
-            ),
+            re.compile(r"\[(error|warn(?:ing)?)\]\s+(.+?\.scala):(\d+):\s*(.*)"),
             # scalac direct: file:line: error: message
-            re.compile(
-                r"(.+?\.scala):(\d+):(\d+):\s*(error|warning):\s*(.*)"
-            ),
+            re.compile(r"(.+?\.scala):(\d+):(\d+):\s*(error|warning):\s*(.*)"),
             # scalac direct without column: file:line: error: message
-            re.compile(
-                r"(.+?\.scala):(\d+):\s*(error|warning):\s*(.*)"
-            ),
+            re.compile(r"(.+?\.scala):(\d+):\s*(error|warning):\s*(.*)"),
         ]
 
         for line in output.splitlines():
@@ -251,7 +243,12 @@ class ScalaCompileChecker(TypeCheckerPlugin):
                         message = match.group(4)
 
                     issue = self._create_issue(
-                        file_path_str, line_num, col_num, severity_str, message, project_root
+                        file_path_str,
+                        line_num,
+                        col_num,
+                        severity_str,
+                        message,
+                        project_root,
                     )
                     if issue:
                         issues.append(issue)

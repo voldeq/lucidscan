@@ -21,7 +21,13 @@ LOGGER = get_logger(__name__)
 C_EXTENSIONS = {".c", ".h"}
 
 # Marker files that indicate a C project.
-C_MARKER_FILES = ("CMakeLists.txt", "Makefile", "makefile", "GNUmakefile", "meson.build")
+C_MARKER_FILES = (
+    "CMakeLists.txt",
+    "Makefile",
+    "makefile",
+    "GNUmakefile",
+    "meson.build",
+)
 
 
 def find_clang_tidy() -> Path:

@@ -164,9 +164,7 @@ class SwiftTestRunner(TestRunnerPlugin):
 
         # Assertion failure pattern (appears before the failed test case line):
         #   /path/File.swift:25: XCTAssertEqual failed: ("1") is not equal to ("0")
-        assertion_pattern = re.compile(
-            r".+\.swift:\d+:\s+(XCT\w+ failed:.+?)$"
-        )
+        assertion_pattern = re.compile(r".+\.swift:\d+:\s+(XCT\w+ failed:.+?)$")
 
         pending_assertions: List[str] = []
 
@@ -184,7 +182,11 @@ class SwiftTestRunner(TestRunnerPlugin):
 
             if fail_match:
                 test_name = fail_match.group(1)
-                message = "; ".join(pending_assertions) if pending_assertions else "Test failed"
+                message = (
+                    "; ".join(pending_assertions)
+                    if pending_assertions
+                    else "Test failed"
+                )
                 failed_tests.append((test_name, message))
                 pending_assertions = []
 

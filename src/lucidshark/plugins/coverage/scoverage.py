@@ -105,7 +105,9 @@ class ScoveragePlugin(CoveragePlugin):
             return result
 
         LOGGER.info(f"Using existing Scoverage report: {report_file}")
-        return self._parse_scoverage_report(report_file, context.project_root, threshold, context)
+        return self._parse_scoverage_report(
+            report_file, context.project_root, threshold, context
+        )
 
     def _find_scoverage_report(
         self, project_root: Path, build_system: str
@@ -130,26 +132,38 @@ class ScoveragePlugin(CoveragePlugin):
                         report_paths.append(
                             child / "scoverage-report" / "scoverage.xml"
                         )
-                        report_paths.append(
-                            child / "coverage-report" / "cobertura.xml"
-                        )
+                        report_paths.append(child / "coverage-report" / "cobertura.xml")
 
-            report_paths.extend([
-                project_root / "target" / "scoverage-report" / "scoverage.xml",
-                project_root / "target" / "scala-2.13" / "scoverage-report" / "scoverage.xml",
-                project_root / "target" / "scala-3" / "scoverage-report" / "scoverage.xml",
-            ])
+            report_paths.extend(
+                [
+                    project_root / "target" / "scoverage-report" / "scoverage.xml",
+                    project_root
+                    / "target"
+                    / "scala-2.13"
+                    / "scoverage-report"
+                    / "scoverage.xml",
+                    project_root
+                    / "target"
+                    / "scala-3"
+                    / "scoverage-report"
+                    / "scoverage.xml",
+                ]
+            )
 
         elif build_system == "maven":
-            report_paths.extend([
-                project_root / "target" / "scoverage.xml",
-                project_root / "target" / "site" / "scoverage" / "scoverage.xml",
-            ])
+            report_paths.extend(
+                [
+                    project_root / "target" / "scoverage.xml",
+                    project_root / "target" / "site" / "scoverage" / "scoverage.xml",
+                ]
+            )
 
         else:  # gradle
-            report_paths.extend([
-                project_root / "build" / "reports" / "scoverage" / "scoverage.xml",
-            ])
+            report_paths.extend(
+                [
+                    project_root / "build" / "reports" / "scoverage" / "scoverage.xml",
+                ]
+            )
 
         for path in report_paths:
             if path.exists():
@@ -200,7 +214,6 @@ class ScoveragePlugin(CoveragePlugin):
         # Extract totals from root element
         total_statements = int(root.get("statement-count", 0))
         invoked_statements = int(root.get("statements-invoked", 0))
-        statement_rate = float(root.get("statement-rate", 0))
 
         result = CoverageResult(
             total_lines=total_statements,

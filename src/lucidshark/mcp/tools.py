@@ -729,11 +729,14 @@ class MCPToolExecutor:
         }
 
     async def autoconfigure(self) -> Dict[str, Any]:
-        """Get instructions for auto-configuring LucidShark.
+        """Get instructions for AI-assisted customization of lucidshark.yml.
+
+        Note: `lucidshark init` generates lucidshark.yml automatically with
+        all supported tools for detected languages. This tool is for advanced
+        customization beyond the defaults.
 
         Returns guidance for AI to analyze the codebase, ask the user
-        important configuration questions, and generate an appropriate
-        lucidshark.yml configuration file.
+        important configuration questions, and regenerate lucidshark.yml.
 
         Returns:
             Instructions and guidance for configuration generation.
@@ -871,8 +874,8 @@ class MCPToolExecutor:
                             ),
                             "example_pyproject_toml": (
                                 "[tool.coverage.run]\n"
-                                "source = [\"src\"]\n"
-                                "omit = [\"tests/*\", \"*/migrations/*\"]\n"
+                                'source = ["src"]\n'
+                                'omit = ["tests/*", "*/migrations/*"]\n'
                             ),
                             "required_packages": "pip install coverage pytest-cov",
                         },
@@ -998,7 +1001,7 @@ class MCPToolExecutor:
                                 "  testing:\n"
                                 "    enabled: true\n"
                                 "    tools: [ctest]\n"
-                                "    post_command: \"lcov --capture --directory build --output-file coverage.info "
+                                '    post_command: "lcov --capture --directory build --output-file coverage.info '
                                 "&& lcov --remove coverage.info '/usr/*' --output-file coverage.info\"\n"
                                 "  coverage:\n"
                                 "    enabled: true\n"

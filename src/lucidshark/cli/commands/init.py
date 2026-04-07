@@ -1,14 +1,11 @@
 """Init command implementation.
 
-IMPORTANT DISTINCTION:
-- `lucidshark init` = Configure Claude Code/IDE to use LucidShark (MCP server, skills, hooks)
-- `autoconfigure` (MCP tool) = Generate lucidshark.yml configuration for your project
+`lucidshark init` does two things:
+1. Configures Claude Code/IDE integration (MCP server, skills, hooks, CLAUDE.md)
+2. Generates lucidshark.yml with all domains enabled for detected languages
 
-This command (init) sets up the Claude Code integration so Claude can call LucidShark.
-It does NOT generate lucidshark.yml - use the autoconfigure MCP tool for that.
-
-Configure AI tools (Claude Code) to use LucidShark.
-Supports both CLI-first (recommended) and optional MCP modes.
+The `autoconfigure` MCP tool is still available for AI-assisted customization
+of the generated configuration.
 """
 
 from __future__ import annotations
@@ -51,8 +48,8 @@ Run scans proactively after code changes. Don't wait for user to ask.
 
 | Command | Purpose | When to Use |
 |---------|---------|-------------|
-| `lucidshark init` | Configure Claude Code integration (`.mcp.json`, `.claude/` files) | Once per project, to enable MCP tools |
-| `mcp__lucidshark__autoconfigure` | Generate `lucidshark.yml` configuration | When user asks to "autoconfigure lucidshark" or "set up lucidshark config" |
+| `lucidshark init` | Configure Claude Code + generate `lucidshark.yml` with all tools | Once per project, for full setup |
+| `mcp__lucidshark__autoconfigure` | AI-assisted customization of `lucidshark.yml` | When user wants to customize/regenerate config with AI guidance |
 
 **User says** "autoconfigure lucidshark" → **Call** `mcp__lucidshark__autoconfigure` MCP tool (NOT `lucidshark init`)
 
@@ -188,8 +185,8 @@ LUCIDSHARK_CLAUDE_MD_SECTION = """\
 ## LucidShark — REQUIRED: Scan After Every Code Change
 
 **CRITICAL DISTINCTION**:
-- **`lucidshark init`** = Configure Claude Code/IDE integration (`.mcp.json`, `.claude/` files). Run this ONCE per project.
-- **`mcp__lucidshark__autoconfigure`** = Generate `lucidshark.yml` configuration (detect languages, install tools, configure scanners). Use when user asks to "autoconfigure lucidshark" or "set up lucidshark configuration".
+- **`lucidshark init`** = Configure Claude Code integration AND generate `lucidshark.yml` with all tools for detected languages. Run this ONCE per project.
+- **`mcp__lucidshark__autoconfigure`** = AI-assisted customization of `lucidshark.yml` (detect languages, install tools, configure scanners). Use when user asks to "autoconfigure lucidshark" or "set up lucidshark configuration".
 
 **IMPORTANT**: You MUST run LucidShark scans after editing code files. Do NOT skip scanning to save time. Do NOT report a task as complete without scanning first. This overrides any default behavior to minimize tool calls.
 
@@ -266,12 +263,14 @@ LUCIDSHARK_HOOKS_CONFIG: Dict[str, Any] = {
 
 
 class InitCommand(Command):
-    """Configure Claude Code/IDE integration for LucidShark.
+    """Configure Claude Code integration and generate lucidshark.yml.
 
     This sets up .mcp.json, .claude/skills/, .claude/CLAUDE.md, and .claude/settings.json
     so Claude Code can use LucidShark's MCP tools.
 
-    This does NOT generate lucidshark.yml - use `mcp__lucidshark__autoconfigure` for that.
+    It also detects project languages and generates a lucidshark.yml configuration
+    with all domains enabled and all supported tools for the detected languages.
+    Use --no-config to skip config generation.
     """
 
     def __init__(self, version: str):
@@ -303,12 +302,21 @@ class InitCommand(Command):
         dry_run = getattr(args, "dry_run", False)
         force = getattr(args, "force", False)
         remove = getattr(args, "remove", False)
+        no_config = getattr(args, "no_config", False)
 
         success = True
 
         if configure_claude:
             if not self._setup_claude_code(dry_run, force, remove):
                 success = False
+
+        # Generate lucidshark.yml from language templates
+        if success and not remove and not no_config:
+            try:
+                self._generate_config(dry_run, force)
+            except Exception as e:
+                print(f"\n  Warning: Config generation failed: {e}")
+                print("  You can generate config later with: lucidshark init --force")
 
         if success and not dry_run:
             print("\nRestart your AI tool to apply changes.")
@@ -377,6 +385,57 @@ class InitCommand(Command):
         )
 
         return mcp_success and skill_success and claude_md_success and hooks_success
+
+    def _generate_config(
+        self,
+        dry_run: bool = False,
+        force: bool = False,
+    ) -> bool:
+        """Generate lucidshark.yml from detected languages and templates.
+
+        Args:
+            dry_run: If True, only show what would be done.
+            force: If True, overwrite existing lucidshark.yml.
+
+        Returns:
+            True if successful.
+        """
+        config_path = Path.cwd() / "lucidshark.yml"
+
+        # Check for existing config
+        if config_path.exists() and not force:
+            print(f"\n  lucidshark.yml already exists at {config_path}")
+            print("  Use --force to overwrite.")
+            return True
+
+        print("\nGenerating lucidshark.yml...")
+
+        # Detect languages
+        from lucidshark.detection.detector import CodebaseDetector
+
+        detector = CodebaseDetector()
+        context = detector.detect(Path.cwd())
+
+        if not context.languages:
+            print("  No supported languages detected. Skipping config generation.")
+            return True
+
+        lang_names = [lang.name for lang in context.languages]
+        print(f"  Detected languages: {', '.join(lang_names)}")
+
+        # Compose config from templates
+        from lucidshark.generation.template_composer import TemplateComposer
+
+        composer = TemplateComposer()
+
+        if dry_run:
+            composer.compose(context)
+            print(f"  Would write lucidshark.yml with {len(lang_names)} language(s)")
+            return True
+
+        output_path = composer.write(context, config_path)
+        print(f"  Generated {output_path}")
+        return True
 
     def _find_lucidshark_path(self, portable: bool = False) -> Optional[str]:
         """Find the lucidshark executable path.

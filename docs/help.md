@@ -12,41 +12,16 @@ curl -fsSL https://raw.githubusercontent.com/toniantunovi/lucidshark/main/instal
 
 **Note:** LucidShark installs as a project-local `./lucidshark` binary. Always use `./lucidshark` to ensure you're running the project-specific version.
 
-### Recommended Setup (AI-Assisted)
+### Recommended Setup
 
 ```bash
-./lucidshark init  # Configure Claude Code
-# Restart Claude Code, then ask: "Autoconfigure LucidShark for this project"
+./lucidshark init  # Configures Claude Code AND generates lucidshark.yml
+# Restart Claude Code to apply changes
 ```
 
-```bash
-./lucidshark init  # Configure Claude Code
-# Restart Claude Code, then ask: "Autoconfigure LucidShark for this project"
-```
-
-Your AI assistant will analyze your codebase, ask a few questions, and generate `lucidshark.yml`.
+This single command detects your project's languages, generates a full `lucidshark.yml` with all supported tools enabled, and configures Claude Code integration. For advanced customization after initial setup, ask your AI assistant: "Autoconfigure LucidShark for this project".
 
 ### Run Scans
-
-```bash
-# Default: scan only changed files (uncommitted changes)
-./lucidshark scan --linting --type-checking
-
-# Full project scan (all domains, all files)
-./lucidshark scan --all --all-files
-
-# Run specific checks (on changed files by default)
-./lucidshark scan --linting        # Linting only
-./lucidshark scan --type-checking  # Type checking only
-./lucidshark scan --sca            # Dependency vulnerabilities (always project-wide)
-./lucidshark scan --sast           # Code security analysis
-
-# Auto-fix linting issues (on changed files)
-./lucidshark scan --linting --fix
-
-# PR/CI: filter results to files changed since branch
-./lucidshark scan --all --base-branch origin/main
-```
 
 ```bash
 # Default: scan only changed files (uncommitted changes)
@@ -85,24 +60,64 @@ These options are available for all commands:
 
 ### `lucidshark init` / `./lucidshark init`
 
-Configure Claude Code to use LucidShark via MCP.
+Configure Claude Code to use LucidShark via MCP **and** generate a `lucidshark.yml` configuration file with all domains enabled for the detected languages.
+
+This command does two things:
+1. **Configures Claude Code integration** — sets up `.mcp.json`, `.claude/skills/`, `.claude/CLAUDE.md`, and `.claude/settings.json`
+2. **Generates `lucidshark.yml`** — detects project languages, loads pre-built templates with all supported tools, and writes a complete configuration
 
 | Option | Description |
 |--------|-------------|
 | `--dry-run` | Show changes without applying |
-| `--force` | Overwrite existing configuration |
+| `--force` | Overwrite existing configuration (both Claude Code and `lucidshark.yml`) |
 | `--remove` | Remove LucidShark from tool configuration |
+| `--no-config` | Skip `lucidshark.yml` generation (only configure Claude Code integration) |
+
+**Config generation details:**
+- Detects languages by scanning file extensions and marker files (e.g., `pyproject.toml`, `package.json`, `Cargo.toml`)
+- Loads pre-built templates for each detected language with all supported tools enabled
+- Merges templates for multi-language projects (deduplicates tools and ignore patterns)
+- Skips generation if `lucidshark.yml` already exists (use `--force` to overwrite)
+- All domains are enabled: linting, type checking, formatting, security (SCA/SAST/IaC), testing, coverage, duplication
 
 **Examples:**
 ```bash
-# Pip install
+# Full setup: Claude Code + config generation
 ./lucidshark init
+
+# Remove LucidShark integration
 ./lucidshark init --remove
 
-# Binary install
-./lucidshark init
-./lucidshark init --remove
+# Only configure Claude Code, skip config generation
+./lucidshark init --no-config
+
+# Regenerate everything (overwrite existing)
+./lucidshark init --force
+
+# Preview changes without applying
+./lucidshark init --dry-run
 ```
+
+**Language templates and their tools:**
+
+| Language | Linting | Type Checking | Formatting | Testing | Coverage |
+|----------|---------|---------------|------------|---------|----------|
+| Python | ruff | mypy, pyright | ruff_format | pytest | coverage_py |
+| JavaScript | eslint, biome | — | prettier | jest, vitest, mocha, karma, playwright | istanbul, vitest_coverage |
+| TypeScript | eslint, biome | typescript | prettier | jest, vitest, mocha, karma, playwright | istanbul, vitest_coverage |
+| Go | golangci_lint | go_vet | gofmt | go_test | go_cover |
+| Rust | clippy | cargo_check | rustfmt | cargo | tarpaulin |
+| Java | checkstyle, pmd | spotbugs | — | maven | jacoco |
+| Kotlin | ktlint | detekt | ktlint_format | maven | jacoco |
+| C# | dotnet_format | dotnet_build | dotnet_format_whitespace | dotnet_test | dotnet_coverage |
+| C | clang_tidy | cppcheck | clang_format | ctest | gcov |
+| C++ | clang_tidy | cppcheck | clang_format | ctest | lcov |
+| Scala | scalafix | scala_compile | scalafmt | sbt | scoverage |
+| Swift | swiftlint | swift_compiler | swiftformat | swift_test | swift_coverage |
+| Ruby | rubocop | sorbet | rubocop_format | rspec | simplecov |
+| PHP | phpcs | phpstan | php_cs_fixer | phpunit | phpunit_coverage |
+
+All languages also include: security scanning (trivy for SCA, opengrep for SAST, checkov for IaC) and duplication detection (duplo). Go additionally includes gosec for Go-specific SAST.
 
 ### `lucidshark scan`
 
@@ -165,7 +180,6 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 
 **Examples:**
 ```bash
-# Pip install
 ./lucidshark scan --linting --type-checking              # Default: changed files only
 ./lucidshark scan --all --all-files                       # Full project scan
 ./lucidshark scan --linting --files src/main.py src/utils.py  # Specific files
@@ -174,17 +188,6 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 ./lucidshark scan --all --all-files --format sarif > results.sarif  # SARIF output
 ./lucidshark scan --container --image myapp:latest        # Container scanning
 ./lucidshark scan --all --stream                          # Stream output
-./lucidshark scan --testing --coverage --base-branch origin/main  # PR-based incremental
-
-# Binary install
-./lucidshark scan --linting --type-checking             # Default: changed files only
-./lucidshark scan --all --all-files                     # Full project scan
-./lucidshark scan --linting --files src/main.py src/utils.py  # Specific files
-./lucidshark scan --linting --fix                       # Lint with auto-fix
-./lucidshark scan --sca --sast --all-files --fail-on high  # Full security scan
-./lucidshark scan --all --all-files --format sarif > results.sarif  # SARIF output
-./lucidshark scan --container --image myapp:latest      # Container scanning
-./lucidshark scan --all --stream                        # Stream output
 ./lucidshark scan --testing --coverage --base-branch origin/main  # PR-based incremental
 ```
 
@@ -745,7 +748,9 @@ Get this documentation.
 
 ### `autoconfigure`
 
-**This is the primary way to set up LucidShark for a project.** Returns step-by-step instructions for analyzing the codebase, installing required tools, and generating `lucidshark.yml`. The AI analyzes the project, installs missing tools, asks 1-2 questions if needed, generates the configuration, validates it, and runs a verification scan.
+**AI-assisted customization of `lucidshark.yml`.** Use this after `lucidshark init` to refine the generated configuration. Returns step-by-step instructions for analyzing the codebase, installing required tools, and regenerating `lucidshark.yml` with customized settings. The AI analyzes the project, installs missing tools, asks 1-2 questions if needed, generates the configuration, validates it, and runs a verification scan.
+
+> **Note:** `lucidshark init` is the recommended primary setup command. It generates `lucidshark.yml` automatically with all supported tools for detected languages. Use `autoconfigure` only when you need AI-guided customization beyond the defaults.
 
 **Parameters:** None
 

@@ -259,10 +259,14 @@ def track_scan_completed(
             properties["executed_domains"] = sorted(result.metadata.executed_domains)
             properties["domain_count"] = len(result.metadata.executed_domains)
             properties["scanners_used"] = [
-                s.get("name", "") for s in result.metadata.scanners_used if s.get("name")
+                s.get("name", "")
+                for s in result.metadata.scanners_used
+                if s.get("name")
             ]
             properties["duration_ms"] = result.metadata.duration_ms
-            properties["scan_mode"] = "full" if result.metadata.all_files else "incremental"
+            properties["scan_mode"] = (
+                "full" if result.metadata.all_files else "incremental"
+            )
 
         # From summary (same as JSON reporter uses via asdict(result.summary))
         if result.summary:

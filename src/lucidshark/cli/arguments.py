@@ -1,7 +1,7 @@
 """Argument parser construction for lucidshark CLI.
 
 This module builds the argument parser with subcommands:
-- lucidshark init          - Configure AI tools (Claude Code)
+- lucidshark init          - Configure AI tools (Claude Code) + generate lucidshark.yml
 - lucidshark scan          - Run security/quality scans
 - lucidshark status        - Show configuration and tool status
 - lucidshark serve         - Run as MCP server or file watcher
@@ -46,10 +46,10 @@ def _build_init_parser(subparsers: argparse._SubParsersAction) -> None:
     """
     init_parser = subparsers.add_parser(
         "init",
-        help="Configure AI tools to use LucidShark.",
+        help="Configure AI tools and generate lucidshark.yml.",
         description=(
-            "Configure Claude Code or other MCP-compatible AI tools "
-            "to use LucidShark for code quality checks."
+            "Configure Claude Code integration and generate lucidshark.yml "
+            "with all domains enabled for detected languages."
         ),
     )
 
@@ -69,6 +69,11 @@ def _build_init_parser(subparsers: argparse._SubParsersAction) -> None:
         "--remove",
         action="store_true",
         help="Remove LucidShark from the specified tool's configuration.",
+    )
+    options_group.add_argument(
+        "--no-config",
+        action="store_true",
+        help="Skip generating lucidshark.yml (only configure Claude Code integration).",
     )
 
 

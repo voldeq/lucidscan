@@ -1,0 +1,61 @@
+# Go language template - all supported tools, all domains enabled
+pipeline:
+  linting:
+    enabled: true
+    tools:
+      - name: golangci_lint
+
+  formatting:
+    enabled: true
+    tools:
+      - name: gofmt
+
+  type_checking:
+    enabled: true
+    tools:
+      - name: go_vet
+
+  security:
+    enabled: true
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: opengrep
+        domains: [sast]
+      - name: gosec
+        domains: [sast]
+      - name: checkov
+        domains: [iac]
+
+  testing:
+    enabled: true
+    tools:
+      - name: go_test
+
+  coverage:
+    enabled: true
+    tools:
+      - name: go_cover
+    threshold: 80
+
+  duplication:
+    enabled: true
+    tools:
+      - name: duplo
+    threshold: 5.0
+    min_lines: 7
+
+fail_on:
+  linting: error
+  type_checking: error
+  security: high
+  testing: any
+  coverage: below_threshold
+  duplication: above_threshold
+  formatting: error
+
+exclude:
+  - "**/.git/**"
+  - "**/vendor/**"
+  - "**/dist/**"
+  - "**/build/**"

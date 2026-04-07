@@ -108,6 +108,10 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"lucidshark.data" = ["*.xml", "*.md"]
+"lucidshark.data.templates" = ["*.yml"]
+
 # Pytest configuration
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

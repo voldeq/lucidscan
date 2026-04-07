@@ -73,7 +73,9 @@ class GcovPlugin(CoveragePlugin):
             for info_name in ("coverage.info", "lcov.info"):
                 info_file = build_dir / info_name
                 if info_file.exists():
-                    LOGGER.info(f"Parsing C coverage data from {build_dir.name}/{info_name}...")
+                    LOGGER.info(
+                        f"Parsing C coverage data from {build_dir.name}/{info_name}..."
+                    )
                     return self._parse_lcov_info(
                         info_file, context.project_root, threshold
                     )

@@ -78,6 +78,7 @@ node_modules/
 
 # Task files
 # tasks.json
-# tasks/ 
+# tasks/
 
-lucidshark
+# Standalone binary (not the source package)
+/lucidshark

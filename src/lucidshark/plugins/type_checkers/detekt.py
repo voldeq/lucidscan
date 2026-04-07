@@ -183,9 +183,7 @@ class DetektChecker(TypeCheckerPlugin):
         config_file = self._find_config_file(context.project_root)
 
         # Build command
-        with tempfile.NamedTemporaryFile(
-            suffix=".xml", delete=False
-        ) as report_file:
+        with tempfile.NamedTemporaryFile(suffix=".xml", delete=False) as report_file:
             report_path = Path(report_file.name)
 
         try:
