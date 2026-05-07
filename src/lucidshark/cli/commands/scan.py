@@ -980,10 +980,16 @@ class ScanCommand(Command):
                 return domain_config.threshold_scope
             return "changed"
 
-        # Check each domain against its threshold
-        for domain_name, domain_issues in issues_by_domain.items():
+        # Iterate over every configured fail_on domain — not just domains
+        # with surviving issues. Coverage and duplication produce summary-only
+        # results whose threshold issue carries no file_path, so --base-branch
+        # filtering strips them and they would otherwise be skipped.
+        from lucidshark.config.models import VALID_FAIL_ON_DOMAINS
+
+        for domain_name in VALID_FAIL_ON_DOMAINS:
             threshold = config.get_fail_on_threshold(domain_name)
             if threshold:
+                domain_issues = issues_by_domain.get(domain_name, [])
                 # Get scope for this domain
                 scope = get_scope(domain_name)
 

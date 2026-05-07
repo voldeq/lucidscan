@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Security scanner telemetry tracking** — `DomainRunner.run_security()` now correctly tracks executed scanners, fixing missing tools in scan metadata
+- **Coverage/duplication thresholds silently skipped under `--base-branch`** — `_check_domain_thresholds` iterated only over domains with surviving issues, but the changed-files filter strips the summary-only `UnifiedIssue` (`file_path=None`) emitted for coverage-below-threshold and duplication breaches. Threshold checks now iterate over every configured `fail_on` domain, so `coverage: below_threshold` and `duplication: above_threshold` correctly fail PR scans.
 
 ## [0.7.1] - 2026-04-04
 

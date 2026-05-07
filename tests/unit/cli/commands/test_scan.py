@@ -835,6 +835,32 @@ class TestCheckDomainThresholds:
             result = ScanResult(issues=[issue])
             assert self._cmd()._check_domain_thresholds(result, config, args) is True
 
+    def test_coverage_below_threshold_fails_when_no_coverage_issue(self) -> None:
+        """Regression: --base-branch filtering strips the coverage UnifiedIssue
+        (file_path=None), but the coverage_summary.passed=False signal must
+        still drive the threshold check."""
+        config = _make_config(fail_on=FailOnConfig(coverage="below_threshold"))
+        # No issues at all — only the summary survived (mirrors what
+        # filter_issues_by_changed_files leaves behind for coverage).
+        result = ScanResult(issues=[])
+        result.coverage_summary = CoverageSummary(
+            coverage_percentage=51.8, threshold=80.0, passed=False
+        )
+        args = self._make_args(base_branch="origin/main")
+        assert self._cmd()._check_domain_thresholds(result, config, args) is True
+
+    def test_duplication_above_threshold_fails_when_no_duplication_issue(
+        self,
+    ) -> None:
+        """Same regression for duplication: summary-only signal must fail."""
+        config = _make_config(fail_on=FailOnConfig(duplication="above_threshold"))
+        result = ScanResult(issues=[])
+        result.duplication_summary = DuplicationSummary(
+            duplication_percent=15.0, threshold=10.0, passed=False
+        )
+        args = self._make_args(base_branch="origin/main")
+        assert self._cmd()._check_domain_thresholds(result, config, args) is True
+
 
 class TestDryRun:
     """Tests for _dry_run output and behavior."""
